@@ -1,0 +1,68 @@
+[0.011s] Invoking command in '/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_gazebo_sim': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/moveit_robot_control:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holoassist_unity_bridge:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holo_assist_depth_tracker_sim:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holo_assist_camera_calibration:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holo_assist_apriltag_identifier:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holo_assist_depth_tracker:/opt/ros/humble /usr/bin/cmake /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/src/ur3e_gazebo_sim -DCMAKE_INSTALL_PREFIX=/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim
+[0.089s] -- The C compiler identification is GNU 11.4.0
+[0.149s] -- The CXX compiler identification is GNU 11.4.0
+[0.158s] -- Detecting C compiler ABI info
+[0.215s] -- Detecting C compiler ABI info - done
+[0.219s] -- Check for working C compiler: /usr/bin/cc - skipped
+[0.219s] -- Detecting C compile features
+[0.220s] -- Detecting C compile features - done
+[0.222s] -- Detecting CXX compiler ABI info
+[0.282s] -- Detecting CXX compiler ABI info - done
+[0.289s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[0.289s] -- Detecting CXX compile features
+[0.290s] -- Detecting CXX compile features - done
+[0.293s] -- Found ament_cmake: 1.3.14 (/opt/ros/humble/share/ament_cmake/cmake)
+[0.404s] -- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+[0.520s] -- Configuring done
+[0.523s] -- Generating done
+[0.524s] -- Build files have been written to: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_gazebo_sim
+[0.528s] Invoked command in '/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_gazebo_sim' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/moveit_robot_control:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holoassist_unity_bridge:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holo_assist_depth_tracker_sim:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holo_assist_camera_calibration:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holo_assist_apriltag_identifier:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holo_assist_depth_tracker:/opt/ros/humble /usr/bin/cmake /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/src/ur3e_gazebo_sim -DCMAKE_INSTALL_PREFIX=/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim
+[0.530s] Invoking command in '/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_gazebo_sim': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/moveit_robot_control:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holoassist_unity_bridge:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holo_assist_depth_tracker_sim:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holo_assist_camera_calibration:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holo_assist_apriltag_identifier:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holo_assist_depth_tracker:/opt/ros/humble /usr/bin/cmake --build /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_gazebo_sim -- -j22 -l22
+[0.565s] Invoked command in '/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_gazebo_sim' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/moveit_robot_control:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holoassist_unity_bridge:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holo_assist_depth_tracker_sim:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holo_assist_camera_calibration:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holo_assist_apriltag_identifier:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holo_assist_depth_tracker:/opt/ros/humble /usr/bin/cmake --build /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_gazebo_sim -- -j22 -l22
+[0.575s] Invoking command in '/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_gazebo_sim': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/moveit_robot_control:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holoassist_unity_bridge:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holo_assist_depth_tracker_sim:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holo_assist_camera_calibration:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holo_assist_apriltag_identifier:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holo_assist_depth_tracker:/opt/ros/humble /usr/bin/cmake --install /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_gazebo_sim
+[0.583s] -- Install configuration: ""
+[0.584s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/launch
+[0.584s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/launch/ur3e_pick_place_world.launch.py
+[0.584s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/worlds
+[0.584s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/worlds/pick_place_world.sdf
+[0.584s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/models
+[0.584s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/models/bin
+[0.585s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/models/bin/model.sdf
+[0.585s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/models/bin/model.config
+[0.585s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/models/cube
+[0.585s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/models/cube/model.sdf
+[0.586s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/models/cube/model.config
+[0.586s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/models/table
+[0.586s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/models/table/model.sdf
+[0.586s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/models/table/model.config
+[0.586s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/urdf
+[0.586s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/urdf/ur3e_rg2_benchtop.urdf.xacro
+[0.586s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/urdf/rg2_fixed.xacro
+[0.586s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes
+[0.586s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2
+[0.586s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2/collision
+[0.586s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2/collision/outer_knuckle.stl
+[0.586s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2/collision/inner_finger.stl
+[0.586s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2/collision/base_link.stl
+[0.586s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2/collision/inner_knuckle.stl
+[0.587s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2/visual
+[0.587s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2/visual/outer_knuckle.stl
+[0.587s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2/visual/inner_finger.stl
+[0.587s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2/visual/base_link.stl
+[0.587s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2/visual/inner_knuckle.stl
+[0.587s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ament_index/resource_index/package_run_dependencies/ur3e_gazebo_sim
+[0.587s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ament_index/resource_index/parent_prefix_path/ur3e_gazebo_sim
+[0.587s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/environment/ament_prefix_path.sh
+[0.587s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/environment/ament_prefix_path.dsv
+[0.587s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/environment/path.sh
+[0.587s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/environment/path.dsv
+[0.587s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/local_setup.bash
+[0.587s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/local_setup.sh
+[0.587s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/local_setup.zsh
+[0.587s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/local_setup.dsv
+[0.587s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/package.dsv
+[0.587s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ament_index/resource_index/packages/ur3e_gazebo_sim
+[0.587s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/cmake/ur3e_gazebo_simConfig.cmake
+[0.587s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/cmake/ur3e_gazebo_simConfig-version.cmake
+[0.587s] -- Installing: /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/package.xml
+[0.588s] Invoked command in '/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_gazebo_sim' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/moveit_robot_control:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holoassist_unity_bridge:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holo_assist_depth_tracker_sim:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holo_assist_camera_calibration:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holo_assist_apriltag_identifier:/home/ollie/git/RS2/main/HoloAssist/ros2_ws/install/holo_assist_depth_tracker:/opt/ros/humble /usr/bin/cmake --install /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_gazebo_sim

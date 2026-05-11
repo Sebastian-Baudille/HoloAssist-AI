@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <model name="table">
+    <static>true</static>
+    <link name="trolley_link">
+      <visual name="trolley_mesh_visual">
+        <!--
+          UR3eTrolley_decimated.dae has an internal 0.01 scale transform.
+          This pose recentres the mesh and places the trolley top at z=0.80 m.
+        -->
+        <pose>0.031 -0.210 -0.2605 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <uri>model://table/meshes/UR3eTrolley_decimated.dae</uri>
+          </mesh>
+        </geometry>
+      </visual>
+
+      <collision name="top_collision">
+        <pose>0.0 -0.210 0.780 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.85 0.70 0.04</size>
+          </box>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+
+      <collision name="shelf_collision">
+        <pose>0.0 -0.210 0.420 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.78 0.62 0.03</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <collision name="leg_front_left_collision">
+        <pose>0.36 -0.515 0.39 0 0 0</pose>
+        <geometry><box><size>0.03 0.03 0.78</size></box></geometry>
+      </collision>
+      <collision name="leg_front_right_collision">
+        <pose>0.36 0.095 0.39 0 0 0</pose>
+        <geometry><box><size>0.03 0.03 0.78</size></box></geometry>
+      </collision>
+      <collision name="leg_rear_left_collision">
+        <pose>-0.36 -0.515 0.39 0 0 0</pose>
+        <geometry><box><size>0.03 0.03 0.78</size></box></geometry>
+      </collision>
+      <collision name="leg_rear_right_collision">
+        <pose>-0.36 0.095 0.39 0 0 0</pose>
+        <geometry><box><size>0.03 0.03 0.78</size></box></geometry>
+      </collision>
+    </link>
+  </model>
+</sdf>
