@@ -1,0 +1,100 @@
+# =====================================================================
+# Simulation parameters for holoassist_sim
+# Edit anything here, then re-launch — the world SDF and bridge config
+# are regenerated from these values at launch time.
+# =====================================================================
+
+world:
+  # Background colour (R G B, 0..1). Affects rendered RGB image.
+  ambient: [0.4, 0.4, 0.4]
+  background: [0.7, 0.7, 0.7]
+  # Ground plane size (square, metres).
+  ground_size: 10.0
+
+# ---------------------------------------------------------------------
+# The table is a single solid cube on the ground.
+# pose is [x, y, z, roll, pitch, yaw] of the cube's CENTRE in metres / rad.
+# For a 0.5 m cube to sit on z=0, set z = size_z / 2.
+# ---------------------------------------------------------------------
+table:
+  size: [0.5, 0.5, 0.5]
+  pose: [0.0, 0.0, 0.25, 0.0, 0.0, 0.0]
+  # RGBA in 0..1
+  color: [0.55, 0.35, 0.15, 1.0]
+
+# ---------------------------------------------------------------------
+# Four cubes sitting on top of the table.
+# Default size 4 cm; default z = table_top + size_z/2 = 0.5 + 0.02 = 0.52.
+# Add / remove / re-pose freely — the renderer is fully data-driven.
+# ---------------------------------------------------------------------
+cubes:
+  - name: cube_red
+    size: [0.04, 0.04, 0.04]
+    pose: [ 0.10,  0.10, 0.52, 0.0, 0.0, 0.0]
+    color: [0.85, 0.10, 0.10, 1.0]
+    mass: 0.05
+  - name: cube_green
+    size: [0.04, 0.04, 0.04]
+    pose: [-0.10,  0.10, 0.52, 0.0, 0.0, 0.0]
+    color: [0.10, 0.75, 0.10, 1.0]
+    mass: 0.05
+  - name: cube_blue
+    size: [0.04, 0.04, 0.04]
+    pose: [-0.10, -0.10, 0.52, 0.0, 0.0, 0.0]
+    color: [0.10, 0.20, 0.85, 1.0]
+    mass: 0.05
+  - name: cube_yellow
+    size: [0.04, 0.04, 0.04]
+    pose: [ 0.10, -0.10, 0.52, 0.0, 0.0, 0.0]
+    color: [0.95, 0.85, 0.10, 1.0]
+    mass: 0.05
+
+# ---------------------------------------------------------------------
+# Intel RealSense D435i (modelled).
+# pose:  body-frame pose of the camera (X axis = look direction,
+#        Z axis = up). The optical frame (Z forward) is derived
+#        automatically from this.
+# Default places the camera at (-0.6, 0, 0.85) looking back toward
+# the origin with a ~30° downward tilt.
+#
+# Reference D435i specs:
+#   Depth FOV  : 87° H x 58° V (D = 1.518 rad H)
+#   Depth res  : up to 1280x720; 848x480 is common
+#   RGB   FOV  : 69.4° H x 42.5° V
+#   RGB   res  : up to 1920x1080
+#   Min depth  : ~0.105 m
+#
+# The Gazebo `rgbd_camera` sensor has a single shared intrinsics block
+# (color and depth at the same resolution). The values below are the
+# DEPTH-aligned configuration, which is what point-cloud users want.
+# ---------------------------------------------------------------------
+camera:
+  name: d435i
+  pose: [-0.6, 0.0, 0.85, 0.0, 0.5281, 0.0]   # x y z R P Y
+  topic: /camera           # ROS topics: /camera/image, /depth_image, /points, /camera_info
+  update_rate: 30.0        # Hz
+  width: 848
+  height: 480
+  horizontal_fov_deg: 87.0
+  near_clip: 0.105
+  far_clip: 10.0
+  imu:
+    enabled: true
+    update_rate: 200.0
+    topic: /imu
+
+# ---------------------------------------------------------------------
+# Capture node — saves a single PointCloud2 frame as a PLY file
+# (XYZ + RGB if present). PLY is the lingua franca handoff to the
+# Python 3.12 clustering / Polyscope side; no rclpy needed there.
+# ---------------------------------------------------------------------
+capture:
+  output_dir: "~/holoassist_pointclouds"
+  # Short label for this scene variant — appears first in the filename.
+  # Change this when you rearrange cubes, move the camera, etc.
+  # Example values: "default", "spread", "clustered", "cam_top", "occluded"
+  description: "default"
+  # If true, save_pointcloud.py exits after the first frame is written.
+  one_shot: true
+  # Voxel-grid downsample before saving (metres). 0 = no filter.
+  voxel_size: 0.0

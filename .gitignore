@@ -1,0 +1,20 @@
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+__pycache__/
+*.pyc
+*.pyo
+clustering/.venv/
+.vscode/
+.DS_Store
+*.ply
+*.pcd
+*.npy
+!clustering/sample_data/*.ply
+
+# Course reference materials (kept locally, not in repo)
+Template/
+
+# Polyscope/ImGui runtime config — generated each session
+.polyscope.ini
+imgui.ini

@@ -1,0 +1,21 @@
+# HoloAssist-AI — Python 3.12 clustering / visualisation dependencies
+# Run from the repo root: pip install -r clustering/requirements.txt
+# Or let setup.sh create an isolated venv automatically.
+#
+# These packages are intentionally NOT installed inside the ROS 2 workspace
+# (which pins Python 3.10).  Use the .venv created by setup.sh or your own
+# Python 3.12 environment.
+#
+# Versions pinned to match working quiz_1 environment (Python 3.12.10).
+
+# ── core maths ────────────────────────────────────────────────────────────────
+numpy==2.4.3
+
+# ── point cloud I/O ───────────────────────────────────────────────────────────
+open3d==0.19.0          # read/write PCD, PLY, downsample, RANSAC plane removal
+
+# ── clustering & dimensionality reduction ─────────────────────────────────────
+scikit-learn==1.8.0     # KMeans, DBSCAN, PCA, StandardScaler, silhouette_score
+
+# ── visualisation ─────────────────────────────────────────────────────────────
+polyscope==2.6.1        # 3D interactive point cloud viewer
