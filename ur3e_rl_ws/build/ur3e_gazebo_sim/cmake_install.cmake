@@ -49,6 +49,15 @@ if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_
     "/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/src/ur3e_gazebo_sim/models"
     "/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/src/ur3e_gazebo_sim/urdf"
     "/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/src/ur3e_gazebo_sim/meshes"
+    "/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/src/ur3e_gazebo_sim/config"
+    )
+endif()
+
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/ur3e_gazebo_sim" TYPE PROGRAM FILES
+    "/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/src/ur3e_gazebo_sim/scripts/gazebo_pose_bridge.py"
+    "/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/src/ur3e_gazebo_sim/scripts/send_home_trajectory.py"
+    "/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/src/ur3e_gazebo_sim/scripts/setup_controllers.py"
     )
 endif()
 

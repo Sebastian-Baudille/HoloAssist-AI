@@ -18,6 +18,11 @@
 /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2/visual/inner_finger.stl
 /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2/visual/base_link.stl
 /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2/visual/inner_knuckle.stl
+/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/config/ur3e_controllers.yaml
+/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/config/initial_positions.yaml
+/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/lib/ur3e_gazebo_sim/gazebo_pose_bridge.py
+/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/lib/ur3e_gazebo_sim/send_home_trajectory.py
+/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/lib/ur3e_gazebo_sim/setup_controllers.py
 /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/README.md
 /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ament_index/resource_index/package_run_dependencies/ur3e_gazebo_sim
 /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ament_index/resource_index/parent_prefix_path/ur3e_gazebo_sim

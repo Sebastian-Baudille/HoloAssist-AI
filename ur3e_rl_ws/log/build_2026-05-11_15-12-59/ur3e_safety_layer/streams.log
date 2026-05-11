@@ -1,0 +1,44 @@
+[0.476s] Invoking command in '/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/src/ur3e_safety_layer': PYTHONPATH=/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_safety_layer/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_safety_layer/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/ur3e_safety_layer build --build-base /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_safety_layer/build install --record /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_safety_layer/install.log --single-version-externally-managed install_data
+[0.629s] running egg_info
+[0.629s] creating ../../build/ur3e_safety_layer/ur3e_safety_layer.egg-info
+[0.629s] writing ../../build/ur3e_safety_layer/ur3e_safety_layer.egg-info/PKG-INFO
+[0.629s] writing dependency_links to ../../build/ur3e_safety_layer/ur3e_safety_layer.egg-info/dependency_links.txt
+[0.629s] writing entry points to ../../build/ur3e_safety_layer/ur3e_safety_layer.egg-info/entry_points.txt
+[0.629s] writing requirements to ../../build/ur3e_safety_layer/ur3e_safety_layer.egg-info/requires.txt
+[0.630s] writing top-level names to ../../build/ur3e_safety_layer/ur3e_safety_layer.egg-info/top_level.txt
+[0.630s] writing manifest file '../../build/ur3e_safety_layer/ur3e_safety_layer.egg-info/SOURCES.txt'
+[0.630s] reading manifest file '../../build/ur3e_safety_layer/ur3e_safety_layer.egg-info/SOURCES.txt'
+[0.631s] writing manifest file '../../build/ur3e_safety_layer/ur3e_safety_layer.egg-info/SOURCES.txt'
+[0.631s] running build
+[0.631s] running build_py
+[0.631s] creating /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_safety_layer/build
+[0.632s] creating /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_safety_layer/build/lib
+[0.632s] creating /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_safety_layer/build/lib/ur3e_safety_layer
+[0.632s] copying ur3e_safety_layer/safety_node.py -> /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_safety_layer/build/lib/ur3e_safety_layer
+[0.632s] copying ur3e_safety_layer/safety_checker.py -> /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_safety_layer/build/lib/ur3e_safety_layer
+[0.632s] copying ur3e_safety_layer/__init__.py -> /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_safety_layer/build/lib/ur3e_safety_layer
+[0.632s] copying ur3e_safety_layer/moveit_collision_checker.py -> /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_safety_layer/build/lib/ur3e_safety_layer
+[0.632s] running install
+[0.632s] running install_lib
+[0.632s] creating /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_safety_layer/lib/python3.10/site-packages/ur3e_safety_layer
+[0.633s] copying /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_safety_layer/build/lib/ur3e_safety_layer/safety_node.py -> /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_safety_layer/lib/python3.10/site-packages/ur3e_safety_layer
+[0.633s] copying /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_safety_layer/build/lib/ur3e_safety_layer/safety_checker.py -> /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_safety_layer/lib/python3.10/site-packages/ur3e_safety_layer
+[0.633s] copying /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_safety_layer/build/lib/ur3e_safety_layer/__init__.py -> /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_safety_layer/lib/python3.10/site-packages/ur3e_safety_layer
+[0.633s] copying /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_safety_layer/build/lib/ur3e_safety_layer/moveit_collision_checker.py -> /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_safety_layer/lib/python3.10/site-packages/ur3e_safety_layer
+[0.633s] byte-compiling /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_safety_layer/lib/python3.10/site-packages/ur3e_safety_layer/safety_node.py to safety_node.cpython-310.pyc
+[0.633s] byte-compiling /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_safety_layer/lib/python3.10/site-packages/ur3e_safety_layer/safety_checker.py to safety_checker.cpython-310.pyc
+[0.633s] byte-compiling /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_safety_layer/lib/python3.10/site-packages/ur3e_safety_layer/__init__.py to __init__.cpython-310.pyc
+[0.633s] byte-compiling /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_safety_layer/lib/python3.10/site-packages/ur3e_safety_layer/moveit_collision_checker.py to moveit_collision_checker.cpython-310.pyc
+[0.634s] running install_data
+[0.634s] creating /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_safety_layer/share/ament_index
+[0.634s] creating /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_safety_layer/share/ament_index/resource_index
+[0.634s] creating /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_safety_layer/share/ament_index/resource_index/packages
+[0.634s] copying resource/ur3e_safety_layer -> /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_safety_layer/share/ament_index/resource_index/packages
+[0.634s] copying package.xml -> /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_safety_layer/share/ur3e_safety_layer
+[0.634s] running install_egg_info
+[0.635s] Copying ../../build/ur3e_safety_layer/ur3e_safety_layer.egg-info to /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_safety_layer/lib/python3.10/site-packages/ur3e_safety_layer-0.1.0-py3.10.egg-info
+[0.635s] running install_scripts
+[0.657s] Installing moveit_collision_checker script to /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_safety_layer/lib/ur3e_safety_layer
+[0.657s] Installing safety_node script to /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_safety_layer/lib/ur3e_safety_layer
+[0.658s] writing list of installed files to '/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_safety_layer/install.log'
+[0.681s] Invoked command in '/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/src/ur3e_safety_layer' returned '0': PYTHONPATH=/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_safety_layer/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_safety_layer/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/ur3e_safety_layer build --build-base /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_safety_layer/build install --record /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_safety_layer/install.log --single-version-externally-managed install_data

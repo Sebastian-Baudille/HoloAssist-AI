@@ -1,1 +1,1 @@
-gazebo_ros:joint_state_publisher:launch:launch_ros:robot_state_publisher:ur_description:xacro
+controller_manager:controller_manager_msgs:gazebo_msgs:gazebo_ros:gazebo_ros2_control:geometry_msgs:joint_state_broadcaster:joint_trajectory_controller:launch:launch_ros:rclpy:robot_state_publisher:std_srvs:tf2_ros:ur_description:xacro

@@ -16,10 +16,22 @@ environment.
 - Two bin objects using `model://bin`.
 - A UR3e robot description from `ur_description`.
 - A fixed RG2 gripper model from `urdf/rg2_fixed.xacro`.
-- `robot_state_publisher` and `joint_state_publisher` for TF/joint state output.
+- `robot_state_publisher`.
+- Gazebo ros2_control with `joint_state_broadcaster`.
+- `scaled_joint_trajectory_controller` for PPO joint-delta commands.
+- A Gazebo pose bridge that publishes `/cube/pose`, `/goal/pose`, and `/tcp_pose_broadcaster/pose`.
 
-This package does not yet launch MoveIt, ros2_control, PPO, or any RL training code.
-It is currently just the Gazebo scene for checking the workspace layout.
+This package does not launch MoveIt, PPO, or RL training code directly. It provides
+the controlled Gazebo scene that the RL packages talk to.
+
+## Extra Dependency
+
+The robot needs Gazebo ros2_control to hold position and accept trajectory
+commands:
+
+```bash
+sudo apt install ros-humble-gazebo-ros2-control
+```
 
 ## Build
 
@@ -45,8 +57,8 @@ ros2 launch ur3e_gazebo_sim ur3e_pick_place_world.launch.py verbose:=true
 ```
 
 The launch file starts Gazebo paused by default so the scene can be inspected before
-the objects start moving. Press the play button in Gazebo to unpause physics, or
-launch with:
+the objects start moving. If launched with `paused:=false`, Gazebo still starts
+paused first, loads the robot controllers, then unpauses automatically:
 
 ```bash
 ros2 launch ur3e_gazebo_sim ur3e_pick_place_world.launch.py paused:=false
@@ -69,8 +81,28 @@ The main launch arguments are:
 - `include_rg2`: attach the fixed RG2 gripper. Default: `true`.
 - `robot_x`: robot base x position. Default: `0.0`.
 - `robot_y`: robot base y position. Default: `0.0`.
-- `robot_z`: robot base height on the trolley. Default: `1.078`.
+- `robot_z`: robot base height on the trolley. Default: `1.10`.
 - `robot_yaw`: robot base yaw in radians. Default: `3.141592653589793`.
+
+## RL/Control Topics
+
+The launch provides or expects:
+
+```text
+/joint_states
+/model_states
+/link_states
+/tcp_pose_broadcaster/pose
+/cube/pose
+/goal/pose
+/scaled_joint_trajectory_controller/joint_trajectory
+```
+
+The RL stack also expects `/collision_flag`, which can be provided by:
+
+```bash
+ros2 run ur3e_safety_layer moveit_collision_checker
+```
 
 ## Changing Object Positions
 
@@ -129,7 +161,7 @@ robot_x_arg = DeclareLaunchArgument("robot_x", default_value="0.0")
 robot_y_arg = DeclareLaunchArgument("robot_y", default_value="0.0")
 robot_z_arg = DeclareLaunchArgument(
     "robot_z",
-    default_value="1.078",
+    default_value="1.10",
     description="UR3e base_link height on the trolley tabletop.",
 )
 robot_yaw_arg = DeclareLaunchArgument(

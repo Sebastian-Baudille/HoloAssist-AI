@@ -1,0 +1,6 @@
+source;share/ur3e_rl_env/hook/pythonpath.ps1
+source;share/ur3e_rl_env/hook/pythonpath.dsv
+source;share/ur3e_rl_env/hook/pythonpath.sh
+source;share/ur3e_rl_env/hook/ament_prefix_path.ps1
+source;share/ur3e_rl_env/hook/ament_prefix_path.dsv
+source;share/ur3e_rl_env/hook/ament_prefix_path.sh

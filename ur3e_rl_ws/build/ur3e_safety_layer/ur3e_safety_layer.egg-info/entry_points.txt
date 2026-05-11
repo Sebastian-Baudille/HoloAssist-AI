@@ -1,0 +1,4 @@
+[console_scripts]
+moveit_collision_checker = ur3e_safety_layer.moveit_collision_checker:main
+safety_node = ur3e_safety_layer.safety_node:main
+

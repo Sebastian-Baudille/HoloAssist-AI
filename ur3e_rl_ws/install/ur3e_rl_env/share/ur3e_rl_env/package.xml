@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>ur3e_rl_env</name>
+  <version>0.1.0</version>
+  <description>Gymnasium and Stable-Baselines3 PPO environment for the UR3e Gazebo workspace.</description>
+  <maintainer email="ollie@example.com">Ollie</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>trajectory_msgs</exec_depend>
+  <exec_depend>ur3e_safety_layer</exec_depend>
+
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
+

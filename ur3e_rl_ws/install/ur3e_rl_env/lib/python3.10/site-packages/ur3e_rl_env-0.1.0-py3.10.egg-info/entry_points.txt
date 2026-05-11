@@ -1,0 +1,6 @@
+[console_scripts]
+evaluate_policy = ur3e_rl_env.evaluate_policy:main
+smoke_test_joint_command = ur3e_rl_env.smoke_test_joint_command:main
+train_ppo = ur3e_rl_env.train_ppo:main
+train_ppo_parallel = ur3e_rl_env.train_ppo_parallel:main
+

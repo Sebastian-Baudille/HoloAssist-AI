@@ -1,0 +1,3 @@
+[console_scripts]
+rl_policy_node = ur3e_policy_controller.rl_policy_node:main
+

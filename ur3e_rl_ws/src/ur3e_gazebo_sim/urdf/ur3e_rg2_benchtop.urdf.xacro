@@ -8,6 +8,8 @@
   <xacro:arg name="base_z" default="0.82"/>
   <xacro:arg name="base_yaw" default="3.141592653589793"/>
   <xacro:arg name="include_rg2" default="true"/>
+  <xacro:arg name="controllers_file" default="$(find ur3e_gazebo_sim)/config/ur3e_controllers.yaml"/>
+  <xacro:arg name="initial_positions_file" default="$(find ur3e_gazebo_sim)/config/initial_positions.yaml"/>
 
   <xacro:arg name="joint_limits_parameters_file" default="$(find ur_description)/config/$(arg ur_type)/joint_limits.yaml"/>
   <xacro:arg name="kinematics_parameters_file" default="$(find ur_description)/config/$(arg ur_type)/default_kinematics.yaml"/>
@@ -16,6 +18,8 @@
 
   <xacro:include filename="$(find ur_description)/urdf/ur_macro.xacro"/>
   <xacro:include filename="$(find ur3e_gazebo_sim)/urdf/rg2_fixed.xacro"/>
+
+  <xacro:property name="initial_positions_file" value="$(arg initial_positions_file)"/>
 
   <link name="world"/>
 
@@ -27,7 +31,9 @@
     kinematics_parameters_file="$(arg kinematics_parameters_file)"
     physical_parameters_file="$(arg physical_parameters_file)"
     visual_parameters_file="$(arg visual_parameters_file)"
-    generate_ros2_control_tag="false"
+    generate_ros2_control_tag="true"
+    sim_gazebo="true"
+    initial_positions="${xacro.load_yaml(initial_positions_file)}"
     safety_limits="true">
     <origin xyz="$(arg base_x) $(arg base_y) $(arg base_z)" rpy="0 0 $(arg base_yaw)"/>
   </xacro:ur_robot>
@@ -35,4 +41,10 @@
   <xacro:if value="$(arg include_rg2)">
     <xacro:rg2_fixed prefix="$(arg tf_prefix)" parent="$(arg tf_prefix)tool0"/>
   </xacro:if>
+
+  <gazebo>
+    <plugin filename="libgazebo_ros2_control.so" name="gazebo_ros2_control">
+      <parameters>$(arg controllers_file)</parameters>
+    </plugin>
+  </gazebo>
 </robot>
