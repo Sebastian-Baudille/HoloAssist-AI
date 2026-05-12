@@ -1,9 +1,0 @@
-[console_scripts]
-evaluate_policy = ur3e_rl_env.evaluate_policy:main
-keyboard_teleop = ur3e_rl_env.keyboard_teleop:main
-pretrain_from_demos = ur3e_rl_env.pretrain_from_demos:main
-record_demo = ur3e_rl_env.record_demo:main
-smoke_test_joint_command = ur3e_rl_env.smoke_test_joint_command:main
-train_ppo = ur3e_rl_env.train_ppo:main
-train_ppo_parallel = ur3e_rl_env.train_ppo_parallel:main
-
