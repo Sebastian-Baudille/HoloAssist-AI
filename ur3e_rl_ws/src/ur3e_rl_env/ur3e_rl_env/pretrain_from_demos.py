@@ -33,6 +33,7 @@ BATCH_SIZE = int(os.getenv("UR3E_BC_BATCH_SIZE", "256"))
 
 OBSERVATION_SIZE = 29
 ACTION_SIZE = 6
+ACTION_SCALE = 0.03
 
 
 def load_demos(demo_dir: str) -> tuple[np.ndarray, np.ndarray]:
@@ -80,6 +81,7 @@ def main() -> None:
 
     print(f"Loading demos from {DEMO_DIR}...")
     obs_np, acts_np = load_demos(DEMO_DIR)
+    acts_np = np.clip(acts_np / ACTION_SCALE, -1.0, 1.0).astype(np.float32)
 
     class _DummyEnv(gym.Env):
         def __init__(self):
@@ -88,7 +90,7 @@ def main() -> None:
                 -np.inf, np.inf, (OBSERVATION_SIZE,), np.float32
             )
             self.action_space = spaces.Box(
-                -0.03, 0.03, (ACTION_SIZE,), np.float32
+                -1.0, 1.0, (ACTION_SIZE,), np.float32
             )
 
         def reset(self, **kw):

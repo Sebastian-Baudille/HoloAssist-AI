@@ -22,9 +22,10 @@ from ur3e_safety_layer.safety_checker import SafetyChecker
 
 
 HOME_JOINTS = np.array(
-    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    [0.0, -np.pi / 2, 0.0, -np.pi / 2, 0.0, 0.0],
     dtype=np.float32,
 )
+ACTION_SCALE = 0.24  # max joint delta per step in rad (75% of UR3e π rad/s at control_dt=0.1s)
 DEFAULT_MAX_EPISODE_STEPS = int(os.getenv("UR3E_RL_MAX_EPISODE_STEPS", "200"))
 DEFAULT_CONTROL_DT = float(os.getenv("UR3E_RL_CONTROL_DT", "0.2"))
 DEFAULT_RESET_DURATION = float(os.getenv("UR3E_RL_RESET_DURATION", "1.0"))
@@ -65,8 +66,8 @@ class UR3ePickPlaceEnv(gym.Env):
         self.step_count = 0
 
         self.action_space = spaces.Box(
-            low=-0.24,
-            high=0.24,
+            low=-1.0,
+            high=1.0,
             shape=(6,),
             dtype=np.float32,
         )
@@ -110,11 +111,8 @@ class UR3ePickPlaceEnv(gym.Env):
         action: np.ndarray,
     ) -> tuple[np.ndarray, float, bool, bool, dict[str, Any]]:
         self.step_count += 1
-        clipped_action = np.clip(
-            np.asarray(action, dtype=np.float32).reshape(6),
-            self.action_space.low,
-            self.action_space.high,
-        )
+        normalized = np.clip(np.asarray(action, dtype=np.float32).reshape(6), -1.0, 1.0)
+        joint_delta = normalized * ACTION_SCALE
 
         state = self.ros.get_state()
         if state is None:
@@ -122,7 +120,7 @@ class UR3ePickPlaceEnv(gym.Env):
 
         state_safety = self.safety_checker.check_state(state)
         if not state_safety.safe:
-            reward = compute_reward(state, clipped_action, self.step_count)
+            reward = compute_reward(state, joint_delta, self.step_count)
             return (
                 build_observation(state),
                 reward,
@@ -136,7 +134,7 @@ class UR3ePickPlaceEnv(gym.Env):
 
         target_joints = self.safety_checker.make_safe_target(
             state["joint_positions"],
-            clipped_action,
+            joint_delta,
         )
         self.ros.send_joint_target(target_joints, duration_sec=self.control_dt)
         self._spin_for(self.control_dt)
@@ -146,7 +144,7 @@ class UR3ePickPlaceEnv(gym.Env):
             return self._missing_state_step("missing state after command")
 
         observation = build_observation(new_state)
-        reward = compute_reward(new_state, clipped_action, self.step_count)
+        reward = compute_reward(new_state, joint_delta, self.step_count)
         success = check_success(new_state)
         failure = check_failure(new_state)
         terminated = success or failure
