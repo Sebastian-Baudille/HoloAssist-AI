@@ -14,7 +14,7 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://ur3e_gazebo_sim/meshes/rg2/visual/${visual}.stl"/>
+          <mesh filename="$(find ur3e_gazebo_sim)/meshes/rg2/visual/${visual}.stl"/>
         </geometry>
         <material name="${name}_material">
           <color rgba="${rgba}"/>
@@ -23,7 +23,7 @@
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://ur3e_gazebo_sim/meshes/rg2/collision/${collision}.stl"/>
+          <mesh filename="$(find ur3e_gazebo_sim)/meshes/rg2/collision/${collision}.stl"/>
         </geometry>
       </collision>
     </link>

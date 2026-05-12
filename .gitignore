@@ -1,6 +1,12 @@
 ros2_ws/build/
 ros2_ws/install/
 ros2_ws/log/
+ur3e_rl_ws/build/
+ur3e_rl_ws/install/
+ur3e_rl_ws/log/
+ur3e_rl_ws/demo_data/
+ur3e_rl_ws/rl_models/
+ur3e_rl_ws/tb_logs/
 __pycache__/
 *.pyc
 *.pyo

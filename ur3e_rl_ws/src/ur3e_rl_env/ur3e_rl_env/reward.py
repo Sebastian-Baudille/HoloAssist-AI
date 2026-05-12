@@ -5,12 +5,13 @@ from typing import Mapping, Sequence
 import numpy as np
 
 
-SUCCESS_DISTANCE_M = 0.04
+SUCCESS_DISTANCE_M = 0.08
 MIN_EE_Z_M = 0.02
-COLLISION_PENALTY = 10.0
-SUCCESS_REWARD = 10.0
-TIME_PENALTY = 0.01
-ACTION_PENALTY_SCALE = 0.01
+COLLISION_PENALTY = 50.0
+SUCCESS_REWARD = 100.0
+TIME_PENALTY = 0.02
+ACTION_PENALTY_SCALE = 0.02
+APPROACH_REWARD_SCALE = 10.0
 
 
 def _distance(a: Sequence[float], b: Sequence[float]) -> float:
@@ -18,7 +19,7 @@ def _distance(a: Sequence[float], b: Sequence[float]) -> float:
 
 
 def check_success(state: Mapping[str, object]) -> bool:
-    """First reach-task success: the end effector is within 4 cm of the cube."""
+    """First reach-task success: the end effector is within 8 cm of the cube."""
 
     return (
         _distance(
@@ -43,13 +44,18 @@ def compute_reward(
     state: Mapping[str, object],
     action: Sequence[float] | None = None,
     step_count: int = 0,
+    prev_distance: float | None = None,
 ) -> float:
     del step_count
     ee_to_cube = _distance(
         state["end_effector_position"],  # type: ignore[index]
         state["object_position"],  # type: ignore[index]
     )
+
     reward = -ee_to_cube - TIME_PENALTY
+
+    if prev_distance is not None:
+        reward += APPROACH_REWARD_SCALE * (prev_distance - ee_to_cube)
 
     if action is not None:
         reward -= ACTION_PENALTY_SCALE * float(np.linalg.norm(np.asarray(action, dtype=np.float32)))
@@ -61,4 +67,3 @@ def compute_reward(
         reward -= COLLISION_PENALTY
 
     return float(reward)
-

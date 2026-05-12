@@ -32,7 +32,7 @@ from rclpy.executors import ExternalShutdownException
 from ur3e_rl_env.ros_interface import RosInterfaceNode, UR3E_JOINT_NAMES
 
 JOINT_SHORT = ["pan", "lift", "elbow", "wr1", "wr2", "wr3"]
-DEFAULT_STEP = 0.03
+DEFAULT_STEP = 0.1
 MIN_STEP = 0.005
 MAX_STEP = 0.10
 
@@ -123,7 +123,7 @@ class KeyboardTeleop:
             self.ros.joint_positions_by_name.get(n, 0.0) for n in UR3E_JOINT_NAMES
         ]
         positions[self.selected] += delta
-        self.ros.send_joint_target(positions, duration_sec=0.2)
+        self.ros.send_joint_target(positions, duration_sec=0.5)
 
     def _print_state(self) -> None:
         parts = []

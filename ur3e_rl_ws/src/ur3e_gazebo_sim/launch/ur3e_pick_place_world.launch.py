@@ -179,7 +179,6 @@ def generate_launch_description() -> LaunchDescription:
         executable="gazebo_pose_bridge.py",
         name="gazebo_pose_bridge",
         output="screen",
-        parameters=[{"use_sim_time": True}],
     )
 
     return LaunchDescription(

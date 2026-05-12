@@ -4,8 +4,8 @@ Run alongside a teleop node (e.g. Unity XR on Quest 3). The recorder
 passively observes robot state at a fixed rate and saves (obs, action,
 reward, next_obs, done) transitions compatible with the PPO pipeline.
 
-TCP pose is read from TF (base_link -> tool0), so it works with any UR
-driver stack without extra publishers. Object/goal positions can come
+TCP pose is read from the /tcp_pose_broadcaster/pose topic (which uses
+the gripper_tcp frame), with TF fallback. Object/goal positions can come
 from ROS topics (e.g. perception) or static params.
 
 Usage:
@@ -41,7 +41,7 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import Bool, Float64MultiArray
 from tf2_ros import Buffer, TransformException, TransformListener
 
-from ur3e_rl_env.reward import check_failure, check_success, compute_reward
+from ur3e_rl_env.reward import compute_reward
 from ur3e_rl_env.ros_interface import (
     OBSERVATION_SIZE,
     UR3E_JOINT_NAMES,
@@ -72,13 +72,14 @@ class DemoRecorderNode(Node):
         self.declare_parameter("hz", SAMPLE_HZ)
         self.declare_parameter("max_episode_steps", MAX_EPISODE_STEPS)
         self.declare_parameter("base_frame", "base_link")
-        self.declare_parameter("tcp_frame", "tool0")
+        self.declare_parameter("tcp_frame", "gripper_tcp")
         self.declare_parameter("tcp_pose_topic", "/tcp_pose_broadcaster/pose")
         self.declare_parameter("object_topic", "/cube/pose")
-        self.declare_parameter("object_xyz", [0.3, 0.0, 0.05])
+        self.declare_parameter("object_xyz", [0.1, -0.40, 1.11])
         self.declare_parameter("goal_topic", "/goal/pose")
         self.declare_parameter("collision_topic", "/collision_flag")
         self.declare_parameter("velocity_topic", "/forward_velocity_controller/commands")
+        self.declare_parameter("success_distance", 0.08)
 
         self.output_dir = Path(str(self.get_parameter("output_dir").value))
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -90,6 +91,7 @@ class DemoRecorderNode(Node):
 
         object_xyz = list(self.get_parameter("object_xyz").value)
         self.static_object_pos = np.array(object_xyz, dtype=np.float32)
+        self.success_distance = float(self.get_parameter("success_distance").value)
 
         # --- live state ---
         self.joint_positions: dict[str, float] = {}
@@ -136,6 +138,7 @@ class DemoRecorderNode(Node):
 
         self._prev_joints: np.ndarray | None = None
         self._prev_obs: np.ndarray | None = None
+        self._prev_distance: float | None = None
         self._step_count = 0
         self._total_transitions = 0
         self._episodes_saved = 0
@@ -302,10 +305,20 @@ class DemoRecorderNode(Node):
         else:
             self._idle_ticks = 0
 
-        reward = compute_reward(state, action, self._step_count)
-        success = check_success(state)
-        failure = check_failure(state)
-        terminal = success or failure
+        ee = np.asarray(state["end_effector_position"], dtype=np.float32)
+        obj = np.asarray(state["object_position"], dtype=np.float32)
+        dist = float(np.linalg.norm(ee - obj))
+
+        reward = compute_reward(state, action, self._step_count, self._prev_distance)
+        self._prev_distance = dist
+
+        if self._step_count % 25 == 0:
+            self.get_logger().info(
+                f"dist={dist:.3f}m  ee={ee.round(3).tolist()}  obj={obj.round(3).tolist()}"
+            )
+
+        success = dist <= self.success_distance
+        terminal = success
 
         self._obs_buf.append(self._prev_obs)
         self._act_buf.append(action)
@@ -367,6 +380,7 @@ class DemoRecorderNode(Node):
         self._step_count = 0
         self._prev_joints = None
         self._prev_obs = None
+        self._prev_distance = None
         self._idle_ticks = 0
 
     def finish(self) -> None:

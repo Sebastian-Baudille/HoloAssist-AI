@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 import time
 from typing import Any
 
@@ -25,6 +26,19 @@ HOME_JOINTS = np.array(
     [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
     dtype=np.float32,
 )
+JOINT_NOISE_STD = 0.05
+CUBE_POSITIONS = np.array(
+    [
+        [0.1, -0.40, 1.11],
+        [0.1, -0.25, 1.11],
+        [-0.1, -0.25, 1.11],
+        [-0.1, -0.40, 1.11],
+    ],
+    dtype=np.float32,
+)
+CUBE_NAMES = ["cube_1", "cube_2", "cube_3", "cube_4"]
+IGN_WORLD = "ur3e_pick_place_world"
+
 DEFAULT_MAX_EPISODE_STEPS = int(os.getenv("UR3E_RL_MAX_EPISODE_STEPS", "200"))
 DEFAULT_CONTROL_DT = float(os.getenv("UR3E_RL_CONTROL_DT", "0.2"))
 DEFAULT_RESET_DURATION = float(os.getenv("UR3E_RL_RESET_DURATION", "1.0"))
@@ -58,6 +72,7 @@ class UR3ePickPlaceEnv(gym.Env):
         self.reset_duration = float(reset_duration)
         self.ready_timeout_sec = float(ready_timeout_sec)
         self.step_count = 0
+        self._prev_distance: float | None = None
 
         self.action_space = spaces.Box(
             low=-0.03,
@@ -84,9 +99,16 @@ class UR3ePickPlaceEnv(gym.Env):
         del options
         super().reset(seed=seed)
         self.step_count = 0
+        self._prev_distance = None
 
-        self.ros.send_joint_target(HOME_JOINTS, duration_sec=self.reset_duration)
+        self._reset_cubes()
+
+        noisy_home = HOME_JOINTS + self.np_random.normal(0.0, JOINT_NOISE_STD, size=6).astype(np.float32)
+        self.ros.send_joint_target(noisy_home, duration_sec=self.reset_duration)
         self._spin_for(self.reset_duration)
+
+        cube_idx = int(self.np_random.integers(len(CUBE_POSITIONS)))
+        self.ros.object_position = CUBE_POSITIONS[cube_idx].copy()
 
         ready = self.ros.wait_until_ready(self.ready_timeout_sec)
         state = self.ros.get_state() if ready else None
@@ -115,7 +137,7 @@ class UR3ePickPlaceEnv(gym.Env):
 
         state_safety = self.safety_checker.check_state(state)
         if not state_safety.safe:
-            reward = compute_reward(state, clipped_action, self.step_count)
+            reward = compute_reward(state, clipped_action, self.step_count, self._prev_distance)
             return (
                 build_observation(state),
                 reward,
@@ -139,11 +161,6 @@ class UR3ePickPlaceEnv(gym.Env):
             return self._missing_state_step("missing state after command")
 
         observation = build_observation(new_state)
-        reward = compute_reward(new_state, clipped_action, self.step_count)
-        success = check_success(new_state)
-        failure = check_failure(new_state)
-        terminated = success or failure
-        truncated = self.step_count >= self.max_episode_steps
 
         distance = float(
             np.linalg.norm(
@@ -151,6 +168,14 @@ class UR3ePickPlaceEnv(gym.Env):
                 - np.asarray(new_state["object_position"], dtype=np.float32)
             )
         )
+        reward = compute_reward(new_state, clipped_action, self.step_count, self._prev_distance)
+        self._prev_distance = distance
+
+        success = check_success(new_state)
+        failure = check_failure(new_state)
+        terminated = success or failure
+        truncated = self.step_count >= self.max_episode_steps
+
         info = {
             "is_success": success,
             "distance_to_cube": distance,
@@ -183,6 +208,27 @@ class UR3ePickPlaceEnv(gym.Env):
                 "missing": self.ros.missing_state_fields(),
             },
         )
+
+    def _reset_cubes(self) -> None:
+        for i, name in enumerate(CUBE_NAMES):
+            pos = CUBE_POSITIONS[i]
+            req = (
+                f'name: "{name}", '
+                f'position: {{x: {pos[0]}, y: {pos[1]}, z: {pos[2]}}}, '
+                f'orientation: {{w: 1.0}}'
+            )
+            subprocess.run(
+                [
+                    "ign", "service",
+                    "-s", f"/world/{IGN_WORLD}/set_pose",
+                    "--reqtype", "ignition.msgs.Pose",
+                    "--reptype", "ignition.msgs.Boolean",
+                    "--timeout", "300",
+                    "--req", req,
+                ],
+                capture_output=True,
+                timeout=2.0,
+            )
 
     def _zero_observation(self) -> np.ndarray:
         return np.zeros((OBSERVATION_SIZE,), dtype=np.float32)

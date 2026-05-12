@@ -8,6 +8,7 @@ from ur3e_rl_env.envs.ur3e_pick_place_env import UR3ePickPlaceEnv
 
 MODEL_DIR = "./rl_models"
 MODEL_PATH = os.path.join(MODEL_DIR, "ppo_ur3e_reach_object")
+PRETRAINED_PATH = os.path.join(MODEL_DIR, "ppo_ur3e_pretrained")
 CHECKPOINT_DIR = os.path.join(MODEL_DIR, "checkpoints")
 TOTAL_TIMESTEPS = int(os.getenv("UR3E_RL_TOTAL_TIMESTEPS", "200000"))
 TORCH_NUM_THREADS = int(os.getenv("UR3E_RL_TORCH_THREADS", "8"))
@@ -106,12 +107,19 @@ def main() -> None:
             print_every_steps=PROGRESS_PRINT_EVERY_STEPS,
         )
 
-        model = PPO(
-            policy="MlpPolicy",
-            env=monitored_env,
-            verbose=1,
-            tensorboard_log="./tb_logs",
-        )
+        pretrained_zip = PRETRAINED_PATH + ".zip"
+        if os.path.isfile(pretrained_zip):
+            print(f"Loading pretrained model from {PRETRAINED_PATH}")
+            model = PPO.load(PRETRAINED_PATH, env=monitored_env, tensorboard_log="./tb_logs")
+        else:
+            print("No pretrained model found — training from scratch.")
+            model = PPO(
+                policy="MlpPolicy",
+                env=monitored_env,
+                verbose=1,
+                ent_coef=0.01,
+                tensorboard_log="./tb_logs",
+            )
         model.learn(
             total_timesteps=TOTAL_TIMESTEPS,
             callback=CallbackList([checkpoint_callback, progress_callback]),
