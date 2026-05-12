@@ -36,6 +36,19 @@ PPO_BATCH_SIZE = int(os.getenv("UR3E_RL_PPO_BATCH_SIZE", "256"))
 CONTROL_DT = float(os.getenv("UR3E_RL_CONTROL_DT", "0.1"))
 RESET_DURATION = float(os.getenv("UR3E_RL_RESET_DURATION", "0.4"))
 MAX_EPISODE_STEPS = int(os.getenv("UR3E_RL_MAX_EPISODE_STEPS", "200"))
+USE_MOVEIT_COLLISION_CHECKER = os.getenv(
+    "UR3E_RL_USE_MOVEIT_COLLISION_CHECKER",
+    "0",
+).lower() in {"1", "true", "yes"}
+MOVEIT_GROUP_NAME = os.getenv("UR3E_RL_MOVEIT_GROUP_NAME", "ur_onrobot_manipulator")
+MOVEIT_STATE_VALIDITY_SERVICE = os.getenv(
+    "UR3E_RL_MOVEIT_STATE_VALIDITY_SERVICE",
+    "/check_state_validity",
+)
+MOVEIT_FAIL_CLOSED_WHEN_UNAVAILABLE = os.getenv(
+    "UR3E_RL_MOVEIT_FAIL_CLOSED_WHEN_UNAVAILABLE",
+    "0",
+).lower() in {"1", "true", "yes"}
 
 
 class ParallelGazeboUR3eEnv(UR3ePickPlaceEnv):
@@ -58,6 +71,7 @@ class ParallelGazeboUR3eEnv(UR3ePickPlaceEnv):
         self.log_file_handle = None
 
         os.environ["ROS_DOMAIN_ID"] = str(self.ros_domain_id)
+        os.environ["IGN_PARTITION"] = str(self.ros_domain_id)
         os.environ["GAZEBO_MASTER_URI"] = self.gazebo_master_uri
         os.environ.setdefault("ROS_LOCALHOST_ONLY", "1")
 
@@ -87,6 +101,7 @@ class ParallelGazeboUR3eEnv(UR3ePickPlaceEnv):
 
         env = os.environ.copy()
         env["ROS_DOMAIN_ID"] = str(self.ros_domain_id)
+        env["IGN_PARTITION"] = str(self.ros_domain_id)
         env["GAZEBO_MASTER_URI"] = self.gazebo_master_uri
         env.setdefault("ROS_LOCALHOST_ONLY", "1")
 
@@ -95,13 +110,17 @@ class ParallelGazeboUR3eEnv(UR3ePickPlaceEnv):
             "launch",
             "ur3e_gazebo_sim",
             "ur3e_pick_place_world.launch.py",
-            "paused:=false",
             "gui:=false",
+            f"use_moveit_collision_checker:={'true' if USE_MOVEIT_COLLISION_CHECKER else 'false'}",
+            f"moveit_group_name:={MOVEIT_GROUP_NAME}",
+            f"moveit_state_validity_service:={MOVEIT_STATE_VALIDITY_SERVICE}",
+            "moveit_fail_closed_when_unavailable:="
+            + ("true" if MOVEIT_FAIL_CLOSED_WHEN_UNAVAILABLE else "false"),
         ]
         print(
             f"[worker {self.worker_id}] launching Gazebo "
             f"ROS_DOMAIN_ID={self.ros_domain_id} "
-            f"GAZEBO_MASTER_URI={self.gazebo_master_uri} "
+            f"IGN_PARTITION={self.ros_domain_id} "
             f"log={log_path}",
             flush=True,
         )
@@ -145,7 +164,7 @@ def make_env(worker_id: int):
             max_episode_steps=MAX_EPISODE_STEPS,
             control_dt=CONTROL_DT,
             reset_duration=RESET_DURATION,
-            ready_timeout_sec=10.0,
+            ready_timeout_sec=30.0,
         )
 
     return _init

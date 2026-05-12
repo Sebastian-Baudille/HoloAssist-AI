@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import subprocess
 import time
 from typing import Any, Mapping, Sequence
 
@@ -12,6 +14,10 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import Bool
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
+
+GAZEBO_WORLD_NAME = os.getenv("UR3E_RL_GAZEBO_WORLD_NAME", "ur3e_pick_place_world")
+CUBE_MODEL_NAME = os.getenv("UR3E_RL_CUBE_MODEL_NAME", "cube_1")
+CUBE_RESET_POSE_TOPIC = "/gazebo_pose_bridge/cube_reset_pose"
 
 JOINT_STATE_TOPIC = "/joint_states"
 TCP_POSE_TOPIC = "/tcp_pose_broadcaster/pose"
@@ -100,6 +106,9 @@ class RosInterfaceNode(Node):
             JOINT_TRAJECTORY_TOPIC,
             10,
         )
+        self.cube_reset_publisher = self.create_publisher(
+            PoseStamped, CUBE_RESET_POSE_TOPIC, 10
+        )
 
     def _joint_state_cb(self, msg: JointState) -> None:
         for index, name in enumerate(msg.name):
@@ -182,6 +191,37 @@ class RosInterfaceNode(Node):
         msg.points.append(point)
 
         self.trajectory_publisher.publish(msg)
+
+    def reset_cube_position(self, xyz: tuple[float, float, float]) -> None:
+        stamped = PoseStamped()
+        stamped.header.stamp = self.get_clock().now().to_msg()
+        stamped.header.frame_id = "world"
+        stamped.pose.position.x = float(xyz[0])
+        stamped.pose.position.y = float(xyz[1])
+        stamped.pose.position.z = float(xyz[2])
+        stamped.pose.orientation.w = 1.0
+        self.cube_reset_publisher.publish(stamped)
+
+        req = (
+            f'name: "{CUBE_MODEL_NAME}" '
+            f'position: {{x: {xyz[0]:.4f}, y: {xyz[1]:.4f}, z: {xyz[2]:.4f}}} '
+            f'orientation: {{w: 1.0}}'
+        )
+        try:
+            subprocess.run(
+                [
+                    "ign", "service",
+                    "-s", f"/world/{GAZEBO_WORLD_NAME}/set_pose",
+                    "--reqtype", "ignition.msgs.Pose",
+                    "--reptype", "ignition.msgs.Boolean",
+                    "--timeout", "2000",
+                    "--req", req,
+                ],
+                timeout=3.0,
+                capture_output=True,
+            )
+        except (subprocess.TimeoutExpired, FileNotFoundError) as exc:
+            self.get_logger().warning(f"Cube Gazebo teleport failed: {exc}")
 
     def get_state(self) -> dict[str, Any] | None:
         if not self._has_full_state():

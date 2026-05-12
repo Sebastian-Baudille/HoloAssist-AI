@@ -9,7 +9,12 @@ from __future__ import annotations
 import time
 
 import rclpy
-from controller_manager_msgs.srv import ListControllers, SwitchController
+from controller_manager_msgs.srv import (
+    ConfigureController,
+    ListControllers,
+    LoadController,
+    SwitchController,
+)
 from rclpy.node import Node
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
@@ -41,6 +46,14 @@ class ControllerSetup(Node):
             SwitchController,
             "/controller_manager/switch_controller",
         )
+        self.configure_client = self.create_client(
+            ConfigureController,
+            "/controller_manager/configure_controller",
+        )
+        self.load_client = self.create_client(
+            LoadController,
+            "/controller_manager/load_controller",
+        )
         self.trajectory_pub = self.create_publisher(
             JointTrajectory,
             JOINT_TRAJECTORY_TOPIC,
@@ -50,17 +63,26 @@ class ControllerSetup(Node):
     def run(self) -> bool:
         if not self._wait_for_clients():
             return False
-        if not self._wait_for_loaded_controllers():
-            return False
-        if not self._activate_controllers():
-            return False
-        self._publish_home()
-        self.get_logger().info("Controllers active; UR3e at home position.")
-        return True
+        deadline = time.monotonic() + 60.0
+        while rclpy.ok() and time.monotonic() < deadline:
+            if not self._ensure_controllers_loaded():
+                time.sleep(0.5)
+                continue
+            if not self._wait_for_loaded_controllers(timeout_sec=2.0):
+                continue
+            if self._activate_controllers():
+                self._publish_home()
+                self.get_logger().info("Controllers active; UR3e at home position.")
+                return True
+            time.sleep(0.5)
+        self.get_logger().error("Timed out bringing controllers to active state.")
+        return False
 
     def _wait_for_clients(self, timeout_sec: float = 30.0) -> bool:
         clients = [
             (self.list_client, "/controller_manager/list_controllers"),
+            (self.load_client, "/controller_manager/load_controller"),
+            (self.configure_client, "/controller_manager/configure_controller"),
             (self.switch_client, "/controller_manager/switch_controller"),
         ]
         deadline = time.monotonic() + timeout_sec
@@ -80,8 +102,24 @@ class ControllerSetup(Node):
                 return True
             self.get_logger().info(f"Waiting for controllers. Loaded: {sorted(loaded)}")
             time.sleep(0.5)
-        self.get_logger().error(f"Timed out waiting for controllers: {CONTROLLERS}")
         return False
+
+    def _ensure_controllers_loaded(self) -> bool:
+        loaded = {c.name for c in self._list_controllers(timeout_sec=5.0)}
+        missing = [name for name in CONTROLLERS if name not in loaded]
+        for name in missing:
+            request = LoadController.Request()
+            request.name = name
+            future = self.load_client.call_async(request)
+            rclpy.spin_until_future_complete(self, future, timeout_sec=10.0)
+            if not future.done() or future.result() is None:
+                self.get_logger().error(f"Timed out loading controller '{name}'.")
+                return False
+            if not future.result().ok:
+                self.get_logger().error(f"Failed loading controller '{name}'.")
+                return False
+            self.get_logger().info(f"Loaded controller '{name}'.")
+        return True
 
     def _list_controllers(self, timeout_sec: float) -> list:
         future = self.list_client.call_async(ListControllers.Request())
@@ -92,13 +130,26 @@ class ControllerSetup(Node):
 
     def _activate_controllers(self) -> bool:
         controllers = self._list_controllers(timeout_sec=5.0)
-        active = {c.name for c in controllers if c.state == "active"}
-        if all(n in active for n in CONTROLLERS):
+        states = {c.name: c.state for c in controllers}
+
+        for name in CONTROLLERS:
+            if states.get(name) == "unconfigured":
+                if not self._configure_controller(name):
+                    return False
+
+        controllers = self._list_controllers(timeout_sec=5.0)
+        states = {c.name: c.state for c in controllers}
+        if all(states.get(name) == "active" for name in CONTROLLERS):
             self.get_logger().info("Controllers already active.")
             return True
 
+        to_activate = [name for name in CONTROLLERS if states.get(name) == "inactive"]
+        if not to_activate:
+            self.get_logger().info(f"Controllers not ready to activate yet: {states}")
+            return False
+
         request = SwitchController.Request()
-        request.activate_controllers = CONTROLLERS
+        request.activate_controllers = to_activate
         request.deactivate_controllers = []
         request.strictness = SwitchController.Request.STRICT
         request.activate_asap = True
@@ -113,6 +164,20 @@ class ControllerSetup(Node):
             self.get_logger().error("Controller manager rejected activation.")
             return False
         self.get_logger().info("Activated UR3e controllers.")
+        return True
+
+    def _configure_controller(self, name: str) -> bool:
+        request = ConfigureController.Request()
+        request.name = name
+        future = self.configure_client.call_async(request)
+        rclpy.spin_until_future_complete(self, future, timeout_sec=10.0)
+        if not future.done() or future.result() is None:
+            self.get_logger().error(f"Timed out configuring controller '{name}'.")
+            return False
+        if not future.result().ok:
+            self.get_logger().error(f"Failed configuring controller '{name}'.")
+            return False
+        self.get_logger().info(f"Configured controller '{name}'.")
         return True
 
     def _publish_home(self) -> None:

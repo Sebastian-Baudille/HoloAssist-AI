@@ -82,6 +82,25 @@ def generate_launch_description() -> LaunchDescription:
     gui_arg = DeclareLaunchArgument("gui", default_value="true")
     world_arg = DeclareLaunchArgument("world", default_value=world_default)
     spawn_robot_arg = DeclareLaunchArgument("spawn_robot", default_value="true")
+    use_moveit_collision_checker_arg = DeclareLaunchArgument(
+        "use_moveit_collision_checker",
+        default_value="false",
+        description="Run ur3e_safety_layer/moveit_collision_checker for /collision_flag.",
+    )
+    moveit_group_name_arg = DeclareLaunchArgument(
+        "moveit_group_name",
+        default_value="ur_onrobot_manipulator",
+        description="MoveIt planning group used by /check_state_validity.",
+    )
+    moveit_state_validity_service_arg = DeclareLaunchArgument(
+        "moveit_state_validity_service",
+        default_value="/check_state_validity",
+    )
+    moveit_fail_closed_arg = DeclareLaunchArgument(
+        "moveit_fail_closed_when_unavailable",
+        default_value="false",
+        description="If true, publish collision_flag=True when MoveIt is unavailable.",
+    )
 
     robot_x_arg = DeclareLaunchArgument("robot_x", default_value="0.0")
     robot_y_arg = DeclareLaunchArgument("robot_y", default_value="0.0")
@@ -146,31 +165,11 @@ def generate_launch_description() -> LaunchDescription:
         condition=IfCondition(LaunchConfiguration("spawn_robot")),
     )
 
-    joint_state_broadcaster_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        name="spawn_joint_state_broadcaster",
+    setup_controllers = Node(
+        package="ur3e_gazebo_sim",
+        executable="setup_controllers.py",
+        name="setup_ur3e_gazebo_controllers",
         output="screen",
-        arguments=[
-            "joint_state_broadcaster",
-            "--controller-manager", "/controller_manager",
-            "--controller-manager-timeout", "60",
-            "--switch-timeout", "60",
-        ],
-        condition=IfCondition(LaunchConfiguration("spawn_robot")),
-    )
-
-    trajectory_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        name="spawn_scaled_joint_trajectory_controller",
-        output="screen",
-        arguments=[
-            "scaled_joint_trajectory_controller",
-            "--controller-manager", "/controller_manager",
-            "--controller-manager-timeout", "60",
-            "--switch-timeout", "60",
-        ],
         condition=IfCondition(LaunchConfiguration("spawn_robot")),
     )
 
@@ -179,7 +178,29 @@ def generate_launch_description() -> LaunchDescription:
         executable="gazebo_pose_bridge.py",
         name="gazebo_pose_bridge",
         output="screen",
-        parameters=[{"use_sim_time": True}],
+        parameters=[{"use_sim_time": False}],
+    )
+
+    moveit_collision_checker = Node(
+        package="ur3e_safety_layer",
+        executable="moveit_collision_checker",
+        name="moveit_collision_checker",
+        output="screen",
+        parameters=[
+            {
+                "collision_flag_topic": "/collision_flag",
+                "joint_states_topic": "/joint_states",
+                "move_group_name": LaunchConfiguration("moveit_group_name"),
+                "check_state_validity_service": LaunchConfiguration(
+                    "moveit_state_validity_service"
+                ),
+                "fail_closed_when_unavailable": LaunchConfiguration(
+                    "moveit_fail_closed_when_unavailable"
+                ),
+                "fail_closed_without_joint_state": False,
+            }
+        ],
+        condition=IfCondition(LaunchConfiguration("use_moveit_collision_checker")),
     )
 
     return LaunchDescription(
@@ -187,6 +208,10 @@ def generate_launch_description() -> LaunchDescription:
             gui_arg,
             world_arg,
             spawn_robot_arg,
+            use_moveit_collision_checker_arg,
+            moveit_group_name_arg,
+            moveit_state_validity_service_arg,
+            moveit_fail_closed_arg,
             robot_x_arg,
             robot_y_arg,
             robot_z_arg,
@@ -194,8 +219,8 @@ def generate_launch_description() -> LaunchDescription:
             OpaqueFunction(function=_launch_setup),
             robot_state_publisher,
             TimerAction(period=4.0, actions=[spawn_robot]),
-            TimerAction(period=8.0, actions=[joint_state_broadcaster_spawner]),
-            TimerAction(period=10.0, actions=[trajectory_controller_spawner]),
-            TimerAction(period=14.0, actions=[gazebo_pose_bridge]),
+            TimerAction(period=10.0, actions=[setup_controllers]),
+            TimerAction(period=6.0, actions=[gazebo_pose_bridge]),
+            TimerAction(period=8.0, actions=[moveit_collision_checker]),
         ]
     )

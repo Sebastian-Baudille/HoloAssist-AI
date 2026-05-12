@@ -29,6 +29,11 @@ DEFAULT_MAX_EPISODE_STEPS = int(os.getenv("UR3E_RL_MAX_EPISODE_STEPS", "200"))
 DEFAULT_CONTROL_DT = float(os.getenv("UR3E_RL_CONTROL_DT", "0.2"))
 DEFAULT_RESET_DURATION = float(os.getenv("UR3E_RL_RESET_DURATION", "1.0"))
 
+RANDOMIZE_CUBE = os.getenv("UR3E_RL_RANDOMIZE_CUBE", "1").lower() in {"1", "true", "yes"}
+CUBE_X_RANGE = (float(os.getenv("UR3E_RL_CUBE_X_MIN", "-0.20")), float(os.getenv("UR3E_RL_CUBE_X_MAX", "0.20")))
+CUBE_Y_RANGE = (float(os.getenv("UR3E_RL_CUBE_Y_MIN", "-0.45")), float(os.getenv("UR3E_RL_CUBE_Y_MAX", "-0.10")))
+CUBE_Z = float(os.getenv("UR3E_RL_CUBE_Z", "1.11"))
+
 
 def _ensure_rclpy_initialized() -> bool:
     if rclpy.ok():
@@ -60,8 +65,8 @@ class UR3ePickPlaceEnv(gym.Env):
         self.step_count = 0
 
         self.action_space = spaces.Box(
-            low=-0.03,
-            high=0.03,
+            low=-0.24,
+            high=0.24,
             shape=(6,),
             dtype=np.float32,
         )
@@ -86,6 +91,8 @@ class UR3ePickPlaceEnv(gym.Env):
         self.step_count = 0
 
         self.ros.send_joint_target(HOME_JOINTS, duration_sec=self.reset_duration)
+        if RANDOMIZE_CUBE:
+            self.ros.reset_cube_position(self._random_cube_xyz())
         self._spin_for(self.reset_duration)
 
         ready = self.ros.wait_until_ready(self.ready_timeout_sec)
@@ -162,6 +169,11 @@ class UR3ePickPlaceEnv(gym.Env):
         self.ros.destroy_node()
         if self._owns_rclpy and rclpy.ok():
             rclpy.shutdown()
+
+    def _random_cube_xyz(self) -> tuple[float, float, float]:
+        x = float(self.np_random.uniform(CUBE_X_RANGE[0], CUBE_X_RANGE[1]))
+        y = float(self.np_random.uniform(CUBE_Y_RANGE[0], CUBE_Y_RANGE[1]))
+        return (x, y, CUBE_Z)
 
     def _spin_for(self, duration_sec: float) -> None:
         deadline = time.monotonic() + duration_sec

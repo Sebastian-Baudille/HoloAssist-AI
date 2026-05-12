@@ -52,6 +52,7 @@ class GazeboPoseBridge(Node):
         self.tcp_pose: PoseStamped | None = None
         self._warned_tf = False
 
+        self.create_subscription(PoseStamped, "~/cube_reset_pose", self._cube_reset_cb, 10)
         self.create_timer(1.0 / publish_rate_hz, self._publish)
         self.get_logger().info(
             f"Publishing RL pose topics: {TCP_POSE_TOPIC}, {CUBE_POSE_TOPIC}, {GOAL_POSE_TOPIC}"
@@ -92,6 +93,9 @@ class GazeboPoseBridge(Node):
             )
             self._warned_tf = True
         return None
+
+    def _cube_reset_cb(self, msg: PoseStamped) -> None:
+        self.cube_pose = msg
 
     def _pose_from_xyz(self, xyz: tuple[float, float, float]) -> PoseStamped:
         stamped = PoseStamped()

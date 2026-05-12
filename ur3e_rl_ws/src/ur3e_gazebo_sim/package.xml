@@ -21,6 +21,7 @@
   <exec_depend>rclpy</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>ur3e_safety_layer</exec_depend>
   <exec_depend>ur_description</exec_depend>
   <exec_depend>xacro</exec_depend>
 

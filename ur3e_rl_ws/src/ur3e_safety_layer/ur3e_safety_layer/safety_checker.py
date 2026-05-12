@@ -39,7 +39,7 @@ class SafetyChecker:
 
     def __init__(
         self,
-        max_delta_rad: float = 0.05,
+        max_delta_rad: float = 0.24,
         min_end_effector_z: float = 0.02,
         joint_limits: Mapping[str, tuple[float, float]] | None = None,
     ) -> None:
