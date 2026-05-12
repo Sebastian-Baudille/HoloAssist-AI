@@ -90,13 +90,13 @@
 
     <include>
       <name>bin_1</name>
-      <uri>model://bin</uri>
+      <uri>model://place_bin</uri>
       <pose>0.28 0.0 1.078 0 0 0</pose>
     </include>
 
     <include>
       <name>bin_2</name>
-      <uri>model://bin</uri>
+      <uri>model://place_bin</uri>
       <pose>-0.28 0.0 1.078 0 0 0</pose>
     </include>
   </world>

@@ -2,15 +2,15 @@
 <package format="3">
   <name>ur3e_gazebo_sim</name>
   <version>0.1.0</version>
-  <description>Gazebo Classic bench-top UR3e pick/place scene matching the HoloAssist Unity sim.</description>
+  <description>Ignition Fortress bench-top UR3e pick/place scene matching the HoloAssist Unity sim.</description>
   <maintainer email="ollie@example.com">Ollie</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <exec_depend>gazebo_ros</exec_depend>
-  <exec_depend>gazebo_msgs</exec_depend>
-  <exec_depend>gazebo_ros2_control</exec_depend>
+  <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
+  <exec_depend>ign_ros2_control</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>controller_manager</exec_depend>
   <exec_depend>controller_manager_msgs</exec_depend>
@@ -20,7 +20,6 @@
   <exec_depend>launch_ros</exec_depend>
   <exec_depend>rclpy</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>
-  <exec_depend>std_srvs</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
   <exec_depend>ur_description</exec_depend>
   <exec_depend>xacro</exec_depend>

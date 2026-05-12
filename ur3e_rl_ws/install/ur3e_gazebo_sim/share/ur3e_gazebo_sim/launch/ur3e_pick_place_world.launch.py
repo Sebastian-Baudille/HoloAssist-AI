@@ -1,96 +1,86 @@
+"""Launch the UR3e + RG2 pick/place scene in Ignition Fortress.
+
+Pipeline:
+  1. Set IGN_GAZEBO_RESOURCE_PATH so Ignition can find custom models.
+  2. Start Ignition Fortress via ros_gz_sim.
+  3. Spawn the UR3e+RG2 URDF into the running sim.
+  4. Start robot_state_publisher (TF + /robot_description).
+  5. Spawn and activate ros2_control controllers.
+  6. Start gazebo_pose_bridge (publishes /cube/pose, /goal/pose, /tcp/pose for RL).
+
+Usage:
+    ros2 launch ur3e_gazebo_sim ur3e_pick_place_world.launch.py
+    ros2 launch ur3e_gazebo_sim ur3e_pick_place_world.launch.py gui:=false
+"""
 from __future__ import annotations
 
 import os
 
-from ament_index_python.packages import (
-    PackageNotFoundError,
-    get_package_prefix,
-    get_package_share_directory,
-)
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
-    AppendEnvironmentVariable,
     DeclareLaunchArgument,
-    ExecuteProcess,
+    IncludeLaunchDescription,
     OpaqueFunction,
     TimerAction,
 )
 from launch.conditions import IfCondition
-from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import (
+    Command,
+    FindExecutable,
+    LaunchConfiguration,
+    PathJoinSubstitution,
+)
 from launch_ros.actions import Node
 from launch_ros.descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 
-def _start_gazebo(context, *args):
-    del args
-    world = LaunchConfiguration("world").perform(context)
+def _launch_setup(context, *args, **kwargs):
+    pkg_share_dir = get_package_share_directory("ur3e_gazebo_sim")
+    world_path = LaunchConfiguration("world").perform(context)
     gui = LaunchConfiguration("gui").perform(context).lower() == "true"
-    verbose = LaunchConfiguration("verbose").perform(context).lower() == "true"
-    gazebo_ros_prefix = get_package_prefix("gazebo_ros")
-    gazebo_ros_lib_dir = os.path.join(gazebo_ros_prefix, "lib")
 
-    server_cmd = ["gzserver"]
-    if verbose:
-        server_cmd.append("--verbose")
-    # Always start paused. If paused:=false, the launch file unpauses after the
-    # robot and controllers have spawned so the arm does not fall under gravity.
-    server_cmd.append("-u")
-    server_cmd.extend(
-        [
-            "-s",
-            os.path.join(gazebo_ros_lib_dir, "libgazebo_ros_init.so"),
-            "-s",
-            os.path.join(gazebo_ros_lib_dir, "libgazebo_ros_factory.so"),
-            "-s",
-            os.path.join(gazebo_ros_lib_dir, "libgazebo_ros_state.so"),
-            world,
-        ]
+    gz_args = f"-r -v 3 {world_path}"
+    if not gui:
+        gz_args = f"-s -r -v 3 {world_path}"
+
+    gz_sim = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("ros_gz_sim"),
+                "launch",
+                "gz_sim.launch.py",
+            )
+        ),
+        launch_arguments={"gz_args": gz_args}.items(),
     )
 
-    actions = [ExecuteProcess(cmd=server_cmd, output="screen")]
-    if gui:
-        actions.append(ExecuteProcess(cmd=["gzclient"], output="screen"))
-    return actions
-
-
-def _check_runtime_dependencies(context, *args):
-    del context, args
-    try:
-        get_package_prefix("gazebo_ros2_control")
-    except PackageNotFoundError as exc:
-        raise RuntimeError(
-            "gazebo_ros2_control is required for the UR3e to hold position and "
-            "accept JointTrajectory commands. Install it with:\n"
-            "  sudo apt install ros-humble-gazebo-ros2-control"
-        ) from exc
-    return []
+    return [gz_sim]
 
 
 def generate_launch_description() -> LaunchDescription:
     pkg_share = FindPackageShare("ur3e_gazebo_sim")
     pkg_share_dir = get_package_share_directory("ur3e_gazebo_sim")
-    package_share_root = os.path.dirname(pkg_share_dir)
-    ros_share_root = os.path.dirname(get_package_share_directory("ur_description"))
 
     world_default = PathJoinSubstitution([pkg_share, "worlds", "pick_place_world.sdf"])
-    models_path = PathJoinSubstitution([pkg_share, "models"])
+    models_path = os.path.join(pkg_share_dir, "models")
+
+    # Set resource paths in os.environ NOW so ign gazebo inherits them.
+    # AppendEnvironmentVariable alone is unreliable for the SDF parser.
+    for env_key in ("IGN_GAZEBO_RESOURCE_PATH", "GZ_SIM_RESOURCE_PATH"):
+        existing = os.environ.get(env_key, "")
+        paths = [p for p in existing.split(os.pathsep) if p]
+        for p in (models_path, pkg_share_dir):
+            if p not in paths:
+                paths.append(p)
+        os.environ[env_key] = os.pathsep.join(paths)
     controller_config = PathJoinSubstitution([pkg_share, "config", "ur3e_controllers.yaml"])
     robot_xacro = PathJoinSubstitution([pkg_share, "urdf", "ur3e_rg2_benchtop.urdf.xacro"])
 
     gui_arg = DeclareLaunchArgument("gui", default_value="true")
-    paused_arg = DeclareLaunchArgument(
-        "paused",
-        default_value="true",
-        description=(
-            "Leave Gazebo paused after setup. If false, Gazebo starts paused and "
-            "unpauses after the robot controllers are loaded."
-        ),
-    )
-    verbose_arg = DeclareLaunchArgument("verbose", default_value="false")
     world_arg = DeclareLaunchArgument("world", default_value=world_default)
-    use_sim_time_arg = DeclareLaunchArgument("use_sim_time", default_value="true")
-    include_rg2_arg = DeclareLaunchArgument("include_rg2", default_value="true")
     spawn_robot_arg = DeclareLaunchArgument("spawn_robot", default_value="true")
 
     robot_x_arg = DeclareLaunchArgument("robot_x", default_value="0.0")
@@ -103,7 +93,7 @@ def generate_launch_description() -> LaunchDescription:
     robot_yaw_arg = DeclareLaunchArgument(
         "robot_yaw",
         default_value="3.141592653589793",
-        description="Yaw of the bench-mounted UR3e base. Pi matches the Unity scene orientation.",
+        description="Yaw of the bench-mounted UR3e base.",
     )
 
     robot_description_content = Command(
@@ -126,9 +116,7 @@ def generate_launch_description() -> LaunchDescription:
             "base_yaw:=",
             LaunchConfiguration("robot_yaw"),
             " ",
-            "include_rg2:=",
-            LaunchConfiguration("include_rg2"),
-            " ",
+            "include_rg2:=true ",
             "controllers_file:=",
             controller_config,
         ]
@@ -142,23 +130,19 @@ def generate_launch_description() -> LaunchDescription:
         executable="robot_state_publisher",
         name="robot_state_publisher",
         output="screen",
-        parameters=[robot_description, {"use_sim_time": LaunchConfiguration("use_sim_time")}],
+        parameters=[robot_description, {"use_sim_time": True}],
         condition=IfCondition(LaunchConfiguration("spawn_robot")),
     )
 
-    spawn_entity_args = [
-        "-topic",
-        "/robot_description",
-        "-entity",
-        "ur3e_rg2",
-    ]
-
     spawn_robot = Node(
-        package="gazebo_ros",
-        executable="spawn_entity.py",
+        package="ros_gz_sim",
+        executable="create",
         name="spawn_ur3e_rg2",
         output="screen",
-        arguments=spawn_entity_args,
+        arguments=[
+            "-topic", "/robot_description",
+            "-name", "ur3e_rg2",
+        ],
         condition=IfCondition(LaunchConfiguration("spawn_robot")),
     )
 
@@ -169,13 +153,9 @@ def generate_launch_description() -> LaunchDescription:
         output="screen",
         arguments=[
             "joint_state_broadcaster",
-            "--controller-manager",
-            "/controller_manager",
-            "--inactive",
-            "--controller-manager-timeout",
-            "60",
-            "--switch-timeout",
-            "60",
+            "--controller-manager", "/controller_manager",
+            "--controller-manager-timeout", "60",
+            "--switch-timeout", "60",
         ],
         condition=IfCondition(LaunchConfiguration("spawn_robot")),
     )
@@ -187,13 +167,9 @@ def generate_launch_description() -> LaunchDescription:
         output="screen",
         arguments=[
             "scaled_joint_trajectory_controller",
-            "--controller-manager",
-            "/controller_manager",
-            "--inactive",
-            "--controller-manager-timeout",
-            "60",
-            "--switch-timeout",
-            "60",
+            "--controller-manager", "/controller_manager",
+            "--controller-manager-timeout", "60",
+            "--switch-timeout", "60",
         ],
         condition=IfCondition(LaunchConfiguration("spawn_robot")),
     )
@@ -203,53 +179,23 @@ def generate_launch_description() -> LaunchDescription:
         executable="gazebo_pose_bridge.py",
         name="gazebo_pose_bridge",
         output="screen",
-        parameters=[{"use_sim_time": LaunchConfiguration("use_sim_time")}],
-    )
-
-    controller_setup = Node(
-        package="ur3e_gazebo_sim",
-        executable="setup_controllers.py",
-        name="setup_ur3e_gazebo_controllers",
-        output="screen",
-        parameters=[{"pause_after_setup": LaunchConfiguration("paused")}],
-        condition=IfCondition(LaunchConfiguration("spawn_robot")),
+        parameters=[{"use_sim_time": True}],
     )
 
     return LaunchDescription(
         [
             gui_arg,
-            paused_arg,
-            verbose_arg,
             world_arg,
-            use_sim_time_arg,
-            include_rg2_arg,
             spawn_robot_arg,
             robot_x_arg,
             robot_y_arg,
             robot_z_arg,
             robot_yaw_arg,
-            AppendEnvironmentVariable(
-                name="GAZEBO_MODEL_PATH",
-                value=models_path,
-                separator=os.pathsep,
-            ),
-            AppendEnvironmentVariable(
-                name="GAZEBO_MODEL_PATH",
-                value=package_share_root,
-                separator=os.pathsep,
-            ),
-            AppendEnvironmentVariable(
-                name="GAZEBO_MODEL_PATH",
-                value=ros_share_root,
-                separator=os.pathsep,
-            ),
-            OpaqueFunction(function=_check_runtime_dependencies),
-            OpaqueFunction(function=_start_gazebo),
+            OpaqueFunction(function=_launch_setup),
             robot_state_publisher,
-            TimerAction(period=3.0, actions=[spawn_robot]),
-            TimerAction(period=5.0, actions=[joint_state_broadcaster_spawner]),
-            TimerAction(period=6.0, actions=[trajectory_controller_spawner]),
-            TimerAction(period=8.0, actions=[gazebo_pose_bridge]),
-            TimerAction(period=9.0, actions=[controller_setup]),
+            TimerAction(period=4.0, actions=[spawn_robot]),
+            TimerAction(period=8.0, actions=[joint_state_broadcaster_spawner]),
+            TimerAction(period=10.0, actions=[trajectory_controller_spawner]),
+            TimerAction(period=14.0, actions=[gazebo_pose_bridge]),
         ]
     )

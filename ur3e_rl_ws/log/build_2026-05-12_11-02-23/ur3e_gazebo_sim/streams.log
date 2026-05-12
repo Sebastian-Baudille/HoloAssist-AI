@@ -1,0 +1,53 @@
+[0.006s] Invoking command in '/home/nic/git/HoloAssist-AI/ur3e_rl_ws/build/ur3e_gazebo_sim': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake /home/nic/git/HoloAssist-AI/ur3e_rl_ws/src/ur3e_gazebo_sim -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim
+[0.016s] -- Found ament_cmake: 1.3.14 (/opt/ros/humble/share/ament_cmake/cmake)
+[0.092s] -- Override CMake install command with custom implementation using symlinks instead of copying resources
+[0.137s] -- Configuring done
+[0.138s] -- Generating done
+[0.139s] -- Build files have been written to: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/build/ur3e_gazebo_sim
+[0.140s] Invoked command in '/home/nic/git/HoloAssist-AI/ur3e_rl_ws/build/ur3e_gazebo_sim' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake /home/nic/git/HoloAssist-AI/ur3e_rl_ws/src/ur3e_gazebo_sim -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim
+[0.141s] Invoking command in '/home/nic/git/HoloAssist-AI/ur3e_rl_ws/build/ur3e_gazebo_sim': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --build /home/nic/git/HoloAssist-AI/ur3e_rl_ws/build/ur3e_gazebo_sim -- -j20 -l20
+[0.169s] Invoked command in '/home/nic/git/HoloAssist-AI/ur3e_rl_ws/build/ur3e_gazebo_sim' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --build /home/nic/git/HoloAssist-AI/ur3e_rl_ws/build/ur3e_gazebo_sim -- -j20 -l20
+[0.175s] Invoking command in '/home/nic/git/HoloAssist-AI/ur3e_rl_ws/build/ur3e_gazebo_sim': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --install /home/nic/git/HoloAssist-AI/ur3e_rl_ws/build/ur3e_gazebo_sim
+[0.179s] -- Install configuration: ""
+[0.179s] -- Execute custom install script
+[0.179s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/launch/ur3e_pick_place_world.launch.py
+[0.186s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/worlds/pick_place_world.sdf
+[0.194s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/models/bin/model.config
+[0.199s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/models/bin/model.sdf
+[0.205s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/models/cube/model.config
+[0.211s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/models/cube/model.sdf
+[0.216s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/models/table/meshes/UR3eTrolley_decimated.dae
+[0.221s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/models/table/model.config
+[0.227s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/models/table/model.sdf
+[0.234s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/urdf/rg2_fixed.xacro
+[0.239s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/urdf/ur3e_rg2_benchtop.urdf.xacro
+[0.245s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2/collision/base_link.stl
+[0.252s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2/collision/inner_finger.stl
+[0.258s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2/collision/inner_knuckle.stl
+[0.263s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2/collision/outer_knuckle.stl
+[0.270s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2/visual/base_link.stl
+[0.274s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2/visual/inner_finger.stl
+[0.280s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2/visual/inner_knuckle.stl
+[0.284s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2/visual/outer_knuckle.stl
+[0.291s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/config/initial_positions.yaml
+[0.297s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/config/ur3e_controllers.yaml
+[0.302s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/lib/ur3e_gazebo_sim/gazebo_pose_bridge.py
+[0.309s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/lib/ur3e_gazebo_sim/send_home_trajectory.py
+[0.315s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/lib/ur3e_gazebo_sim/setup_controllers.py
+[0.321s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/README.md
+[0.326s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ament_index/resource_index/package_run_dependencies/ur3e_gazebo_sim
+[0.332s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ament_index/resource_index/parent_prefix_path/ur3e_gazebo_sim
+[0.338s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/environment/ament_prefix_path.sh
+[0.344s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/environment/ament_prefix_path.dsv
+[0.350s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/environment/path.sh
+[0.356s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/environment/path.dsv
+[0.362s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/local_setup.bash
+[0.369s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/local_setup.sh
+[0.375s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/local_setup.zsh
+[0.380s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/local_setup.dsv
+[0.385s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/package.dsv
+[0.392s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ament_index/resource_index/packages/ur3e_gazebo_sim
+[0.398s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/cmake/ur3e_gazebo_simConfig.cmake
+[0.403s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/cmake/ur3e_gazebo_simConfig-version.cmake
+[0.410s] -- Symlinking: /home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/package.xml
+[0.417s] Invoked command in '/home/nic/git/HoloAssist-AI/ur3e_rl_ws/build/ur3e_gazebo_sim' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --install /home/nic/git/HoloAssist-AI/ur3e_rl_ws/build/ur3e_gazebo_sim

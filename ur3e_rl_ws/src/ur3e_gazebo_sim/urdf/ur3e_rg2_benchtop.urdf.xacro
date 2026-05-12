@@ -32,7 +32,7 @@
     physical_parameters_file="$(arg physical_parameters_file)"
     visual_parameters_file="$(arg visual_parameters_file)"
     generate_ros2_control_tag="true"
-    sim_gazebo="true"
+    sim_ignition="true"
     initial_positions="${xacro.load_yaml(initial_positions_file)}"
     safety_limits="true">
     <origin xyz="$(arg base_x) $(arg base_y) $(arg base_z)" rpy="0 0 $(arg base_yaw)"/>
@@ -43,7 +43,7 @@
   </xacro:if>
 
   <gazebo>
-    <plugin filename="libgazebo_ros2_control.so" name="gazebo_ros2_control">
+    <plugin filename="libign_ros2_control-system.so" name="ign_ros2_control::IgnitionROS2ControlPlugin">
       <parameters>$(arg controllers_file)</parameters>
     </plugin>
   </gazebo>

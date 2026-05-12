@@ -53,10 +53,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/src/ur3e_gazebo_sim
+CMAKE_SOURCE_DIR = /home/nic/git/HoloAssist-AI/ur3e_rl_ws/src/ur3e_gazebo_sim
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_gazebo_sim
+CMAKE_BINARY_DIR = /home/nic/git/HoloAssist-AI/ur3e_rl_ws/build/ur3e_gazebo_sim
 
 # Utility rule file for ur3e_gazebo_sim_uninstall.
 
@@ -67,7 +67,7 @@ include CMakeFiles/ur3e_gazebo_sim_uninstall.dir/compiler_depend.make
 include CMakeFiles/ur3e_gazebo_sim_uninstall.dir/progress.make
 
 CMakeFiles/ur3e_gazebo_sim_uninstall:
-	/usr/bin/cmake -P /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_gazebo_sim/ament_cmake_uninstall_target/ament_cmake_uninstall_target.cmake
+	/usr/bin/cmake -P /home/nic/git/HoloAssist-AI/ur3e_rl_ws/build/ur3e_gazebo_sim/ament_cmake_uninstall_target/ament_cmake_uninstall_target.cmake
 
 ur3e_gazebo_sim_uninstall: CMakeFiles/ur3e_gazebo_sim_uninstall
 ur3e_gazebo_sim_uninstall: CMakeFiles/ur3e_gazebo_sim_uninstall.dir/build.make
@@ -82,6 +82,6 @@ CMakeFiles/ur3e_gazebo_sim_uninstall.dir/clean:
 .PHONY : CMakeFiles/ur3e_gazebo_sim_uninstall.dir/clean
 
 CMakeFiles/ur3e_gazebo_sim_uninstall.dir/depend:
-	cd /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_gazebo_sim && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/src/ur3e_gazebo_sim /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/src/ur3e_gazebo_sim /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_gazebo_sim /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_gazebo_sim /home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/build/ur3e_gazebo_sim/CMakeFiles/ur3e_gazebo_sim_uninstall.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/nic/git/HoloAssist-AI/ur3e_rl_ws/build/ur3e_gazebo_sim && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/nic/git/HoloAssist-AI/ur3e_rl_ws/src/ur3e_gazebo_sim /home/nic/git/HoloAssist-AI/ur3e_rl_ws/src/ur3e_gazebo_sim /home/nic/git/HoloAssist-AI/ur3e_rl_ws/build/ur3e_gazebo_sim /home/nic/git/HoloAssist-AI/ur3e_rl_ws/build/ur3e_gazebo_sim /home/nic/git/HoloAssist-AI/ur3e_rl_ws/build/ur3e_gazebo_sim/CMakeFiles/ur3e_gazebo_sim_uninstall.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/ur3e_gazebo_sim_uninstall.dir/depend
 

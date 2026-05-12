@@ -173,7 +173,6 @@ class RosInterfaceNode(Node):
             self._warned_no_traj_subscriber = True
 
         msg = JointTrajectory()
-        msg.header.stamp = self.get_clock().now().to_msg()
         msg.joint_names = list(UR3E_JOINT_NAMES)
 
         point = JointTrajectoryPoint()

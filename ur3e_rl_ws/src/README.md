@@ -260,6 +260,95 @@ This publishes:
 /collision_flag = False
 ```
 
+## Record Teleop Demonstrations
+
+Collect human demonstrations from the Unity XR teleop system for
+pretraining the PPO policy. The recorder runs alongside the teleop node
+and passively samples robot state — it does not send any commands.
+
+Prerequisites: UR driver running (`/joint_states` publishing), teleop
+node active (Unity publishing to `/forward_velocity_controller/commands`).
+TCP pose is read from TF (`base_link` → `tool0`), so no extra pose
+publisher is needed.
+
+```bash
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 run ur3e_rl_env record_demo
+```
+
+Set a static object position if perception is not running:
+
+```bash
+ros2 run ur3e_rl_env record_demo --ros-args \
+    -p object_xyz:="[0.3, 0.0, 0.05]"
+```
+
+Configurable parameters (via `--ros-args -p`):
+
+```text
+hz                 Sampling rate (default: 5.0)
+max_episode_steps  Steps before auto-segmenting a new episode (default: 200)
+base_frame         TF base frame (default: base_link)
+tcp_frame          TF tool frame (default: tool0)
+object_topic       Object pose topic (default: /cube/pose)
+object_xyz         Static object fallback [x, y, z] (default: [0.3, 0.0, 0.05])
+goal_topic         Goal pose topic (default: /goal/pose)
+output_dir         Output directory (default: ./demo_data)
+velocity_topic     Teleop velocity command topic (default: /forward_velocity_controller/commands)
+```
+
+Episode segmentation is automatic: episodes end on success (TCP within
+4 cm of object), failure (collision or TCP below z=0.02 m), or after
+`max_episode_steps`. Press Ctrl+C to save the current episode and exit.
+
+Output files (one per episode):
+
+```text
+demo_data/
+  demo_episode_001.npz
+  demo_episode_002.npz
+  ...
+```
+
+Each NPZ contains:
+
+```text
+observations       (T, 29)  float32  — PPO observation vector
+actions            (T, 6)   float32  — joint delta (clipped to [-0.03, 0.03])
+rewards            (T,)     float32  — reward from the RL reward function
+next_observations  (T, 29)  float32  — observation after action
+terminals          (T,)     bool     — True if episode ended (success/failure)
+velocity_commands  (T, 6)   float32  — raw velocity commands from teleop
+```
+
+## Pretrain PPO From Demos
+
+Behavior-clone the demo data into a PPO policy network, then fine-tune
+with RL. No Gazebo or ROS needed — uses only the saved NPZ files.
+
+```bash
+ros2 run ur3e_rl_env pretrain_from_demos
+```
+
+Environment variables:
+
+```text
+UR3E_DEMO_INPUT_DIR     Demo directory (default: ./demo_data)
+UR3E_BC_OUTPUT_PATH     Output model (default: ./rl_models/ppo_ur3e_pretrained)
+UR3E_BC_EPOCHS          Training epochs (default: 100)
+UR3E_BC_LR              Learning rate (default: 1e-3)
+UR3E_BC_BATCH_SIZE      Batch size (default: 256)
+```
+
+Then fine-tune with PPO:
+
+```python
+from stable_baselines3 import PPO
+model = PPO.load("./rl_models/ppo_ur3e_pretrained", env=your_env)
+model.learn(total_timesteps=200000)
+```
+
 ## Train PPO
 
 Start Gazebo and the required pose/controller topics first, then run:

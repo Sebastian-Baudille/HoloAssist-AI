@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+"""Activate UR3e controllers after Ignition Fortress has spawned the robot.
+
+Waits for the controller_manager to load the required controllers, then
+activates them and publishes a home trajectory.
+"""
 from __future__ import annotations
 
 import time
@@ -6,7 +11,6 @@ import time
 import rclpy
 from controller_manager_msgs.srv import ListControllers, SwitchController
 from rclpy.node import Node
-from std_srvs.srv import Empty
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 
@@ -29,9 +33,6 @@ HOME_JOINTS = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 class ControllerSetup(Node):
     def __init__(self) -> None:
         super().__init__("setup_ur3e_gazebo_controllers")
-        self.declare_parameter("pause_after_setup", True)
-        self.pause_after_setup = bool(self.get_parameter("pause_after_setup").value)
-
         self.list_client = self.create_client(
             ListControllers,
             "/controller_manager/list_controllers",
@@ -40,8 +41,6 @@ class ControllerSetup(Node):
             SwitchController,
             "/controller_manager/switch_controller",
         )
-        self.unpause_client = self.create_client(Empty, "/unpause_physics")
-        self.pause_client = self.create_client(Empty, "/pause_physics")
         self.trajectory_pub = self.create_publisher(
             JointTrajectory,
             JOINT_TRAJECTORY_TOPIC,
@@ -51,35 +50,18 @@ class ControllerSetup(Node):
     def run(self) -> bool:
         if not self._wait_for_clients():
             return False
-
         if not self._wait_for_loaded_controllers():
             return False
-
-        # Controller activation in gazebo_ros2_control needs Gazebo's update loop.
-        if not self._call_empty(self.unpause_client, "unpause Gazebo physics"):
-            return False
-        time.sleep(0.5)
-
         if not self._activate_controllers():
             return False
-
         self._publish_home()
-        time.sleep(0.5)
-
-        if self.pause_after_setup:
-            if not self._call_empty(self.pause_client, "pause Gazebo physics"):
-                return False
-            self.get_logger().info("Controllers active; Gazebo paused for inspection.")
-        else:
-            self.get_logger().info("Controllers active; Gazebo left unpaused.")
+        self.get_logger().info("Controllers active; UR3e at home position.")
         return True
 
     def _wait_for_clients(self, timeout_sec: float = 30.0) -> bool:
         clients = [
             (self.list_client, "/controller_manager/list_controllers"),
             (self.switch_client, "/controller_manager/switch_controller"),
-            (self.unpause_client, "/unpause_physics"),
-            (self.pause_client, "/pause_physics"),
         ]
         deadline = time.monotonic() + timeout_sec
         for client, name in clients:
@@ -93,12 +75,10 @@ class ControllerSetup(Node):
         deadline = time.monotonic() + timeout_sec
         while rclpy.ok() and time.monotonic() < deadline:
             controllers = self._list_controllers(timeout_sec=5.0)
-            loaded_names = {controller.name for controller in controllers}
-            if all(name in loaded_names for name in CONTROLLERS):
+            loaded = {c.name for c in controllers}
+            if all(n in loaded for n in CONTROLLERS):
                 return True
-            self.get_logger().info(
-                f"Waiting for controllers to load. Loaded: {sorted(loaded_names)}"
-            )
+            self.get_logger().info(f"Waiting for controllers. Loaded: {sorted(loaded)}")
             time.sleep(0.5)
         self.get_logger().error(f"Timed out waiting for controllers: {CONTROLLERS}")
         return False
@@ -112,9 +92,9 @@ class ControllerSetup(Node):
 
     def _activate_controllers(self) -> bool:
         controllers = self._list_controllers(timeout_sec=5.0)
-        active = {controller.name for controller in controllers if controller.state == "active"}
-        if all(name in active for name in CONTROLLERS):
-            self.get_logger().info("Controllers are already active.")
+        active = {c.name for c in controllers if c.state == "active"}
+        if all(n in active for n in CONTROLLERS):
+            self.get_logger().info("Controllers already active.")
             return True
 
         request = SwitchController.Request()
@@ -130,10 +110,9 @@ class ControllerSetup(Node):
             self.get_logger().error("Timed out activating controllers.")
             return False
         if not future.result().ok:
-            self.get_logger().error("Controller manager rejected controller activation.")
+            self.get_logger().error("Controller manager rejected activation.")
             return False
-
-        self.get_logger().info("Activated UR3e Gazebo controllers.")
+        self.get_logger().info("Activated UR3e controllers.")
         return True
 
     def _publish_home(self) -> None:
@@ -155,15 +134,6 @@ class ControllerSetup(Node):
             self.trajectory_pub.publish(msg)
             rclpy.spin_once(self, timeout_sec=0.05)
             time.sleep(0.1)
-        self.get_logger().info("Published stable home trajectory.")
-
-    def _call_empty(self, client, description: str, timeout_sec: float = 10.0) -> bool:
-        future = client.call_async(Empty.Request())
-        rclpy.spin_until_future_complete(self, future, timeout_sec=timeout_sec)
-        if future.done() and future.result() is not None:
-            return True
-        self.get_logger().error(f"Timed out trying to {description}.")
-        return False
 
 
 def main(args: list[str] | None = None) -> None:
@@ -180,4 +150,3 @@ def main(args: list[str] | None = None) -> None:
 
 if __name__ == "__main__":
     main()
-

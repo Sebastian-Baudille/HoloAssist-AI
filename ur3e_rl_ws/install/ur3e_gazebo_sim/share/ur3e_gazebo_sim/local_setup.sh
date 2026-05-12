@@ -2,7 +2,7 @@
 
 # since this file is sourced use either the provided AMENT_CURRENT_PREFIX
 # or fall back to the destination set at configure time
-: ${AMENT_CURRENT_PREFIX:="/home/ollie/git/RS2/main/HoloAssist/ur3e_rl_ws/install/ur3e_gazebo_sim"}
+: ${AMENT_CURRENT_PREFIX:="/home/nic/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim"}
 if [ ! -d "$AMENT_CURRENT_PREFIX" ]; then
   if [ -z "$COLCON_CURRENT_PREFIX" ]; then
     echo "The compile time prefix path '$AMENT_CURRENT_PREFIX' doesn't " \

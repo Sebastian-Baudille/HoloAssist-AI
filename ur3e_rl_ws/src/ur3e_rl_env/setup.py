@@ -23,6 +23,9 @@ setup(
             "train_ppo_parallel = ur3e_rl_env.train_ppo_parallel:main",
             "evaluate_policy = ur3e_rl_env.evaluate_policy:main",
             "smoke_test_joint_command = ur3e_rl_env.smoke_test_joint_command:main",
+            "record_demo = ur3e_rl_env.record_demo:main",
+            "pretrain_from_demos = ur3e_rl_env.pretrain_from_demos:main",
+            "keyboard_teleop = ur3e_rl_env.keyboard_teleop:main",
         ],
     },
 )

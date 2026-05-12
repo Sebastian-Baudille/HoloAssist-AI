@@ -11,6 +11,9 @@ setup.py
 resource/ur3e_rl_env
 ur3e_rl_env/__init__.py
 ur3e_rl_env/evaluate_policy.py
+ur3e_rl_env/keyboard_teleop.py
+ur3e_rl_env/pretrain_from_demos.py
+ur3e_rl_env/record_demo.py
 ur3e_rl_env/reward.py
 ur3e_rl_env/ros_interface.py
 ur3e_rl_env/smoke_test_joint_command.py
