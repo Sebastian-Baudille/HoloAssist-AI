@@ -16,6 +16,7 @@ MODEL_PATH = os.getenv(
     "UR3E_RL_MODEL_PATH",
     os.path.join(MODEL_DIR, "ppo_ur3e_reach_object"),
 )
+PRETRAINED_PATH = os.path.join(MODEL_DIR, "ppo_ur3e_pretrained")
 CHECKPOINT_DIR = os.path.join(MODEL_DIR, "checkpoints_parallel")
 GAZEBO_LOG_DIR = os.path.join(MODEL_DIR, "gazebo_parallel_logs")
 
@@ -110,6 +111,7 @@ class ParallelGazeboUR3eEnv(UR3ePickPlaceEnv):
             "launch",
             "ur3e_gazebo_sim",
             "ur3e_pick_place_world.launch.py",
+            "paused:=false",
             "gui:=false",
             f"use_moveit_collision_checker:={'true' if USE_MOVEIT_COLLISION_CHECKER else 'false'}",
             f"moveit_group_name:={MOVEIT_GROUP_NAME}",
@@ -260,15 +262,29 @@ def main() -> None:
             num_envs=NUM_ENVS,
         )
 
-        model = PPO(
-            policy="MlpPolicy",
-            env=env,
-            verbose=1,
-            tensorboard_log="./tb_logs",
-            n_steps=PPO_N_STEPS,
-            batch_size=PPO_BATCH_SIZE,
-            device="cpu",
-        )
+        pretrained_zip = PRETRAINED_PATH + ".zip"
+        if os.path.isfile(pretrained_zip):
+            print(f"Loading pretrained model from {PRETRAINED_PATH}")
+            model = PPO.load(
+                PRETRAINED_PATH,
+                env=env,
+                tensorboard_log="./tb_logs",
+                n_steps=PPO_N_STEPS,
+                batch_size=PPO_BATCH_SIZE,
+                device="cpu",
+            )
+        else:
+            print("No pretrained model found — training from scratch.")
+            model = PPO(
+                policy="MlpPolicy",
+                env=env,
+                verbose=1,
+                ent_coef=0.01,
+                tensorboard_log="./tb_logs",
+                n_steps=PPO_N_STEPS,
+                batch_size=PPO_BATCH_SIZE,
+                device="cpu",
+            )
         model.learn(
             total_timesteps=TOTAL_TIMESTEPS,
             callback=CallbackList([checkpoint_callback, progress_callback]),
