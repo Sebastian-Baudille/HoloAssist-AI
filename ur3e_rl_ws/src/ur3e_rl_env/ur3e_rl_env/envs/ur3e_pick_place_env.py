@@ -23,7 +23,7 @@ from ur3e_safety_layer.safety_checker import SafetyChecker
 
 
 HOME_JOINTS = np.array(
-    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    [0.0, -np.pi / 2, 0.0, -np.pi / 2, 0.0, 0.0],
     dtype=np.float32,
 )
 JOINT_NOISE_STD = 0.05
@@ -38,6 +38,8 @@ CUBE_POSITIONS = np.array(
 )
 CUBE_NAMES = ["cube_1", "cube_2", "cube_3", "cube_4"]
 IGN_WORLD = "ur3e_pick_place_world"
+
+ACTION_SCALE = 0.03
 
 DEFAULT_MAX_EPISODE_STEPS = int(os.getenv("UR3E_RL_MAX_EPISODE_STEPS", "200"))
 DEFAULT_CONTROL_DT = float(os.getenv("UR3E_RL_CONTROL_DT", "0.2"))
@@ -75,8 +77,8 @@ class UR3ePickPlaceEnv(gym.Env):
         self._prev_distance: float | None = None
 
         self.action_space = spaces.Box(
-            low=-0.03,
-            high=0.03,
+            low=-1.0,
+            high=1.0,
             shape=(6,),
             dtype=np.float32,
         )
@@ -125,11 +127,10 @@ class UR3ePickPlaceEnv(gym.Env):
         action: np.ndarray,
     ) -> tuple[np.ndarray, float, bool, bool, dict[str, Any]]:
         self.step_count += 1
-        clipped_action = np.clip(
-            np.asarray(action, dtype=np.float32).reshape(6),
-            self.action_space.low,
-            self.action_space.high,
+        normalized = np.clip(
+            np.asarray(action, dtype=np.float32).reshape(6), -1.0, 1.0,
         )
+        joint_delta = normalized * ACTION_SCALE
 
         state = self.ros.get_state()
         if state is None:
@@ -137,7 +138,7 @@ class UR3ePickPlaceEnv(gym.Env):
 
         state_safety = self.safety_checker.check_state(state)
         if not state_safety.safe:
-            reward = compute_reward(state, clipped_action, self.step_count, self._prev_distance)
+            reward = compute_reward(state, joint_delta, self.step_count, self._prev_distance)
             return (
                 build_observation(state),
                 reward,
@@ -151,7 +152,7 @@ class UR3ePickPlaceEnv(gym.Env):
 
         target_joints = self.safety_checker.make_safe_target(
             state["joint_positions"],
-            clipped_action,
+            joint_delta,
         )
         self.ros.send_joint_target(target_joints, duration_sec=self.control_dt)
         self._spin_for(self.control_dt)
@@ -168,7 +169,7 @@ class UR3ePickPlaceEnv(gym.Env):
                 - np.asarray(new_state["object_position"], dtype=np.float32)
             )
         )
-        reward = compute_reward(new_state, clipped_action, self.step_count, self._prev_distance)
+        reward = compute_reward(new_state, joint_delta, self.step_count, self._prev_distance)
         self._prev_distance = distance
 
         success = check_success(new_state)

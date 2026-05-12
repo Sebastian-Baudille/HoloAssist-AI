@@ -20,6 +20,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
+    ExecuteProcess,
     IncludeLaunchDescription,
     OpaqueFunction,
     TimerAction,
@@ -181,6 +182,19 @@ def generate_launch_description() -> LaunchDescription:
         output="screen",
     )
 
+    send_home = ExecuteProcess(
+        cmd=[
+            "ros2", "topic", "pub", "--once",
+            "/scaled_joint_trajectory_controller/joint_trajectory",
+            "trajectory_msgs/msg/JointTrajectory",
+            "{joint_names: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint,"
+            " wrist_1_joint, wrist_2_joint, wrist_3_joint],"
+            " points: [{positions: [0.0, -1.5708, 0.0, -1.5708, 0.0, 0.0],"
+            " time_from_start: {sec: 2}}]}",
+        ],
+        output="screen",
+    )
+
     return LaunchDescription(
         [
             gui_arg,
@@ -196,5 +210,6 @@ def generate_launch_description() -> LaunchDescription:
             TimerAction(period=8.0, actions=[joint_state_broadcaster_spawner]),
             TimerAction(period=10.0, actions=[trajectory_controller_spawner]),
             TimerAction(period=14.0, actions=[gazebo_pose_bridge]),
+            TimerAction(period=16.0, actions=[send_home]),
         ]
     )

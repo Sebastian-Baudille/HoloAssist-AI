@@ -13,7 +13,7 @@ CHECKPOINT_DIR = os.path.join(MODEL_DIR, "checkpoints")
 TOTAL_TIMESTEPS = int(os.getenv("UR3E_RL_TOTAL_TIMESTEPS", "200000"))
 TORCH_NUM_THREADS = int(os.getenv("UR3E_RL_TORCH_THREADS", "8"))
 TORCH_NUM_INTEROP_THREADS = int(os.getenv("UR3E_RL_TORCH_INTEROP_THREADS", "1"))
-PROGRESS_PRINT_EVERY_STEPS = int(os.getenv("UR3E_RL_PROGRESS_EVERY_STEPS", "1000"))
+PROGRESS_PRINT_EVERY_STEPS = int(os.getenv("UR3E_RL_PROGRESS_EVERY_STEPS", "200"))
 
 
 def format_duration(seconds: float) -> str:
@@ -47,6 +47,9 @@ def main() -> None:
             self.print_every_steps = print_every_steps
             self.started_at = 0.0
             self.last_printed_step = 0
+            self.episode_rewards: list[float] = []
+            self.episode_lengths: list[int] = []
+            self.episode_successes: list[bool] = []
 
         def _on_training_start(self) -> None:
             self.started_at = time.monotonic()
@@ -57,6 +60,13 @@ def main() -> None:
             )
 
         def _on_step(self) -> bool:
+            infos = self.locals.get("infos", [])
+            for info in infos:
+                if "episode" in info:
+                    self.episode_rewards.append(info["episode"]["r"])
+                    self.episode_lengths.append(info["episode"]["l"])
+                    self.episode_successes.append(info.get("is_success", False))
+
             current_step = min(int(self.num_timesteps), self.total_timesteps)
             should_print = (
                 current_step - self.last_printed_step >= self.print_every_steps
@@ -71,13 +81,28 @@ def main() -> None:
             eta_seconds = remaining_steps / max(steps_per_second, 1e-6)
             percent = 100.0 * current_step / max(self.total_timesteps, 1)
 
-            print(
-                f"[PPO] {current_step:,}/{self.total_timesteps:,} steps "
-                f"({percent:.1f}%) | elapsed {format_duration(elapsed)} "
+            line = (
+                f"[PPO] {current_step:,}/{self.total_timesteps:,} "
+                f"({percent:.1f}%) | {format_duration(elapsed)} "
                 f"| ETA {format_duration(eta_seconds)} "
-                f"| {steps_per_second:.2f} steps/s",
-                flush=True,
+                f"| {steps_per_second:.1f} sps"
             )
+
+            if self.episode_rewards:
+                import numpy as np
+                recent = self.episode_rewards[-10:]
+                avg_r = np.mean(recent)
+                avg_l = np.mean(self.episode_lengths[-10:])
+                n_success = sum(self.episode_successes[-10:])
+                best_r = max(self.episode_rewards)
+                line += (
+                    f" | ep={len(self.episode_rewards)}"
+                    f" reward={avg_r:.1f} (best={best_r:.1f})"
+                    f" len={avg_l:.0f}"
+                    f" success={n_success}/10"
+                )
+
+            print(line, flush=True)
             self.last_printed_step = current_step
             return True
 

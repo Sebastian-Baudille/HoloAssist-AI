@@ -112,7 +112,8 @@ class KeyboardTeleop:
         elif key in ("-", "_"):
             self.step = max(self.step - 0.005, MIN_STEP)
         elif key == "h":
-            self.ros.send_joint_target([0.0] * 6, duration_sec=1.0)
+            import math
+            self.ros.send_joint_target([0.0, -math.pi / 2, 0.0, -math.pi / 2, 0.0, 0.0], duration_sec=1.0)
         else:
             return False
         self._print_state()
