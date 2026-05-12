@@ -24,3 +24,6 @@ Template/
 # Polyscope/ImGui runtime config — generated each session
 .polyscope.ini
 imgui.ini
+
+# Generated Doxygen HTML inside onrobot_driver Modbus submodule
+ros2_ws/src/onrobot_driver/include/onrobot_driver/Modbus/docs/
