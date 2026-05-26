@@ -21,8 +21,8 @@ PLY ─► clustering stack ─► state vector ─► PPO ─► arm action
 
 ## Current state — validated
 
-The classical pipeline is working at ~1.6 cm centroid accuracy (within sensor
-noise σ = 0.005 m).
+### Phase 0: Classical K-Means pipeline (`clustering/`) ✅
+Working at ~1.6 cm centroid accuracy (within sensor noise σ = 0.005 m).
 
 ```
 load PLY ─► camera→world ─► Z crop ─► K-Means (XYZ only) ─► centroids
@@ -40,6 +40,48 @@ summarised in the project `CLAUDE.md`. Worth highlighting:
 Run it on the bundled sample:
 ```bash
 python clustering/detect_cubes.py
+```
+
+### Phase 1: Scene controller (`ros2_ws/src/holoassist_sim/scripts/scene_controller.py`) ✅
+ROS 2 node that manages the Gazebo scene. Started automatically by `sim.launch.py`.
+
+- `/scene/randomize_cubes` — spawns N cubes with random position, colour, yaw; overlap-safe (min 1.5× cube size separation)
+- `/scene/reset` — restores default layout from `sim_params.yaml`
+- All parameters (cube count, size bounds, position bounds) editable live via `rqt_reconfigure`
+
+### Phase 2: Automated dataset capture (`ros2_ws/src/holoassist_sim/scripts/dataset_capture.py`) ✅
+ROS 2 node that runs 60 scenes unattended and saves ground truth.
+
+- Randomises 2–4 cubes per scene (50 train + 10 val split)
+- Removes default SDF cubes so only the random cubes are in each scan
+- Waits for physics to settle, then reads **actual settled poses** from Gazebo via `ign topic`
+- Saves `scene_NNNN.ply` + `scene_NNNN.labels.json` per scene to `~/holoassist_dataset/`
+
+```bash
+# With sim already running:
+ros2 run holoassist_sim dataset_capture.py \
+  --params src/holoassist_sim/config/sim_params.yaml
+```
+
+### Phase 2b: Detection verification (`clustering/verify_detection.py`) ✅
+Clustering-venv script that validates detection accuracy against the labelled dataset.
+
+- Loads each PLY + labels, runs K-Means pipeline with k = scene cube count
+- Hungarian-matches detected centroids to ground truth
+- Reports mean/std/max error per split, detection rate, breakdown by k
+- Saves `~/holoassist_dataset/accuracy_report.json`
+
+**Validated results (2026-05-26, 60 scenes, 2–4 cubes, 0.04 m fixed size):**
+
+| Split | Mean error | Std dev | Worst | Detection rate |
+|-------|-----------|---------|-------|----------------|
+| Train (50) | **2.69 cm** | 1.32 cm | 6.61 cm | 100% |
+| Val (10) | **2.49 cm** | 1.19 cm | 4.58 cm | 100% |
+| **Overall** | **2.65 cm** | — | — | **PASS** (target < 3 cm) |
+
+```bash
+source clustering/.venv/bin/activate
+python3 clustering/verify_detection.py
 ```
 
 ---
@@ -202,16 +244,15 @@ Wire the SVM into `detect_cubes.py` as a filter step. Coordinate with the team o
 
 ### Summary
 
-| Phase | What | Where | Effort |
+| Phase | What | Where | Status |
 |-------|------|-------|--------|
-| 1 | `scene_controller` node + services | `ros2_ws/.../scripts/` | 1 day |
-| 2 | `dataset_capture` node + labels | `ros2_ws/.../scripts/` | ½ day |
-| 3 | rqt control panel | `ros2_ws/.../rqt/` | ½ day |
-| 4 | `auto_label.py` | `clustering/dataset/` | ½ day |
-| 5 | `train_svm.py` + validation | `clustering/dataset/` | 1 day |
-| 6 | SVM filter in `detect_cubes.py` + RL integration | `clustering/` | ½ day |
-
-**Total: ~4 days of focused work.**
+| 1 | `scene_controller` node + services | `ros2_ws/.../scripts/` | ✅ Done |
+| 2 | `dataset_capture` node + labels | `ros2_ws/.../scripts/` | ✅ Done |
+| 2b | `verify_detection.py` — accuracy benchmark | `clustering/` | ✅ Done — 2.65 cm PASS |
+| 3 | rqt control panel | `ros2_ws/.../rqt/` | ⬜ Not started |
+| 4 | `auto_label.py` — features.csv generation | `clustering/dataset/` | ⬜ Not started |
+| 5 | `train_svm.py` + 10-fold CV | `clustering/dataset/` | ⬜ Not started |
+| 6 | SVM filter in `detect_cubes.py` + RL integration | `clustering/` | ⬜ Not started |
 
 ---
 

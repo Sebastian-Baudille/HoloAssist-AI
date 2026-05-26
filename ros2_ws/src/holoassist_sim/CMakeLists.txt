@@ -13,6 +13,7 @@ install(
     scripts/render_world.py
     scripts/save_pointcloud.py
     scripts/scene_controller.py
+    scripts/dataset_capture.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

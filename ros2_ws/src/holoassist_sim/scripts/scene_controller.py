@@ -72,8 +72,9 @@ class SceneController(Node):
         try:
             self._remove_tracked()
             n = self.get_parameter("cube_count").value
+            placed_xy = []  # track placed (x, y, size) for overlap check
             for i in range(n):
-                self._spawn_random(f"cube_rand_{i:02d}")
+                self._spawn_random(f"cube_rand_{i:02d}", placed_xy)
             response.success = True
             response.message = f"Spawned {n} random cubes"
         except Exception as e:
@@ -114,11 +115,21 @@ class SceneController(Node):
         self._table_top_z = params["table"]["pose"][2] + params["table"]["size"][2] / 2
         self._default_cubes = params.get("cubes", [])
 
-    def _spawn_random(self, name):
+    def _spawn_random(self, name, placed_xy: list):
         p = lambda k: self.get_parameter(k).value
         size = round(random.uniform(p("cube_size_min"), p("cube_size_max")), 3)
-        x = round(random.uniform(p("x_min"), p("x_max")), 3)
-        y = round(random.uniform(p("y_min"), p("y_max")), 3)
+        # Minimum centre-to-centre distance: cube diagonal to guarantee no overlap
+        min_dist = size * 1.5
+
+        # Retry until a non-overlapping position is found (max 50 attempts)
+        for _ in range(50):
+            x = round(random.uniform(p("x_min"), p("x_max")), 3)
+            y = round(random.uniform(p("y_min"), p("y_max")), 3)
+            if all(((x - px) ** 2 + (y - py) ** 2) ** 0.5 >= min_dist
+                   for px, py, _ in placed_xy):
+                break
+        placed_xy.append((x, y, size))
+
         z = round(self._table_top_z + size / 2, 4)
         yaw = round(random.uniform(0, 2 * 3.14159), 3) if p("randomize_yaw") else 0.0
         if p("randomize_color"):
