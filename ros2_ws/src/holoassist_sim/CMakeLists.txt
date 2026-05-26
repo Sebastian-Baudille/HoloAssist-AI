@@ -12,6 +12,7 @@ install(
   PROGRAMS
     scripts/render_world.py
     scripts/save_pointcloud.py
+    scripts/scene_controller.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

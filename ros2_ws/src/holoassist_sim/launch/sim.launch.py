@@ -129,7 +129,29 @@ def _launch_setup(context, *args, **kwargs):
         output="screen",
     )
 
-    actions = [gz_sim, bridge, tf_map_to_link, tf_link_to_sensor, rviz]
+    # Owns the cubes in the running sim. Exposes /scene/randomize_cubes and
+    # /scene/reset.  Parameters editable live via rqt_reconfigure.
+    scene_controller = Node(
+        package=PKG,
+        executable="scene_controller.py",
+        name="scene_controller",
+        parameters=[{
+            "world_name":  "table_cubes_world",
+            "params_file": params_file,
+        }],
+        output="screen",
+    )
+
+    # Sliders / toggles for scene_controller's parameters. Dock the window
+    # next to RViz to edit the scene without restarting the sim.
+    rqt = Node(
+        package="rqt_reconfigure",
+        executable="rqt_reconfigure",
+        name="rqt_reconfigure",
+        output="screen",
+    )
+
+    actions = [gz_sim, bridge, tf_map_to_link, tf_link_to_sensor, rviz, scene_controller, rqt]
     # IMU has no influence on the launch graph beyond the bridge entry, which
     # is already templated. Nothing extra to do here.
     _ = use_imu
