@@ -282,7 +282,11 @@ class DemoRecorderNode(Node):
             self._ready_logged = True
 
         joints = state["joint_positions"].copy()
-        obs = build_observation(state)
+        obs = build_observation(
+            state,
+            step_count=self._step_count,
+            max_episode_steps=self.max_steps,
+        )
 
         if self._prev_joints is None or self._prev_obs is None:
             self._prev_joints = joints
@@ -309,7 +313,7 @@ class DemoRecorderNode(Node):
         obj = np.asarray(state["object_position"], dtype=np.float32)
         dist = float(np.linalg.norm(ee - obj))
 
-        reward = compute_reward(state, action, self._step_count, self._prev_distance)
+        reward = compute_reward(state, action, self._step_count)
         self._prev_distance = dist
 
         if self._step_count % 25 == 0:

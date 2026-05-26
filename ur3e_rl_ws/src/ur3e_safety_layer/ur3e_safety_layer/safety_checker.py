@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
 from typing import Mapping, Sequence
 
 import numpy as np
+from ur3e_rl_env.constants import (
+    JOINT_DELTA_ACTION_SCALE_RAD,
+    UR3E_JOINT_LOWER_LIMITS_RAD,
+    UR3E_JOINT_UPPER_LIMITS_RAD,
+)
 
 
 UR3E_JOINT_NAMES = (
@@ -18,14 +22,12 @@ UR3E_JOINT_NAMES = (
 
 # Simple, conservative software limits for the first RL pass. These are not a
 # replacement for the real controller safety limits.
-UR3E_JOINT_LIMITS = {
-    "shoulder_pan_joint": (-2.0 * math.pi, 2.0 * math.pi),
-    "shoulder_lift_joint": (-2.0 * math.pi, 2.0 * math.pi),
-    "elbow_joint": (-2.0 * math.pi, 2.0 * math.pi),
-    "wrist_1_joint": (-2.0 * math.pi, 2.0 * math.pi),
-    "wrist_2_joint": (-2.0 * math.pi, 2.0 * math.pi),
-    "wrist_3_joint": (-2.0 * math.pi, 2.0 * math.pi),
-}
+UR3E_JOINT_LIMITS = dict(
+    zip(
+        UR3E_JOINT_NAMES,
+        zip(UR3E_JOINT_LOWER_LIMITS_RAD, UR3E_JOINT_UPPER_LIMITS_RAD),
+    )
+)
 
 
 @dataclass(frozen=True)
@@ -39,7 +41,7 @@ class SafetyChecker:
 
     def __init__(
         self,
-        max_delta_rad: float = 0.24,
+        max_delta_rad: float = JOINT_DELTA_ACTION_SCALE_RAD,
         min_end_effector_z: float = 0.02,
         joint_limits: Mapping[str, tuple[float, float]] | None = None,
     ) -> None:
@@ -65,12 +67,16 @@ class SafetyChecker:
 
     def make_safe_target(
         self,
-        current_joints: Sequence[float],
-        requested_delta: Sequence[float],
+        current_joints: Sequence[float] | None,
+        requested_target_joints: Sequence[float],
     ) -> np.ndarray:
-        current_array = np.asarray(current_joints, dtype=np.float32).reshape(6)
-        safe_delta = self.clamp_joint_deltas(requested_delta)
-        return self.clamp_target_joints(current_array + safe_delta)
+        target = self.clamp_target_joints(requested_target_joints)
+        if current_joints is None:
+            return target
+
+        current = self.clamp_target_joints(current_joints)
+        delta = np.clip(target - current, -self.max_delta_rad, self.max_delta_rad)
+        return current + delta
 
     def check_collision(self, collision_flag: bool) -> SafetyResult:
         if bool(collision_flag):
@@ -92,4 +98,3 @@ class SafetyChecker:
         if ee_position is None:
             return SafetyResult(False, "missing end effector position")
         return self.check_end_effector_height(ee_position)
-
