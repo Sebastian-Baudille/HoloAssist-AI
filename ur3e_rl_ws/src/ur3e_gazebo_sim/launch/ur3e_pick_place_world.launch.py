@@ -148,9 +148,10 @@ def generate_launch_description() -> LaunchDescription:
     robot_state_publisher = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
-        name="robot_state_publisher",
+        name="ur3e_robot_state_publisher",
         output="screen",
         parameters=[robot_description, {"use_sim_time": True}],
+        remappings=[("/robot_description", "/ur3e_rg2/robot_description")],
         condition=IfCondition(LaunchConfiguration("spawn_robot")),
     )
 
@@ -160,7 +161,7 @@ def generate_launch_description() -> LaunchDescription:
         name="spawn_ur3e_rg2",
         output="screen",
         arguments=[
-            "-topic", "/robot_description",
+            "-topic", "/ur3e_rg2/robot_description",
             "-name", "ur3e_rg2",
         ],
         condition=IfCondition(LaunchConfiguration("spawn_robot")),
@@ -180,6 +181,16 @@ def generate_launch_description() -> LaunchDescription:
         name="gazebo_pose_bridge",
         output="screen",
         parameters=[{"use_sim_time": False}],
+    )
+
+    dynamic_pose_bridge = Node(
+        package="ros_gz_bridge",
+        executable="parameter_bridge",
+        name="dynamic_pose_bridge",
+        output="screen",
+        arguments=[
+            "/world/ur3e_pick_place_world/dynamic_pose/info@tf2_msgs/msg/TFMessage@ignition.msgs.Pose_V",
+        ],
     )
 
     moveit_collision_checker = Node(
@@ -233,6 +244,7 @@ def generate_launch_description() -> LaunchDescription:
             OpaqueFunction(function=_launch_setup),
             robot_state_publisher,
             TimerAction(period=4.0, actions=[spawn_robot]),
+            TimerAction(period=5.0, actions=[dynamic_pose_bridge]),
             TimerAction(period=10.0, actions=[setup_controllers]),
             TimerAction(period=6.0, actions=[gazebo_pose_bridge]),
             TimerAction(period=8.0, actions=[moveit_collision_checker]),

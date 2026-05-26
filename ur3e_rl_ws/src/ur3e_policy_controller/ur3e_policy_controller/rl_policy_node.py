@@ -6,6 +6,11 @@ import time
 import numpy as np
 import rclpy
 
+from ur3e_rl_env.constants import (
+    JOINT_TARGET_DURATION_SEC,
+    UR3E_JOINT_LOWER_LIMITS_RAD,
+    UR3E_JOINT_UPPER_LIMITS_RAD,
+)
 from ur3e_rl_env.ros_interface import RosInterfaceNode, build_observation
 from ur3e_safety_layer.safety_checker import SafetyChecker
 
@@ -32,6 +37,10 @@ class RLPolicyRunner:
         self.ros = RosInterfaceNode("ur3e_rl_policy_node")
         self.safety_checker = SafetyChecker()
         self.model = PPO.load(model_path)
+        self.joint_lower = np.asarray(UR3E_JOINT_LOWER_LIMITS_RAD, dtype=np.float32)
+        self.joint_upper = np.asarray(UR3E_JOINT_UPPER_LIMITS_RAD, dtype=np.float32)
+        self.joint_midpoint = 0.5 * (self.joint_lower + self.joint_upper)
+        self.joint_range_rad = 0.5 * (self.joint_upper - self.joint_lower)
 
     def run(self) -> None:
         if not self.ros.wait_until_ready(timeout_sec=20.0):
@@ -59,11 +68,20 @@ class RLPolicyRunner:
 
             observation = build_observation(state)
             action, _ = self.model.predict(observation, deterministic=True)
+            action_array = np.asarray(action, dtype=np.float32).reshape(-1)
+            normalized = np.clip(action_array[:6], -1.0, 1.0)
+            gripper_command = float(action_array[6]) if action_array.size > 6 else 0.0
+            requested_target = normalized * self.joint_range_rad + self.joint_midpoint
+            current_joints = np.asarray(state["joint_positions"], dtype=np.float32).reshape(6)
             safe_target = self.safety_checker.make_safe_target(
-                np.asarray(state["joint_positions"], dtype=np.float32),
-                action,
+                current_joints=current_joints,
+                requested_target_joints=requested_target,
             )
-            self.ros.send_joint_target(safe_target, duration_sec=CONTROL_PERIOD_SEC)
+            if gripper_command > 0.5:
+                self.ros.close_gripper()
+            elif gripper_command < -0.5:
+                self.ros.open_gripper()
+            self.ros.send_joint_target(safe_target, duration_sec=JOINT_TARGET_DURATION_SEC)
 
     def close(self) -> None:
         self.ros.destroy_node()
@@ -82,4 +100,3 @@ def main(args: list[str] | None = None) -> None:
 
 if __name__ == "__main__":
     main()
-
