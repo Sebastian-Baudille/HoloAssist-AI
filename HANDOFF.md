@@ -89,3 +89,130 @@ ros2 run ur3e_rl_env train_ppo_parallel
 - `/home/john/git/HoloAssist-AI/ur3e_rl_ws/src/ur3e_gazebo_sim/CMakeLists.txt`
 - `/home/john/git/HoloAssist-AI/ur3e_rl_ws/src/ur3e_gazebo_sim/package.xml`
 - `/home/john/git/HoloAssist-AI/ur3e_rl_ws/src/ur3e_gazebo_sim/urdf/ur3e_rg2_benchtop.urdf.xacro`
+
+## New session update (cube_perception package)
+- Archived old detector:
+  - Moved `/ur3e_rl_ws/src/ur3e_gazebo_sim/scripts/pointcloud_cube_detector.py`
+    to `/ur3e_rl_ws/src/ur3e_gazebo_sim/scripts/archive/pointcloud_cube_detector_v1.py`
+  - Added `/ur3e_rl_ws/src/ur3e_gazebo_sim/scripts/archive/README.md`
+- Created new ROS 2 package:
+  - `/ur3e_rl_ws/src/cube_perception`
+  - Modules: `detector.py`, `tracker.py`, `visualiser.py`, `perception_node.py`, `benchmark.py`
+  - Launch/config: `launch/cube_perception.launch.py`, `config/params.yaml`
+  - Packaging: updated `setup.py`, `package.xml`
+- Detector/tracker pipeline implemented:
+  - Workspace crop -> plane removal (RANSAC) -> DBSCAN -> centroid/confidence
+  - Temporal tracking with occlusion hold and confidence decay
+  - Publishes `/cube_0..3/pose`, `/cube_0..3/confidence`, debug cloud, RViz markers
+- Launch support:
+  - Parses `~/.ros2/easy_handeye2/calibrations/holoassist_calibration.calib`
+  - Publishes `base_link -> camera_link` static transform via `static_transform_publisher`
+  - Starts camera node optionally (`start_camera` launch arg)
+- Verification done locally:
+  - `colcon build --packages-select cube_perception --symlink-install` passes
+  - `ros2 run cube_perception perception_node` starts cleanly
+  - `tf2_echo base_link camera_link` returns valid static transform (when TF publisher running)
+  - `ros2 launch cube_perception cube_perception.launch.py start_camera:=false` exposes expected topics:
+    `/cube_0..3/pose`, `/cube_0..3/confidence`, `/cube_detections/debug`, `/cube_detections/markers`
+- Pending hardware-in-loop checks:
+  - 10 Hz publish-rate confirmation with live D435i stream
+  - Single/4-cube detection accuracy and occlusion tests
+  - RViz visual confirmation
+  - Benchmark sample collection with real detections
+
+### Resume commands
+```bash
+cd /home/john/git/HoloAssist-AI/ur3e_rl_ws
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+
+# Build
+colcon build --packages-select cube_perception --symlink-install
+
+# Run perception only
+ros2 run cube_perception perception_node
+
+# Launch full stack (TF + camera + perception)
+ros2 launch cube_perception cube_perception.launch.py
+
+# If camera already running elsewhere:
+ros2 launch cube_perception cube_perception.launch.py start_camera:=false
+
+# Benchmark
+ros2 run cube_perception perception_benchmark --n-samples 50
+```
+
+## Perception runbook (exact commands)
+
+### 0) Terminal A - workspace setup + build
+```bash
+cd /home/john/git/HoloAssist-AI/ur3e_rl_ws
+source /opt/ros/humble/setup.bash
+colcon build --packages-select cube_perception --symlink-install
+source install/setup.bash
+```
+
+### 1) Terminal A - launch perception stack
+- Use this when you want TF (from calibration) + camera + perception in one command:
+```bash
+cd /home/john/git/HoloAssist-AI/ur3e_rl_ws
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch cube_perception cube_perception.launch.py
+```
+- If your D435i node is already running elsewhere:
+```bash
+ros2 launch cube_perception cube_perception.launch.py start_camera:=false
+```
+- If TF is already being published by another process:
+```bash
+ros2 launch cube_perception cube_perception.launch.py start_camera:=false publish_static_tf:=false
+```
+
+### 2) Terminal B - verify TF
+```bash
+cd /home/john/git/HoloAssist-AI/ur3e_rl_ws
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 run tf2_ros tf2_echo base_link camera_link
+```
+
+### 3) Terminal B - verify topics + rate
+```bash
+ros2 topic list | grep -E '^/cube_|/cube_detections'
+ros2 topic hz /cube_0/pose
+ros2 topic echo /cube_0/pose --once
+ros2 topic echo /cube_0/confidence --once
+```
+
+### 4) Terminal C - RViz debug
+```bash
+cd /home/john/git/HoloAssist-AI/ur3e_rl_ws
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+rviz2
+```
+Add displays:
+- `PointCloud2` -> `/camera/depth/color/points`
+- `PointCloud2` -> `/cube_detections/debug`
+- `MarkerArray` -> `/cube_detections/markers`
+- `TF`
+
+### 5) Terminal B - run benchmark
+```bash
+cd /home/john/git/HoloAssist-AI/ur3e_rl_ws
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 run cube_perception perception_benchmark --n-samples 50
+```
+
+### 6) Optional: run node directly (without launch file)
+```bash
+cd /home/john/git/HoloAssist-AI/ur3e_rl_ws
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 run cube_perception perception_node
+```
+
+### 7) Shutdown
+- `Ctrl+C` in each terminal running ROS nodes.

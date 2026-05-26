@@ -41,3 +41,14 @@ Section 7 — Training run
 - Single-env sanity run (post-slew-limit): callback printed at 100 and 200 steps with stable execution.
 - Snapshot: 200 steps reward ~ -78.7 (success 0/10).
 - Parallel run: initialization confirmed (`Using cpu device`, `Logging to ./tb_logs/PPO_16`, `Training PPO with 4 Gazebo envs...`) then manually stopped before a long checkpoint.
+
+## cube_perception package
+- [x] Package created and built
+- [x] TF transform verified (base_link → camera_link)
+- [x] Node launches without error
+- [ ] Topics publishing at ~10Hz
+- [ ] Single cube detected correctly
+- [ ] Occlusion test passed (pose held during hand occlusion)
+- [ ] RViz markers showing (green=confident, yellow=partial, red=low)
+- [ ] All 4 cubes detected simultaneously
+- [ ] Benchmark run — std deviation results: ___mm
