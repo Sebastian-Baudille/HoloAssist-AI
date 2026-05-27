@@ -60,10 +60,34 @@ ROS 2 node that runs 60 scenes unattended and saves ground truth.
 - Waits for physics to settle, then reads **actual settled poses** from Gazebo via `ign topic`
 - Saves `scene_NNNN.ply` + `scene_NNNN.labels.json` per scene to `~/holoassist_dataset/`
 
+**Terminal 1 — build then launch sim:**
 ```bash
-# With sim already running:
-ros2 run holoassist_sim dataset_capture.py \
-  --params src/holoassist_sim/config/sim_params.yaml
+cd /home/guy/git/HoloAssist-AI
+source /opt/ros/humble/setup.bash
+cd ros2_ws
+colcon build --packages-select holoassist_sim --symlink-install
+source install/setup.bash
+ros2 launch holoassist_sim sim.launch.py
+```
+
+Wait for Gazebo + RViz to fully load, then:
+
+**Terminal 2 — run dataset capture:**
+```bash
+cd /home/guy/git/HoloAssist-AI
+source /opt/ros/humble/setup.bash
+source ros2_ws/install/setup.bash
+ros2 run holoassist_sim dataset_capture.py --params ros2_ws/src/holoassist_sim/config/sim_params.yaml
+```
+
+To start with a clean dataset, clear the old one first (before Terminal 2):
+```bash
+rm ~/holoassist_dataset/scene_*.ply ~/holoassist_dataset/scene_*.json ~/holoassist_dataset/accuracy_report.json
+```
+
+The capture runs all 60 scenes unattended — takes a few minutes. When it finishes, run verification:
+```bash
+python3 clustering/verify_detection.py
 ```
 
 ### Phase 2b: Detection verification (`clustering/verify_detection.py`) ✅
