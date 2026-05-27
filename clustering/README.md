@@ -74,30 +74,18 @@ Clustering-venv script that validates DBSCAN detection accuracy against the labe
 - Reports per-split stats: accuracy, exact-count rate, cube recall, false positives
 - Saves `~/holoassist_dataset/accuracy_report.json`
 
-**DBSCAN results — first dataset (2026-05-27, 60 scenes, 2–4 cubes, 0.04 m fixed size,**
-**old `min_dist = 1.5× size` → some scenes had 2 cm surface gap, bridged by DBSCAN):**
+**Validated results (2026-05-27, 60 scenes, 2–4 cubes, 0.04 m fixed size, `min_dist = 2.0×`):**
 
-| Split | Count correct | Cube recall | Mean error (detected) | Mean error (all) |
-|-------|:---:|:---:|:---:|:---:|
-| Train (50) | 41/50 (82%) | 127/140 (91%) | **1.63 cm** | 5.81 cm |
-| Val (10) | 10/10 (100%) | 30/30 (100%) | **1.63 cm** | 1.63 cm |
+| Split | Count correct | Cube recall | Mean error | Std dev | Worst |
+|-------|:---:|:---:|:---:|:---:|:---:|
+| Train (50) | **50/50 (100%)** | **152/152 (100%)** | **1.63 cm** | 0.04 cm | 1.71 cm |
+| Val (10) | **10/10 (100%)** | **33/33 (100%)** | **1.65 cm** | 0.04 cm | 1.69 cm |
+| **Overall** | **100%** | **185/185 (100%)** | **1.63 cm** | — | — |
 
-**Root cause of 9 train failures**: 9 scenes had cube centres ≤ 6 cm apart (surface gap ≤ 2 cm).
-DBSCAN `eps=0.015` bridges a 2 cm gap (within noise + eps), merging adjacent cubes into one
-large cluster. The scene controller now uses `min_dist = 2.0× size` (≥ 4 cm surface gap),
-which fully separates cube point clouds. **Regenerate the dataset to get clean DBSCAN numbers.**
-
-**Expected results after dataset regeneration:**
-
-| Split | Count correct | Cube recall | Mean error |
-|-------|:---:|:---:|:---:|
-| Train | ~100% | ~100% | **~1.63 cm** |
-| Val | 100% | 100% | **1.63 cm** |
-| **Target** | — | — | **< 3 cm → PASS** |
+**→ PASS** (target < 3 cm). Zero missed or merged cubes across all 60 scenes.
 
 ```bash
 python3 clustering/verify_detection.py
-python3 clustering/verify_detection.py --eps 0.015 --min-samples 20
 ```
 
 ---
@@ -259,7 +247,7 @@ team on observation shape — the DBSCAN output defines the state vector fed to 
 | 2 | `dataset_capture` node + labels | `ros2_ws/.../scripts/` | ✅ Done |
 | 2b | `verify_detection.py` — DBSCAN accuracy benchmark | `clustering/` | ✅ Done — 1.63 cm on well-separated cubes |
 | 0b | DBSCAN pipeline in `detect_cubes.py` | `clustering/` | ✅ Done |
-| 2c | Regenerate dataset with `min_dist = 2.0×` | run `dataset_capture.py` | ⬜ Pending |
+| 2c | Regenerate dataset with `min_dist = 2.0×` | run `dataset_capture.py` | ✅ Done — 1.63 cm, 100% recall |
 | 3 | rqt / Tkinter control panel | `ros2_ws/.../rqt/` | ⬜ Not started |
 | 4 | RL integration — DBSCAN → PPO observation | `clustering/` + RL stack | ⬜ Not started |
 
