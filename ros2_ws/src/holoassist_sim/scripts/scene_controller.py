@@ -118,8 +118,10 @@ class SceneController(Node):
     def _spawn_random(self, name, placed_xy: list):
         p = lambda k: self.get_parameter(k).value
         size = round(random.uniform(p("cube_size_min"), p("cube_size_max")), 3)
-        # Minimum centre-to-centre distance: cube diagonal to guarantee no overlap
-        min_dist = size * 1.5
+        # Minimum centre-to-centre distance: 2× size ensures a ≥ 4 cm surface gap
+        # (gap = dist - size ≥ size), which keeps DBSCAN (eps=0.015) from merging
+        # adjacent cube point clouds. 1.5× was too tight — 2 cm gap bridged by noise.
+        min_dist = size * 2.0
 
         # Retry until a non-overlapping position is found (max 50 attempts)
         for _ in range(50):

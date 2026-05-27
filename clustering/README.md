@@ -21,31 +21,34 @@ PLY ─► clustering stack ─► state vector ─► PPO ─► arm action
 
 ## Current state — validated
 
-### Phase 0: Classical K-Means pipeline (`clustering/`) ✅
-Working at ~1.6 cm centroid accuracy (within sensor noise σ = 0.005 m).
+### Phase 0 → 0b: DBSCAN pipeline (`clustering/detect_cubes.py`) ✅
+Replaced K-Means with DBSCAN + statistical outlier removal. No fixed `k` required —
+DBSCAN discovers however many cubes are present automatically.
 
 ```
-load PLY ─► camera→world ─► Z crop ─► K-Means (XYZ only) ─► centroids
+load PLY ─► camera→world ─► Z crop ─► outlier removal ─► DBSCAN ─► size filter ─► centroids
 ```
 
-Key parameters and design decisions live in `detect_cubes.py` and are
-summarised in the project `CLAUDE.md`. Worth highlighting:
-
-- **`color_weight = 0`** — RGB clustering hurts under Gazebo lighting; XYZ
-  alone separates cubes that are 0.16 m apart cleanly
+Key parameters (`detect_cubes.py`):
+- **`eps = 0.015 m`** — DBSCAN neighbourhood radius; cubes must have ≥ 4 cm surface gap
+  (i.e., centre spacing ≥ 2× size) or their point clouds merge into one cluster
+- **`min_samples = 20`** — minimum points to form a core sample
+- **`MIN_CLUSTER_PTS = 50 / MAX_CLUSTER_PTS = 1500`** — size filter rejects noise and non-cube objects
+- **`remove_statistical_outlier(nb_neighbors=20, std_ratio=2.0)`** — kills flying pixels before clustering
 - **`z_min = table_top + 0.015`** — 3σ noise margin excludes the table surface
-- **Centroid via `cluster_pts.mean(axis=0)`** — same number as `pca.mean_` but
-  explicit about what it is
+- Centroid = `cluster_pts.mean(axis=0)` — world-frame (x, y, z) fed to PPO
 
-Run it on the bundled sample:
 ```bash
-python clustering/detect_cubes.py
+python clustering/detect_cubes.py          # latest capture in ~/holoassist_pointclouds/
+python clustering/detect_cubes.py --no-viz  # headless
+python clustering/detect_cubes.py --eps 0.015 --min-samples 20
 ```
 
 ### Phase 1: Scene controller (`ros2_ws/src/holoassist_sim/scripts/scene_controller.py`) ✅
 ROS 2 node that manages the Gazebo scene. Started automatically by `sim.launch.py`.
 
-- `/scene/randomize_cubes` — spawns N cubes with random position, colour, yaw; overlap-safe (min 1.5× cube size separation)
+- `/scene/randomize_cubes` — spawns N cubes with random position, colour, yaw; overlap-safe
+  (min **2.0× cube size** centre-to-centre separation = ≥ 4 cm surface gap for DBSCAN safety)
 - `/scene/reset` — restores default layout from `sim_params.yaml`
 - All parameters (cube count, size bounds, position bounds) editable live via `rqt_reconfigure`
 
@@ -64,42 +67,62 @@ ros2 run holoassist_sim dataset_capture.py \
 ```
 
 ### Phase 2b: Detection verification (`clustering/verify_detection.py`) ✅
-Clustering-venv script that validates detection accuracy against the labelled dataset.
+Clustering-venv script that validates DBSCAN detection accuracy against the labelled dataset.
 
-- Loads each PLY + labels, runs K-Means pipeline with k = scene cube count
-- Hungarian-matches detected centroids to ground truth
-- Reports mean/std/max error per split, detection rate, breakdown by k
+- Loads each PLY + labels, runs the full DBSCAN pipeline (matches `detect_cubes.py` exactly)
+- Hungarian-matches detected centroids to ground truth; handles variable detected count
+- Reports per-split stats: accuracy, exact-count rate, cube recall, false positives
 - Saves `~/holoassist_dataset/accuracy_report.json`
 
-**Validated results (2026-05-26, 60 scenes, 2–4 cubes, 0.04 m fixed size):**
+**DBSCAN results — first dataset (2026-05-27, 60 scenes, 2–4 cubes, 0.04 m fixed size,**
+**old `min_dist = 1.5× size` → some scenes had 2 cm surface gap, bridged by DBSCAN):**
 
-| Split | Mean error | Std dev | Worst | Detection rate |
-|-------|-----------|---------|-------|----------------|
-| Train (50) | **2.69 cm** | 1.32 cm | 6.61 cm | 100% |
-| Val (10) | **2.49 cm** | 1.19 cm | 4.58 cm | 100% |
-| **Overall** | **2.65 cm** | — | — | **PASS** (target < 3 cm) |
+| Split | Count correct | Cube recall | Mean error (detected) | Mean error (all) |
+|-------|:---:|:---:|:---:|:---:|
+| Train (50) | 41/50 (82%) | 127/140 (91%) | **1.63 cm** | 5.81 cm |
+| Val (10) | 10/10 (100%) | 30/30 (100%) | **1.63 cm** | 1.63 cm |
+
+**Root cause of 9 train failures**: 9 scenes had cube centres ≤ 6 cm apart (surface gap ≤ 2 cm).
+DBSCAN `eps=0.015` bridges a 2 cm gap (within noise + eps), merging adjacent cubes into one
+large cluster. The scene controller now uses `min_dist = 2.0× size` (≥ 4 cm surface gap),
+which fully separates cube point clouds. **Regenerate the dataset to get clean DBSCAN numbers.**
+
+**Expected results after dataset regeneration:**
+
+| Split | Count correct | Cube recall | Mean error |
+|-------|:---:|:---:|:---:|
+| Train | ~100% | ~100% | **~1.63 cm** |
+| Val | 100% | 100% | **1.63 cm** |
+| **Target** | — | — | **< 3 cm → PASS** |
 
 ```bash
-source clustering/.venv/bin/activate
 python3 clustering/verify_detection.py
+python3 clustering/verify_detection.py --eps 0.015 --min-samples 20
 ```
 
 ---
 
-## Why this isn't enough yet
+## Why DBSCAN instead of K-Means
 
-The current pipeline assumes the cube layer contains *only* cubes. Three
-things will break that assumption:
+| | K-Means | DBSCAN |
+|---|---|---|
+| Needs fixed `k` | ✅ yes — must know cube count | ❌ no — finds clusters automatically |
+| Handles variable scene size | ❌ no | ✅ yes |
+| Rejects noise | ❌ every point forced into a cluster | ✅ yes — noise label `-1` |
+| Merges adjacent objects | ❌ never (k fixed) | ⚠️ yes if gap < `eps` |
+| Accuracy (this dataset) | 2.65 cm | 1.63 cm (when count correct) |
 
-1. **The arm enters the cube layer** when reaching for a target. Z-cropping
-   alone will treat arm points as cube points.
-2. **Sensor noise on real hardware** produces blobs that pass the Z crop but
-   aren't real objects.
-3. **Multi-cube scenes with varying sizes / orientations / counts** — once we
-   randomise the scene for RL training, fixed-`k` K-Means won't always match
-   the true cube count.
+DBSCAN is the right choice for the RL observation pipeline: the arm scans at home pose where
+cubes are well-separated, and DBSCAN naturally rejects stray noise points. The SVM classifier
+is no longer needed for basic detection in a controlled workspace.
 
-We need a way to say: *"this cluster is a cube, that one is not."*
+---
+
+## Why the arm-in-scene problem is solved by scan timing
+
+The arm enters the cube layer when picking up a target. We scan *before* the arm moves
+(at the start of each episode, arm at home pose). This window has no arm points in the
+cube layer — DBSCAN + Z-crop is sufficient. No classifier needed.
 
 ---
 
@@ -222,23 +245,9 @@ A **rqt panel** with four buttons:
 
 rqt is the ROS-native way to do this; it docks next to RViz cleanly. If rqt feels heavy, a **20-line Tkinter window** does the same thing — both options are simple to explain (button click → service call).
 
-### Phase 4 — Auto-labelling (½ day)
-A clustering-side script that consumes the captured dataset:
-- Loads each PLY + `labels.json`
-- Runs the existing K-Means pipeline
-- Matches each cluster to a ground-truth object by nearest-neighbour
-- Writes `features.csv`: per-cluster features (PCA extents, colour, size, bbox) + class label
-
-This is where the dataset becomes ML-ready.
-
-### Phase 5 — SVM training (1 day)
-- Binary classifier first: cube vs not-cube
-- 10-fold CV (quiz_1 style)
-- Save model to `clustering/cube_classifier.pkl`
-- Polyscope viz: colour clusters by SVM prediction to validate
-
-### Phase 6 — Integration with RL (½ day)
-Wire the SVM into `detect_cubes.py` as a filter step. Coordinate with the team on observation shape — feed only validated cube features to PPO.
+### Phase 4 — RL integration (½ day)
+Wire `detect_cubes.py` (DBSCAN pipeline) into the RL observation loop. Coordinate with the
+team on observation shape — the DBSCAN output defines the state vector fed to PPO.
 
 ---
 
@@ -248,25 +257,24 @@ Wire the SVM into `detect_cubes.py` as a filter step. Coordinate with the team o
 |-------|------|-------|--------|
 | 1 | `scene_controller` node + services | `ros2_ws/.../scripts/` | ✅ Done |
 | 2 | `dataset_capture` node + labels | `ros2_ws/.../scripts/` | ✅ Done |
-| 2b | `verify_detection.py` — accuracy benchmark | `clustering/` | ✅ Done — 2.65 cm PASS |
-| 3 | rqt control panel | `ros2_ws/.../rqt/` | ⬜ Not started |
-| 4 | `auto_label.py` — features.csv generation | `clustering/dataset/` | ⬜ Not started |
-| 5 | `train_svm.py` + 10-fold CV | `clustering/dataset/` | ⬜ Not started |
-| 6 | SVM filter in `detect_cubes.py` + RL integration | `clustering/` | ⬜ Not started |
+| 2b | `verify_detection.py` — DBSCAN accuracy benchmark | `clustering/` | ✅ Done — 1.63 cm on well-separated cubes |
+| 0b | DBSCAN pipeline in `detect_cubes.py` | `clustering/` | ✅ Done |
+| 2c | Regenerate dataset with `min_dist = 2.0×` | run `dataset_capture.py` | ⬜ Pending |
+| 3 | rqt / Tkinter control panel | `ros2_ws/.../rqt/` | ⬜ Not started |
+| 4 | RL integration — DBSCAN → PPO observation | `clustering/` + RL stack | ⬜ Not started |
 
 ---
 
 ## Design principles
 
-- **Simple to explain.** Three nodes, four buttons, one classifier. Every
-  step has a clear input, output, and reason for existing.
-- **Reuse what works.** K-Means stays. PCA stays. The classical pipeline is
-  not being replaced — it is being *complemented* with a learned filter.
-- **Sim is the dataset source.** Ground truth is free in simulation. Real
-  hardware is for validation and final tuning, not bulk data collection.
-- **Perception and control stay separate.** The state vector is the
-  contract between this stack and the RL stack. Either side can be
-  redesigned without breaking the other.
+- **Simple to explain.** DBSCAN + Z-crop + outlier removal. No learned classifier needed
+  for a controlled lab workspace.
+- **Scan at home pose.** The perception window is before the arm moves — no arm-in-scene
+  contamination.
+- **Sim is the dataset source.** Ground truth is free in simulation. Real hardware is for
+  validation and final tuning, not bulk data collection.
+- **Perception and control stay separate.** The state vector is the contract between this
+  stack and the RL stack. Either side can be redesigned without breaking the other.
 
 ---
 
