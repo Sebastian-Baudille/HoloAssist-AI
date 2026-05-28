@@ -5,11 +5,12 @@ from typing import Mapping, Sequence
 import numpy as np
 
 
-SUCCESS_DISTANCE_M = 0.04
-MIN_EE_Z_M = 0.02
-COLLISION_PENALTY = 0.5
-TIME_PENALTY = 0.001
-ACTION_PENALTY_SCALE = 0.01
+SUCCESS_DISTANCE_M   = 0.04   # TCP must be within 4 cm of cube
+MIN_EE_Z_M           = 0.02   # minimum safe end-effector height
+COLLISION_PENALTY    = 0.5
+TIME_PENALTY         = 0.001  # per step
+ACTION_PENALTY_SCALE = 0.01   # penalises large joint deltas
+REACH_BONUS          = 5.0    # one-off terminal bonus when TCP reaches cube
 
 
 def _distance(a: Sequence[float], b: Sequence[float]) -> float:
@@ -17,12 +18,11 @@ def _distance(a: Sequence[float], b: Sequence[float]) -> float:
 
 
 def check_success(state: Mapping[str, object]) -> bool:
-    """First reach-task success: the end effector is within 4 cm of the cube."""
-
+    """Phase A success: TCP within 4 cm of the cube."""
     return (
         _distance(
-            state["end_effector_position"],  # type: ignore[index]
-            state["object_position"],  # type: ignore[index]
+            state["end_effector_position"],
+            state["object_position"],
         )
         <= SUCCESS_DISTANCE_M
     )
@@ -31,11 +31,8 @@ def check_success(state: Mapping[str, object]) -> bool:
 def check_failure(state: Mapping[str, object]) -> bool:
     if bool(state.get("collision_flag", False)):
         return True
-    end_effector_position = np.asarray(
-        state["end_effector_position"],  # type: ignore[index]
-        dtype=np.float32,
-    ).reshape(3)
-    return float(end_effector_position[2]) < MIN_EE_Z_M
+    ee_pos = np.asarray(state["end_effector_position"], dtype=np.float32).reshape(3)
+    return float(ee_pos[2]) < MIN_EE_Z_M
 
 
 def compute_reward(
@@ -44,41 +41,28 @@ def compute_reward(
     step_count: int = 0,
     info: Mapping[str, object] | None = None,
 ) -> float:
-    info_map = dict(info or {})
+    info_map   = dict(info or {})
     action_vec = np.asarray(action if action is not None else np.zeros(6), dtype=np.float32).reshape(-1)
 
     if isinstance(state, Mapping):
-        ee_pos = np.asarray(state["end_effector_position"], dtype=np.float32).reshape(3)  # type: ignore[index]
-        cube_pos = np.asarray(state["object_position"], dtype=np.float32).reshape(3)  # type: ignore[index]
-        bin_pos = np.asarray(state.get("goal_position", state["object_position"]), dtype=np.float32).reshape(3)  # type: ignore[index]
-        grasped = float(state.get("grasped", 0.0))
+        ee_pos   = np.asarray(state["end_effector_position"], dtype=np.float32).reshape(3)
+        cube_pos = np.asarray(state["object_position"],       dtype=np.float32).reshape(3)
         timestep = float(step_count)
         info_map.setdefault("collision", bool(state.get("collision_flag", False)))
     else:
-        obs = np.asarray(state, dtype=np.float32).reshape(-1)
-        if obs.shape[0] < 13:
-            raise ValueError(f"Expected observation with at least 13 values, got shape {obs.shape}")
-        ee_pos = obs[0:3]
+        obs      = np.asarray(state, dtype=np.float32).reshape(-1)
+        ee_pos   = obs[0:3]
         cube_pos = obs[3:6]
-        bin_pos = obs[6:9]
-        grasped = float(obs[9])
-        timestep = float(obs[12])
+        timestep = float(step_count)
 
     dist_to_cube = float(np.linalg.norm(ee_pos - cube_pos))
-    dist_to_bin = float(np.linalg.norm(cube_pos - bin_pos))
 
-    reward = 0.0
-    reward -= 0.3 * dist_to_cube
-
-    if grasped > 0.5:
-        reward += 5.0
-        reward -= 0.5 * dist_to_bin
-
-    if bool(info_map.get("cube_in_bin", False)):
-        reward += 10.0
-
-    reward -= COLLISION_PENALTY * float(bool(info_map.get("collision", False)))
-    reward -= TIME_PENALTY * timestep
+    reward  = -0.3  * dist_to_cube
+    reward -= TIME_PENALTY         * timestep
     reward -= ACTION_PENALTY_SCALE * float(np.sum(np.square(action_vec[:6])))
+    reward -= COLLISION_PENALTY    * float(bool(info_map.get("collision", False)))
+
+    if bool(info_map.get("reached", False)):
+        reward += REACH_BONUS
 
     return float(reward)

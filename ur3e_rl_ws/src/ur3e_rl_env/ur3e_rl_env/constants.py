@@ -8,6 +8,8 @@ JOINT_DELTA_ACTION_SCALE_RAD = 0.24
 
 # Observation layout settings.
 OBSERVATION_SIZE_13D = 13
+# Phase A layout: ee_xyz(3) + cube_xyz(3) + joint_positions(6) + ee_height(1) + timestep(1) = 14
+OBSERVATION_SIZE_PHASE_A = 14
 
 # Workspace bounds used for observation normalization and perception filtering.
 WORKSPACE_X_MIN = -0.46
