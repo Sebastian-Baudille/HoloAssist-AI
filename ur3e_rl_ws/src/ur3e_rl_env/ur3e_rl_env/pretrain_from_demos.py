@@ -25,15 +25,17 @@ from pathlib import Path
 
 import numpy as np
 
+from ur3e_rl_env.constants import JOINT_DELTA_ACTION_SCALE_RAD
+from ur3e_rl_env.ros_interface import OBSERVATION_SIZE
+
 DEMO_DIR = os.getenv("UR3E_DEMO_INPUT_DIR", "./demo_data")
 OUTPUT_PATH = os.getenv("UR3E_BC_OUTPUT_PATH", "./rl_models/ppo_ur3e_pretrained")
 EPOCHS = int(os.getenv("UR3E_BC_EPOCHS", "100"))
 LR = float(os.getenv("UR3E_BC_LR", "1e-3"))
 BATCH_SIZE = int(os.getenv("UR3E_BC_BATCH_SIZE", "256"))
 
-OBSERVATION_SIZE = 29
-ACTION_SIZE = 6
-ACTION_SCALE = 0.03
+ACTION_SIZE_DEFAULT = 7
+ACTION_SCALE = JOINT_DELTA_ACTION_SCALE_RAD
 
 
 def load_demos(demo_dir: str) -> tuple[np.ndarray, np.ndarray]:
@@ -81,6 +83,7 @@ def main() -> None:
 
     print(f"Loading demos from {DEMO_DIR}...")
     obs_np, acts_np = load_demos(DEMO_DIR)
+    action_size = int(acts_np.shape[1]) if acts_np.ndim == 2 else ACTION_SIZE_DEFAULT
     acts_np = np.clip(acts_np / ACTION_SCALE, -1.0, 1.0).astype(np.float32)
 
     class _DummyEnv(gym.Env):
@@ -90,7 +93,7 @@ def main() -> None:
                 -np.inf, np.inf, (OBSERVATION_SIZE,), np.float32
             )
             self.action_space = spaces.Box(
-                -1.0, 1.0, (ACTION_SIZE,), np.float32
+                -1.0, 1.0, (action_size,), np.float32
             )
 
         def reset(self, **kw):

@@ -41,6 +41,28 @@ ros2 run holoassist_sim save_pointcloud.py \
     --params ros2_ws/src/holoassist_sim/config/sim_params.yaml
 ```
 
+---
+
+## Scene control (scene_controller)
+
+The `sim.launch.py` automatically starts the **scene_controller** node and
+`rqt_reconfigure`. Use rqt to edit settings live, then call services to
+apply.
+
+**Edit cube count / size / position bounds** — in the rqt_reconfigure window,
+expand `/scene_controller`. Adjust sliders for `cube_count`, `cube_size_min/max`,
+`x_min/max`, `y_min/max`, `randomize_yaw`, `randomize_color`.
+
+**Apply the current settings:**
+```bash
+ros2 service call /scene/randomize_cubes std_srvs/srv/Trigger
+```
+
+**Restore the default 4-cube layout:**
+```bash
+ros2 service call /scene/reset std_srvs/srv/Trigger
+```
+
 Output file saved to `~/holoassist_pointclouds/` with auto-incremented version:
 ```
 default_4cubes_40mm_v001.ply

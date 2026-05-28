@@ -16,7 +16,12 @@ except ModuleNotFoundError as exc:  # pragma: no cover - exercised only when dep
         "python3 -m pip install gymnasium stable-baselines3"
     ) from exc
 
-from ur3e_rl_env.reward import check_failure, check_success, compute_reward
+from ur3e_rl_env.constants import (
+    JOINT_TARGET_DURATION_SEC,
+    UR3E_JOINT_LOWER_LIMITS_RAD,
+    UR3E_JOINT_UPPER_LIMITS_RAD,
+)
+from ur3e_rl_env.reward import check_failure, compute_reward
 from ur3e_rl_env.ros_interface import OBSERVATION_SIZE, RosInterfaceNode, build_observation
 from ur3e_safety_layer.safety_checker import SafetyChecker
 
@@ -25,7 +30,6 @@ HOME_JOINTS = np.array(
     [0.0, -np.pi / 2, 0.0, -np.pi / 2, 0.0, 0.0],
     dtype=np.float32,
 )
-ACTION_SCALE = 0.24  # max joint delta per step in rad (75% of UR3e π rad/s at control_dt=0.1s)
 DEFAULT_MAX_EPISODE_STEPS = int(os.getenv("UR3E_RL_MAX_EPISODE_STEPS", "200"))
 DEFAULT_CONTROL_DT = float(os.getenv("UR3E_RL_CONTROL_DT", "0.2"))
 DEFAULT_RESET_DURATION = float(os.getenv("UR3E_RL_RESET_DURATION", "1.0"))
@@ -64,16 +68,20 @@ class UR3ePickPlaceEnv(gym.Env):
         self.reset_duration = float(reset_duration)
         self.ready_timeout_sec = float(ready_timeout_sec)
         self.step_count = 0
+        self.joint_lower = np.asarray(UR3E_JOINT_LOWER_LIMITS_RAD, dtype=np.float32)
+        self.joint_upper = np.asarray(UR3E_JOINT_UPPER_LIMITS_RAD, dtype=np.float32)
+        self.joint_midpoint = 0.5 * (self.joint_lower + self.joint_upper)
+        self.joint_range_rad = 0.5 * (self.joint_upper - self.joint_lower)
 
         self.action_space = spaces.Box(
             low=-1.0,
             high=1.0,
-            shape=(6,),
+            shape=(7,),
             dtype=np.float32,
         )
         self.observation_space = spaces.Box(
-            low=-np.inf,
-            high=np.inf,
+            low=-1.0,
+            high=1.0,
             shape=(OBSERVATION_SIZE,),
             dtype=np.float32,
         )
@@ -104,15 +112,19 @@ class UR3ePickPlaceEnv(gym.Env):
                 "missing": self.ros.missing_state_fields(),
             }
 
-        return build_observation(state), {"ready": True}
+        return build_observation(state, step_count=self.step_count, max_episode_steps=self.max_episode_steps), {
+            "ready": True
+        }
 
     def step(
         self,
         action: np.ndarray,
     ) -> tuple[np.ndarray, float, bool, bool, dict[str, Any]]:
         self.step_count += 1
-        normalized = np.clip(np.asarray(action, dtype=np.float32).reshape(6), -1.0, 1.0)
-        joint_delta = normalized * ACTION_SCALE
+        action_array = np.clip(np.asarray(action, dtype=np.float32).reshape(7), -1.0, 1.0)
+        normalized = action_array[:6]
+        gripper_command = float(action_array[6])
+        requested_target = normalized * self.joint_range_rad + self.joint_midpoint
 
         state = self.ros.get_state()
         if state is None:
@@ -120,9 +132,18 @@ class UR3ePickPlaceEnv(gym.Env):
 
         state_safety = self.safety_checker.check_state(state)
         if not state_safety.safe:
-            reward = compute_reward(state, joint_delta, self.step_count)
+            unsafe_obs = build_observation(
+                state,
+                step_count=self.step_count,
+                max_episode_steps=self.max_episode_steps,
+            )
+            unsafe_info = {
+                "collision": bool(state.get("collision_flag", False)),
+                "cube_in_bin": False,
+            }
+            reward = compute_reward(unsafe_obs, action_array, self.step_count, unsafe_info)
             return (
-                build_observation(state),
+                unsafe_obs,
                 reward,
                 True,
                 False,
@@ -132,20 +153,39 @@ class UR3ePickPlaceEnv(gym.Env):
                 },
             )
 
+        current_joints = np.asarray(state["joint_positions"], dtype=np.float32).reshape(6)
         target_joints = self.safety_checker.make_safe_target(
-            state["joint_positions"],
-            joint_delta,
+            current_joints=current_joints,
+            requested_target_joints=requested_target,
         )
-        self.ros.send_joint_target(target_joints, duration_sec=self.control_dt)
-        self._spin_for(self.control_dt)
+        if gripper_command > 0.5:
+            self.ros.close_gripper()
+        elif gripper_command < -0.5:
+            self.ros.open_gripper()
+        self.ros.send_joint_target(target_joints, duration_sec=JOINT_TARGET_DURATION_SEC)
+        self._spin_for(max(self.control_dt, JOINT_TARGET_DURATION_SEC))
 
         new_state = self.ros.get_state()
         if new_state is None:
             return self._missing_state_step("missing state after command")
 
-        observation = build_observation(new_state)
-        reward = compute_reward(new_state, joint_delta, self.step_count)
-        success = check_success(new_state)
+        observation = build_observation(
+            new_state,
+            step_count=self.step_count,
+            max_episode_steps=self.max_episode_steps,
+        )
+
+        cube_pos = np.asarray(new_state["object_position"], dtype=np.float32).reshape(3)
+        bin_pos = np.asarray(new_state["goal_position"], dtype=np.float32).reshape(3)
+        grasped = float(new_state.get("grasped", 0.0))
+        cube_in_bin = bool(np.linalg.norm(cube_pos - bin_pos) < 0.08 and grasped < 0.5)
+
+        info = {
+            "collision": bool(new_state.get("collision_flag", False)),
+            "cube_in_bin": cube_in_bin,
+        }
+        reward = compute_reward(observation, action_array, self.step_count, info)
+        success = cube_in_bin
         failure = check_failure(new_state)
         terminated = success or failure
         truncated = self.step_count >= self.max_episode_steps
@@ -156,11 +196,12 @@ class UR3ePickPlaceEnv(gym.Env):
                 - np.asarray(new_state["object_position"], dtype=np.float32)
             )
         )
-        info = {
+        info.update(
+            {
             "is_success": success,
             "distance_to_cube": distance,
-            "collision": bool(new_state.get("collision_flag", False)),
-        }
+            }
+        )
         return observation, reward, terminated, truncated, info
 
     def close(self) -> None:
