@@ -26,22 +26,34 @@ BIN_POSITION_X = 0.28
 BIN_POSITION_Y = 0.0
 BIN_POSITION_Z = 1.078
 
-# Conservative UR3e software limits used by normalization and clamping.
+# UR3e joint limits for tabletop manipulation.
+# Tighter than hardware limits to prevent self-collision and upper-arm sweeping.
+#
+# Joint indices:  0=shoulder_pan  1=shoulder_lift  2=elbow
+#                 3=wrist_1       4=wrist_2        5=wrist_3
+#
+# shoulder_lift upper = -0.2 rad (~11° above horizontal):
+#   keeps upper arm link elevated, preventing it from sweeping through
+#   the table workspace and knocking cubes. Home pose uses -π/2.
+#
+# elbow lower = -2.5 rad:
+#   prevents extreme reverse-elbow fold that causes the forearm to swing
+#   back into the base/upper-arm region.
 UR3E_JOINT_LOWER_LIMITS_RAD = (
-    -2.0 * math.pi,
-    -2.0 * math.pi,
-    -2.0 * math.pi,
-    -2.0 * math.pi,
-    -2.0 * math.pi,
-    -2.0 * math.pi,
+    -2.0 * math.pi,  # shoulder_pan:   full rotation fine
+    -math.pi,        # shoulder_lift:  down to pointing-back-and-up
+    -2.5,            # elbow:          ~143° reverse limit
+    -math.pi,        # wrist_1
+    -math.pi,        # wrist_2
+    -math.pi,        # wrist_3
 )
 UR3E_JOINT_UPPER_LIMITS_RAD = (
-    2.0 * math.pi,
-    2.0 * math.pi,
-    2.0 * math.pi,
-    2.0 * math.pi,
-    2.0 * math.pi,
-    2.0 * math.pi,
+     2.0 * math.pi,  # shoulder_pan
+    -0.2,            # shoulder_lift:  no higher than ~11° above horizontal
+     math.pi,        # elbow
+     0.0,            # wrist_1:        keeps wrist from flipping past neutral
+     math.pi,        # wrist_2
+     math.pi,        # wrist_3
 )
 
 JOINT_TARGET_DURATION_SEC = 0.3

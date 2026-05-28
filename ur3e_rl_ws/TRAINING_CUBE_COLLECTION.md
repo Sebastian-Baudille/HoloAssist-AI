@@ -16,7 +16,7 @@ This is Phase A of a staged training plan:
 
 | Phase | Task | Success target | Status |
 |-------|------|:---:|:---:|
-| **A** | **Reach cube (TCP within 4 cm)** | **80% in ≤ 200 steps** | 🔄 In progress |
+| **A** | **Reach cube (TCP within 4 cm)** | **80% in ≤ 200 steps** | ✅ 99% @ 696k steps — retraining with joint constraints |
 | B | Grasp cube (close gripper at contact) | TBD | ⬜ Not started |
 | C | Pick and place to target zone | TBD | ⬜ Not started |
 
