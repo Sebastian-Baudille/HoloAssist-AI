@@ -265,17 +265,20 @@ elif gripper_command < -0.5:
 
 ## Training procedure
 
-### Setup
-
+Open four terminals from the repo root. All assume:
 ```bash
 cd /home/guy/git/HoloAssist-AI/ur3e_rl_ws
-source /opt/ros/humble/setup.bash
-source install/setup.bash
+source /opt/ros/humble/setup.bash && source install/setup.bash
 ```
 
-### Start training (20 parallel envs, ~61 fps)
+---
 
+### Terminal 1 — Start training (20 parallel envs, ~50 fps)
+
+Fresh run (no pretrained model):
 ```bash
+rm -f rl_models/ppo_ur3e_pretrained.zip
+
 CUDA_VISIBLE_DEVICES="" \
 UR3E_RL_TOTAL_TIMESTEPS=1000000 \
 UR3E_RL_NUM_ENVS=20 \
@@ -284,22 +287,83 @@ UR3E_RL_PPO_BATCH_SIZE=512 \
 python3 -m ur3e_rl_env.train_ppo_parallel
 ```
 
-**Why 1M steps:** Phase A is much simpler than pick-and-place, but joint-space control
-of a 6-DOF arm still requires significant exploration. Expect meaningful learning around
-200–400k steps and convergence by 1M. Checkpoint every 10k steps — stop early if the
-80% target is hit.
+Confirm it prints `No pretrained model found — training from scratch.`
 
-### Monitor training
+**Resuming from a checkpoint** (e.g. after a pause):
+```bash
+# Find the latest checkpoint
+ls -t rl_models/checkpoints_parallel/ | head -3
+
+# Copy it to the pretrained slot (adjust filename to match)
+cp rl_models/checkpoints_parallel/ppo_ur3e_reach_object_parallel_XXXXXX_steps.zip \
+   rl_models/ppo_ur3e_pretrained.zip
+
+# Launch with remaining steps (1M minus steps already done)
+CUDA_VISIBLE_DEVICES="" \
+UR3E_RL_TOTAL_TIMESTEPS=826000 \
+UR3E_RL_NUM_ENVS=20 \
+UR3E_RL_PPO_N_STEPS=512 \
+UR3E_RL_PPO_BATCH_SIZE=512 \
+python3 -m ur3e_rl_env.train_ppo_parallel
+```
+
+Confirm it prints `Loading pretrained model from rl_models/ppo_ur3e_pretrained`
+
+**Stopping training:** `Ctrl+C` — the most recent checkpoint (within 10k steps) is safe to resume from.
+
+---
+
+### Terminal 2 — TensorBoard
 
 ```bash
-# Check latest checkpoint reward in a separate terminal:
-ls -lt rl_models/checkpoints_parallel/ | head -5
-
-# TensorBoard (if available):
 tensorboard --logdir tb_logs/
 ```
 
-### Evaluate a checkpoint
+Open **http://localhost:6006** in a browser.
+
+Key metrics to watch:
+
+| Metric | What it means | Target |
+|--------|--------------|:---:|
+| `rollout/success_rate` | Fraction of episodes that reached the cube | ≥ 0.80 |
+| `rollout/ep_len_mean` | Mean episode length (shorter = succeeding faster) | < 100 |
+| `rollout/ep_rew_mean` | Mean episode reward (should rise from ~-50) | > 0 |
+
+Each training run appears as a new **PPO_N** entry. Uncheck old runs in the left panel
+to see only the current one. TensorBoard auto-refreshes every 30 s — click the circular
+arrow button to force an immediate refresh.
+
+---
+
+### Terminal 3 — RViz live monitor
+
+Watch one training worker in real time (worker 0 by default, or pass a number 0–19):
+
+```bash
+QT_QPA_PLATFORM=xcb bash scripts/monitor_training.sh
+# or to watch worker 3:
+QT_QPA_PLATFORM=xcb bash scripts/monitor_training.sh 3
+```
+
+**What you'll see:**
+- Robot arm moving toward a cube each episode
+- **Green axes** — TCP (end effector) position
+- **Red arrows** — cube positions (teleport to new random spot on each reset)
+- **Yellow arrow** — goal the arm is trying to reach
+- **Fine grid** — table surface at Z = 1.07 m
+
+The arm resets to home pose between episodes. As training progresses, motions become
+smoother and more direct.
+
+**Note:** RViz connects to `ROS_DOMAIN_ID = 30 + worker_id`. Training workers use
+domain IDs 30–49 (20 envs). RViz never interferes with training.
+
+---
+
+### Terminal 4 — Evaluate a checkpoint
+
+Requires a separate Gazebo sim (not the training workers). Stop training first, or use
+a free terminal after training completes:
 
 ```bash
 python3 -m ur3e_rl_env.evaluate_policy \
