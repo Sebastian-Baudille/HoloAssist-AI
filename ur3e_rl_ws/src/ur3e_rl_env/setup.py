@@ -26,6 +26,7 @@ setup(
             "record_demo = ur3e_rl_env.record_demo:main",
             "pretrain_from_demos = ur3e_rl_env.pretrain_from_demos:main",
             "keyboard_teleop = ur3e_rl_env.keyboard_teleop:main",
+            "train_ppo_mujoco = ur3e_rl_env.train_ppo_mujoco:main",
         ],
     },
 )
