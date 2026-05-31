@@ -2,8 +2,8 @@
 ik.py — Jacobian IK: Cartesian delta (dx,dy,dz) → joint angle targets.
 
 Converts a 3D world-frame TCP displacement into joint targets using
-damped-least-squares Jacobian IK. An orientation correction term drives
-the gripper toward pointing straight down (TCP Z → [0, 0, -1]).
+damped-least-squares Jacobian IK (translational only — no orientation
+constraint, so the arm uses its full joint range to reach any pose).
 
 This runs at every RL step inside reach_env and transport_env.
 """
@@ -20,15 +20,10 @@ _ARM_JOINT_NAMES = (
     "wrist_2_joint",
     "wrist_3_joint",
 )
-_TCP_BODY_NAME   = "gripper_tcp"
+_TCP_BODY_NAME = "gripper_tcp"
 
-ACTION_SCALE_M   = 0.02   # metres per action unit (±1 → ±2 cm)
-IK_DAMPING       = 0.05   # regularisation — increase if joints oscillate
-ORIENTATION_GAIN = 2.0    # how hard to correct gripper orientation
-
-# Desired TCP Z axis for a top-down grasp (confirmed from scene diagnostic)
-DESIRED_DOWN_AXIS = np.array([0.0, 0.0, -1.0])
-DESIRED_DOWN_AXIS.setflags(write=False)
+ACTION_SCALE_M = 0.02  # metres per action unit (±1 → ±2 cm)
+IK_DAMPING     = 0.05  # regularisation — increase if joints oscillate
 
 
 def build_ik_cache(model: mujoco.MjModel) -> dict:
@@ -89,26 +84,15 @@ def cartesian_to_joint_targets(
     jacr = np.zeros((3, model.nv))  # rotational     (3 × nv)
     mujoco.mj_jacBody(model, data, jacp, jacr, tcp_body_id)
 
-    # Extract arm columns only → (3, 6) each
-    jacp_arm = jacp[:, arm_dof_addrs]
-    jacr_arm = jacr[:, arm_dof_addrs]
-    J = np.vstack([jacp_arm, jacr_arm])  # (6, 6)
+    # Extract arm columns only → (3, 6) translational Jacobian
+    J = jacp[:, arm_dof_addrs]  # (3, 6)
 
     # ── Desired velocity ───────────────────────────────────────────────────────
-    # Position: scale action to metres
-    v_pos = np.asarray(delta_xyz, dtype=np.float64) * ACTION_SCALE_M  # (3,)
-
-    # Orientation: cross-product error drives TCP Z toward DESIRED_DOWN_AXIS
-    # data.xmat[id] is row-major 3×3 rotation; cols are body axes in world frame
-    xmat     = data.xmat[tcp_body_id].reshape(3, 3)
-    current_z = xmat[:, 2]                              # TCP Z in world frame
-    v_rot    = ORIENTATION_GAIN * np.cross(current_z, DESIRED_DOWN_AXIS)  # (3,)
-
-    v = np.concatenate([v_pos, v_rot])  # (6,)
+    v = np.asarray(delta_xyz, dtype=np.float64) * ACTION_SCALE_M  # (3,)
 
     # ── Damped least squares ───────────────────────────────────────────────────
     # dq = J^T (J J^T + λ²I)^{-1} v
-    JJT = J @ J.T + IK_DAMPING ** 2 * np.eye(6)
+    JJT = J @ J.T + IK_DAMPING ** 2 * np.eye(3)
     dq  = J.T @ np.linalg.solve(JJT, v)  # (6,) rad/step
 
     # ── Apply delta, clip, clamp ───────────────────────────────────────────────
