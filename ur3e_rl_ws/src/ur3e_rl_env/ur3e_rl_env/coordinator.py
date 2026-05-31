@@ -34,7 +34,7 @@ SCENE_XML = str(_SRC_DIR / "assets" / "mujoco" / "scene.xml")
 GRASP_DIST_M   = 0.05
 RELEASE_DIST_M = 0.08
 PHYSICS_STEPS  = 50
-HOME_JOINTS    = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+HOME_JOINTS    = np.array([0.0, -1.0, 1.0, -1.57, -1.57, 0.0])
 # 3 cm below TCP — approximately half-cube-height (cube is 4 cm tall)
 _HOLD_OFFSET   = np.array([0.0, 0.0, -0.03])
 _NUM_CUBES     = 4
@@ -168,6 +168,7 @@ class MuJoCoCoordinator:
 
         for i, addr in enumerate(self._ik_cache["arm_qpos_addrs"]):
             self.data.qpos[addr] = HOME_JOINTS[i]
+        self.data.ctrl[:6] = HOME_JOINTS  # hold home during settle
 
         for i in range(_NUM_CUBES):
             addr = self._cube_qpos_addrs[i]

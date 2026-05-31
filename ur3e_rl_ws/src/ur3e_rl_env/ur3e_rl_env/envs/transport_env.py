@@ -38,7 +38,7 @@ SCENE_XML    = str(_SRC_DIR / "assets" / "mujoco" / "scene.xml")
 MAX_STEPS      = int(os.getenv("UR3E_RL_MAX_EPISODE_STEPS", "200"))
 PHYSICS_STEPS  = 50
 RELEASE_DIST_M = 0.08   # success threshold: 8 cm
-HOME_JOINTS    = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+HOME_JOINTS    = np.array([0.0, -1.0, 1.0, -1.57, -1.57, 0.0])
 
 CUBE_X_RANGE = (float(os.getenv("UR3E_RL_CUBE_X_MIN", "-0.20")),
                 float(os.getenv("UR3E_RL_CUBE_X_MAX",  "0.20")))
@@ -185,6 +185,7 @@ class UR3eTransportEnv(gym.Env):
 
         for i, addr in enumerate(self._ik_cache["arm_qpos_addrs"]):
             self.data.qpos[addr] = HOME_JOINTS[i]
+        self.data.ctrl[:6] = HOME_JOINTS  # hold home during settle
 
         self._target_cube_idx = int(self.np_random.integers(0, _NUM_CUBES))
         for i in range(_NUM_CUBES):
