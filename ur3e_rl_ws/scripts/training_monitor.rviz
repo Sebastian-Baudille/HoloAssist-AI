@@ -4,7 +4,6 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /RobotModel1
         - /TCP1
         - /Cube 01
         - /Cube 11
@@ -59,35 +58,27 @@ Visualization Manager:
       Reference Frame: world
       Value: true
 
-    - Class: rviz_default_plugins/RobotModel
-      Description Topic:
-        Depth: 5
-        Durability Policy: Transient Local
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /ur3e_rg2/robot_description
-      Enabled: true
-      Name: RobotModel
-      TF Prefix: ""
-      Update Interval: 0
-      Value: true
-      Visual Enabled: true
-
     - Class: rviz_default_plugins/TF
-      Enabled: false
+      Enabled: true
       Frame Timeout: 15
       Frames:
         All Enabled: false
-      Marker Scale: 0.3
-      Name: TF
-      Show Arrows: true
+        base_link:
+          Value: true
+        tool0:
+          Value: true
+        world:
+          Value: true
+      Marker Scale: 0.15
+      Name: TF (arm frames)
+      Show Arrows: false
       Show Axes: true
       Show Names: true
       Update Interval: 0
-      Value: false
+      Value: true
 
-    - Axes Length: 0.05
-      Axes Radius: 0.005
+    - Axes Length: 0.07
+      Axes Radius: 0.007
       Class: rviz_default_plugins/Pose
       Color: 0; 255; 0
       Enabled: true
@@ -111,11 +102,11 @@ Visualization Manager:
       Color: 255; 50; 50
       Enabled: true
       Head Length: 0.02
-      Head Radius: 0.01
+      Head Radius: 0.015
       Name: Cube 0
       Shape: Arrow
       Shaft Length: 0.04
-      Shaft Radius: 0.008
+      Shaft Radius: 0.01
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -130,11 +121,11 @@ Visualization Manager:
       Color: 255; 50; 50
       Enabled: true
       Head Length: 0.02
-      Head Radius: 0.01
+      Head Radius: 0.015
       Name: Cube 1
       Shape: Arrow
       Shaft Length: 0.04
-      Shaft Radius: 0.008
+      Shaft Radius: 0.01
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -149,11 +140,11 @@ Visualization Manager:
       Color: 255; 50; 50
       Enabled: true
       Head Length: 0.02
-      Head Radius: 0.01
+      Head Radius: 0.015
       Name: Cube 2
       Shape: Arrow
       Shaft Length: 0.04
-      Shaft Radius: 0.008
+      Shaft Radius: 0.01
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -168,11 +159,11 @@ Visualization Manager:
       Color: 255; 50; 50
       Enabled: true
       Head Length: 0.02
-      Head Radius: 0.01
+      Head Radius: 0.015
       Name: Cube 3
       Shape: Arrow
       Shaft Length: 0.04
-      Shaft Radius: 0.008
+      Shaft Radius: 0.01
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -187,11 +178,11 @@ Visualization Manager:
       Color: 255; 220; 0
       Enabled: true
       Head Length: 0.03
-      Head Radius: 0.015
+      Head Radius: 0.018
       Name: Goal
       Shape: Arrow
       Shaft Length: 0.05
-      Shaft Radius: 0.01
+      Shaft Radius: 0.012
       Topic:
         Depth: 5
         Durability Policy: Volatile

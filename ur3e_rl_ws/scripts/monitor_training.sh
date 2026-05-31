@@ -18,5 +18,8 @@ ROS_DOMAIN_ID=$DOMAIN_ID IGN_PARTITION=$DOMAIN_ID ros2 topic list 2>/dev/null | 
 
 echo ""
 echo "Opening RViz... (mesh errors logged to /tmp/rviz_monitor.log)"
+# LIBGL_ALWAYS_SOFTWARE=1 uses Mesa CPU renderer — avoids GPU/OpenGL crashes
+# on laptops with hybrid NVIDIA+Intel graphics when interacting with the 3D view.
 ROS_DOMAIN_ID=$DOMAIN_ID IGN_PARTITION=$DOMAIN_ID \
+  LIBGL_ALWAYS_SOFTWARE=1 \
   rviz2 -d "$RVIZ_CONFIG" 2>/tmp/rviz_monitor.log
