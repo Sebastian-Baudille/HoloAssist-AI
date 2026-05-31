@@ -21,6 +21,7 @@ from ur3e_rl_env.constants import (
     UR3E_JOINT_LOWER_LIMITS_RAD,
     UR3E_JOINT_UPPER_LIMITS_RAD,
 )
+from ur3e_rl_env.kinematics import compute_ik_reference
 from ur3e_rl_env.reward import check_failure, check_success, compute_reward
 from ur3e_rl_env.ros_interface import OBSERVATION_SIZE, RosInterfaceNode, build_observation
 from ur3e_safety_layer.safety_checker import SafetyChecker
@@ -68,6 +69,7 @@ class UR3ePickPlaceEnv(gym.Env):
         self.reset_duration = float(reset_duration)
         self.ready_timeout_sec = float(ready_timeout_sec)
         self.step_count = 0
+        self._ik_reference_joints: np.ndarray | None = None
         self.joint_lower = np.asarray(UR3E_JOINT_LOWER_LIMITS_RAD, dtype=np.float32)
         self.joint_upper = np.asarray(UR3E_JOINT_UPPER_LIMITS_RAD, dtype=np.float32)
         self.joint_midpoint = 0.5 * (self.joint_lower + self.joint_upper)
@@ -107,13 +109,21 @@ class UR3ePickPlaceEnv(gym.Env):
         ready = self.ros.wait_until_ready(self.ready_timeout_sec)
         state = self.ros.get_state() if ready else None
         if state is None:
+            self._ik_reference_joints = None
             return self._zero_observation(), {
                 "ready": False,
                 "missing": self.ros.missing_state_fields(),
             }
 
+        # Compute IK reference once per episode so the reward function can use it
+        # as a joint-angle target without paying the solver cost every step.
+        cube_pos = np.asarray(state["object_position"], dtype=np.float64)
+        reachable, ik_joints, _ = compute_ik_reference(cube_pos)
+        self._ik_reference_joints = ik_joints if reachable else None
+
         return build_observation(state, step_count=self.step_count, max_episode_steps=self.max_episode_steps), {
-            "ready": True
+            "ready": True,
+            "ik_reachable": reachable,
         }
 
     def step(
@@ -137,8 +147,9 @@ class UR3ePickPlaceEnv(gym.Env):
                 max_episode_steps=self.max_episode_steps,
             )
             unsafe_info = {
-                "collision": bool(state.get("collision_flag", False)),
-                "reached":   False,
+                "collision":            bool(state.get("collision_flag", False)),
+                "reached":              False,
+                "ik_reference_joints":  self._ik_reference_joints,
             }
             reward = compute_reward(state, action_array, self.step_count, unsafe_info)
             return (
@@ -180,10 +191,11 @@ class UR3ePickPlaceEnv(gym.Env):
             )
         )
         info = {
-            "collision":        bool(new_state.get("collision_flag", False)),
-            "reached":          success,
-            "is_success":       success,
-            "distance_to_cube": distance,
+            "collision":           bool(new_state.get("collision_flag", False)),
+            "reached":             success,
+            "is_success":          success,
+            "distance_to_cube":    distance,
+            "ik_reference_joints": self._ik_reference_joints,
         }
         reward = compute_reward(new_state, action_array, self.step_count, info)
         terminated = success or failure
