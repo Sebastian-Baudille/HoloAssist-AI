@@ -92,6 +92,10 @@ def test_success_terminates_episode(env):
     e.data.qpos[addr+4:addr+7] = 0.0
     mujoco.mj_forward(e.model, e.data)
 
+    # Zero cube velocity so it doesn't fall during the physics steps
+    cube_dof = e._cube_dof_addrs[e._target_cube_idx]
+    e.data.qvel[cube_dof:cube_dof+6] = 0.0
+
     obs, reward, terminated, truncated, info = e.step(np.zeros(3, dtype=np.float32))
     assert terminated, "Should terminate when cube is at TCP"
     assert info["is_success"]

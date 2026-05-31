@@ -51,6 +51,7 @@ def _norm(v: float, lo: float, hi: float) -> float:
     return float(np.clip(2.0 * (v - lo) / span - 1.0, -1.0, 1.0))
 
 
+# Intentional copy of ros_interface._normalize_xyz — keeps this file ROS-free.
 def _norm_xyz(pos: np.ndarray) -> np.ndarray:
     return np.array([
         _norm(float(pos[0]), WORKSPACE_X_MIN, WORKSPACE_X_MAX),
@@ -103,6 +104,9 @@ class UR3eReachEnv(gym.Env):
         return int(np.argmin(dists))
 
     def _get_obs(self, ee_pos: np.ndarray, cube_pos: np.ndarray) -> np.ndarray:
+        # Note: WORKSPACE_Z_MAX=1.22 is below HOME TCP Z≈1.79, so obs[2] saturates
+        # at 1.0 during initial arm descent (~57 cm). Policy still learns via X/Y
+        # gradient and the overall distance reward.
         return np.concatenate([_norm_xyz(ee_pos), _norm_xyz(cube_pos)]).astype(np.float32)
 
     def step(self, action: np.ndarray):
@@ -166,3 +170,9 @@ class UR3eReachEnv(gym.Env):
         if self._viewer is not None:
             self._viewer.close()
             self._viewer = None
+
+    def render(self):
+        if self.render_mode == "rgb_array":
+            renderer = mujoco.Renderer(self.model, height=480, width=640)
+            renderer.update_scene(self.data)
+            return renderer.render()
