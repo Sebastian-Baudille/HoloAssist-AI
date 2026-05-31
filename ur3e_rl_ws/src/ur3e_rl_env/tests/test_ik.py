@@ -52,8 +52,9 @@ def test_ik_returns_six_joint_targets(mjenv):
 def test_ik_targets_within_joint_limits(mjenv):
     model, data, cache = mjenv
     from ur3e_rl_env.ik import cartesian_to_joint_targets
+    rng = np.random.default_rng(seed=0)
     for _ in range(20):
-        delta = np.random.uniform(-1, 1, 3)
+        delta = rng.uniform(-1, 1, 3)
         targets = cartesian_to_joint_targets(
             model, data, cache,
             delta_xyz=delta,
@@ -90,8 +91,8 @@ def test_ik_moves_tcp_toward_target(mjenv):
     )
 
 
-def test_ik_zero_action_changes_nothing(mjenv):
-    """Zero action should not move the arm (within IK tolerance)."""
+def test_ik_zero_position_action_corrects_orientation(mjenv):
+    """Zero position action still allows orientation correction to run."""
     model, data, cache = mjenv
     from ur3e_rl_env.ik import cartesian_to_joint_targets
 
@@ -109,5 +110,6 @@ def test_ik_zero_action_changes_nothing(mjenv):
         mujoco.mj_step(model, data)
 
     pos_after = data.xpos[tcp_id].copy()
-    # Orientation correction may cause slight drift; allow 5cm tolerance
+    # ~5 cm drift is expected: the orientation correction term is still active
+    # even with zero position action, pulling the gripper toward pointing straight down.
     assert np.linalg.norm(pos_after - pos_before) < 0.05

@@ -10,6 +10,7 @@ This runs at every RL step inside reach_env and transport_env.
 from __future__ import annotations
 import mujoco
 import numpy as np
+from ur3e_rl_env.constants import JOINT_DELTA_ACTION_SCALE_RAD
 
 _ARM_JOINT_NAMES = (
     "shoulder_pan_joint",
@@ -24,10 +25,10 @@ _TCP_BODY_NAME   = "gripper_tcp"
 ACTION_SCALE_M   = 0.02   # metres per action unit (±1 → ±2 cm)
 IK_DAMPING       = 0.05   # regularisation — increase if joints oscillate
 ORIENTATION_GAIN = 2.0    # how hard to correct gripper orientation
-JOINT_DELTA_LIMIT = 0.24  # max joint motion per step (rad) — from constants.py
 
 # Desired TCP Z axis for a top-down grasp (confirmed from scene diagnostic)
 DESIRED_DOWN_AXIS = np.array([0.0, 0.0, -1.0])
+DESIRED_DOWN_AXIS.setflags(write=False)
 
 
 def build_ik_cache(model: mujoco.MjModel) -> dict:
@@ -74,6 +75,9 @@ def cartesian_to_joint_targets(
     delta_xyz: action output from the policy, scaled [-1, 1].
                Multiplied by ACTION_SCALE_M internally (2 cm per unit).
 
+    Requires `mj_forward(model, data)` to have been called since the last
+    state change (satisfied automatically by `mj_step`).
+
     Returns joint targets to set on data.ctrl[:6].
     """
     tcp_body_id   = ik_cache["tcp_body_id"]
@@ -109,7 +113,7 @@ def cartesian_to_joint_targets(
 
     # ── Apply delta, clip, clamp ───────────────────────────────────────────────
     q_curr  = np.array([data.qpos[a] for a in arm_qpos_addrs], dtype=np.float64)
-    dq_safe = np.clip(dq, -JOINT_DELTA_LIMIT, JOINT_DELTA_LIMIT)
+    dq_safe = np.clip(dq, -JOINT_DELTA_ACTION_SCALE_RAD, JOINT_DELTA_ACTION_SCALE_RAD)
     q_target = np.clip(q_curr + dq_safe, joint_lower, joint_upper)
 
     return q_target
