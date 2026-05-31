@@ -47,7 +47,7 @@ CUBE_Y_RANGE = (float(os.getenv("UR3E_RL_CUBE_Y_MIN", "-0.45")),
 CUBE_Z_START = float(os.getenv("UR3E_RL_CUBE_Z", "1.11"))
 _NUM_CUBES   = 4
 
-# Cube-to-TCP offset when "held": slightly below TCP centre
+# 3 cm below TCP — approximately half-cube-height (cube is 4 cm tall)
 _HOLD_OFFSET = np.array([0.0, 0.0, -0.03])
 
 _BIN_POS = np.array([BIN_POSITION_X, BIN_POSITION_Y, BIN_POSITION_Z],
@@ -73,7 +73,7 @@ def _norm_xyz(pos: np.ndarray) -> np.ndarray:
 class UR3eTransportEnv(gym.Env):
     """Transport: move arm+cube from current position to within 8 cm of bin."""
 
-    metadata = {"render_modes": ["human"], "render_fps": 50}
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 50}
 
     def __init__(self, render_mode: str | None = None) -> None:
         super().__init__()
@@ -101,6 +101,9 @@ class UR3eTransportEnv(gym.Env):
         self._viewer          = None
         if render_mode == "human":
             self._viewer = mujoco.viewer.launch_passive(self.model, self.data)
+        self._renderer: mujoco.Renderer | None = None
+        if render_mode == "rgb_array":
+            self._renderer = mujoco.Renderer(self.model, height=480, width=640)
 
     def _pin_cube_to_tcp(self) -> None:
         """Teleport the target cube to follow the TCP each physics step."""
@@ -199,12 +202,14 @@ class UR3eTransportEnv(gym.Env):
         return self._get_obs(ee_pos, cube_pos), {"target_cube": f"cube_{self._target_cube_idx}"}
 
     def render(self):
-        if self.render_mode == "rgb_array":
-            renderer = mujoco.Renderer(self.model, height=480, width=640)
-            renderer.update_scene(self.data)
-            return renderer.render()
+        if self.render_mode == "rgb_array" and self._renderer is not None:
+            self._renderer.update_scene(self.data)
+            return self._renderer.render()
 
     def close(self) -> None:
+        if self._renderer is not None:
+            self._renderer.close()
+            self._renderer = None
         if self._viewer is not None:
             self._viewer.close()
             self._viewer = None
