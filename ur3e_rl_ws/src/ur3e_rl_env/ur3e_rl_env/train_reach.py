@@ -22,6 +22,10 @@ from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor
 from ur3e_rl_env.envs.reach_env import UR3eReachEnv
 
 _REPO     = Path(__file__).parent.parent.parent.parent.parent
+assert (_REPO / "ur3e_rl_ws").is_dir(), (
+    f"_REPO resolved to wrong path: {_REPO}\n"
+    "Run directly with 'python3 train_reach.py', not via a colcon-installed entry point."
+)
 MODEL_DIR = _REPO / "ur3e_rl_ws" / "rl_models"
 LOG_DIR   = _REPO / "ur3e_rl_ws" / "reach_tb_logs"
 CKPT_DIR  = MODEL_DIR / "reach_checkpoints"
@@ -65,9 +69,9 @@ def main():
         d.mkdir(parents=True, exist_ok=True)
 
     train_env = SubprocVecEnv([make_env(i, args.seed) for i in range(args.envs)],
-                               start_method="fork")
+                               start_method="spawn")
     train_env = VecMonitor(train_env, str(LOG_DIR / "monitor"))
-    eval_env  = SubprocVecEnv([make_env(999, args.seed)], start_method="fork")
+    eval_env  = SubprocVecEnv([make_env(999, args.seed)], start_method="spawn")
     eval_env  = VecMonitor(eval_env)
 
     callbacks = [
@@ -101,11 +105,14 @@ def main():
 
     print(f"\nTraining Reach model — {args.timesteps:,} steps, {args.envs} envs")
     print(f"TensorBoard: tensorboard --logdir {LOG_DIR}\n")
-    model.learn(args.timesteps, callback=callbacks,
-                reset_num_timesteps=reset_ts, progress_bar=True)
-    model.save(str(MODEL_DIR / "reach_final"))
-    print(f"Saved to {MODEL_DIR / 'reach_final'}.zip")
-    train_env.close(); eval_env.close()
+    try:
+        model.learn(args.timesteps, callback=callbacks,
+                    reset_num_timesteps=reset_ts, progress_bar=True)
+        model.save(str(MODEL_DIR / "reach_final"))
+        print(f"Saved to {MODEL_DIR / 'reach_final'}.zip")
+    finally:
+        train_env.close()
+        eval_env.close()
 
 
 if __name__ == "__main__":
