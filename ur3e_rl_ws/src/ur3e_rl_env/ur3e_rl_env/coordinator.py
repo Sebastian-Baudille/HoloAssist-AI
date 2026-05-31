@@ -34,7 +34,7 @@ SCENE_XML = str(_SRC_DIR / "assets" / "mujoco" / "scene.xml")
 GRASP_DIST_M   = 0.05
 RELEASE_DIST_M = 0.08
 PHYSICS_STEPS  = 50
-HOME_JOINTS    = np.array([0.0, -np.pi / 2, 0.0, -np.pi / 2, 0.0, 0.0])
+HOME_JOINTS    = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 # 3 cm below TCP — approximately half-cube-height (cube is 4 cm tall)
 _HOLD_OFFSET   = np.array([0.0, 0.0, -0.03])
 _NUM_CUBES     = 4
