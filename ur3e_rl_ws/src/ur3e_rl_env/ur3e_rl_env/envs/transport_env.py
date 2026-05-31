@@ -123,6 +123,9 @@ class UR3eTransportEnv(gym.Env):
         return self.data.xpos[self._cube_body_ids[self._target_cube_idx]].astype(np.float32)
 
     def _get_obs(self, ee_pos: np.ndarray, cube_pos: np.ndarray) -> np.ndarray:
+        # Note: BIN_POSITION_Z=1.078 is 2mm below WORKSPACE_Z_MIN=1.08, so
+        # cube obs[4] (z) saturates at -1.0 in the final 2mm above the bin.
+        # obs[6] (dist_norm) still provides goal gradient in the success zone.
         dist_to_bin = float(np.linalg.norm(cube_pos - _BIN_POS))
         dist_norm   = float(np.clip(2.0 * dist_to_bin / _MAX_BIN_DIST - 1.0, -1.0, 1.0))
         return np.concatenate([

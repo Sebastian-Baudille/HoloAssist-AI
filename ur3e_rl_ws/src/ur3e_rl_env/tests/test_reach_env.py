@@ -54,14 +54,21 @@ def test_reward_decreases_when_moving_toward_cube(env):
     action_padded = np.array([action[0], action[1], action[2]], dtype=np.float32)
 
     rewards = []
-    current_obs = obs
     for _ in range(10):
-        current_obs, r, term, trunc, _ = env.step(action_padded)
+        _, r, term, trunc, _ = env.step(action_padded)
         rewards.append(r)
         if term or trunc:
             break
 
-    assert rewards[0] < 0.0
+    # Reward = -dist, so improvement means reward increases (less negative)
+    # After 10 steps toward cube, final reward should be better than initial
+    if len(rewards) >= 2:
+        assert rewards[-1] > rewards[0], (
+            f"Moving toward cube should improve reward: "
+            f"start={rewards[0]:.4f} end={rewards[-1]:.4f}"
+        )
+    else:
+        assert rewards[0] < 0.0  # episode ended early (success)
 
 
 def test_episode_terminates_at_max_steps(env):

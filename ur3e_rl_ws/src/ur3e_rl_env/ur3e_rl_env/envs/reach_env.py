@@ -63,7 +63,7 @@ def _norm_xyz(pos: np.ndarray) -> np.ndarray:
 class UR3eReachEnv(gym.Env):
     """Reach: move TCP to within GRASP_DIST_M of the nearest cube."""
 
-    metadata = {"render_modes": ["human"], "render_fps": 50}
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 50}
 
     def __init__(self, render_mode: str | None = None) -> None:
         super().__init__()
@@ -90,6 +90,9 @@ class UR3eReachEnv(gym.Env):
         self.step_count       = 0
         self.render_mode      = render_mode
         self._viewer          = None
+        self._renderer: mujoco.Renderer | None = None
+        if render_mode == "rgb_array":
+            self._renderer = mujoco.Renderer(self.model, height=480, width=640)
         if render_mode == "human":
             self._viewer = mujoco.viewer.launch_passive(self.model, self.data)
 
@@ -167,12 +170,14 @@ class UR3eReachEnv(gym.Env):
         return self._get_obs(ee_pos, cube_pos), {"target_cube": f"cube_{self._target_cube_idx}"}
 
     def close(self) -> None:
+        if self._renderer is not None:
+            self._renderer.close()
+            self._renderer = None
         if self._viewer is not None:
             self._viewer.close()
             self._viewer = None
 
     def render(self):
-        if self.render_mode == "rgb_array":
-            renderer = mujoco.Renderer(self.model, height=480, width=640)
-            renderer.update_scene(self.data)
-            return renderer.render()
+        if self.render_mode == "rgb_array" and self._renderer is not None:
+            self._renderer.update_scene(self.data)
+            return self._renderer.render()
