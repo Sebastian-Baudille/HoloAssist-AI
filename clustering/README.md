@@ -320,8 +320,9 @@ team on observation shape — the DBSCAN output defines the state vector fed to 
 ## What this is not
 
 - Not a deep learning pipeline. Pre-trained pose models (FoundationPose,
-  DOPE) and end-to-end visuomotor RL are documented in `architecture.md` as
-  future directions, not in scope here.
+  DOPE) and end-to-end visuomotor RL are out of scope here; the forward
+  Isaac Sim port ([ISAAC_SIM_PLAN.md](../ISAAC_SIM_PLAN.md)) is the place
+  for any future RL-side experiments.
 - Not a replacement for the team's RL work. This stack feeds it.
 - Not the final perception system. It is the proving ground for what the
   final system needs to do.
