@@ -15,10 +15,9 @@ from std_msgs.msg import Bool
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 from ur3e_rl_env.constants import (
-    BIN_POSITION_X,
-    BIN_POSITION_Y,
-    BIN_POSITION_Z,
-    OBSERVATION_SIZE_13D,
+    OBSERVATION_SIZE_PHASE_A,
+    UR3E_JOINT_LOWER_LIMITS_RAD,
+    UR3E_JOINT_UPPER_LIMITS_RAD,
     WORKSPACE_HEIGHT_M,
     WORKSPACE_X_MAX,
     WORKSPACE_X_MIN,
@@ -61,8 +60,10 @@ UR3E_JOINT_NAMES = (
     "wrist_3_joint",
 )
 
-OBSERVATION_SIZE = OBSERVATION_SIZE_13D
-BIN_POSITION = np.array([BIN_POSITION_X, BIN_POSITION_Y, BIN_POSITION_Z], dtype=np.float32)
+OBSERVATION_SIZE = OBSERVATION_SIZE_PHASE_A
+
+_JOINT_LOWER = np.array(UR3E_JOINT_LOWER_LIMITS_RAD, dtype=np.float32)
+_JOINT_UPPER = np.array(UR3E_JOINT_UPPER_LIMITS_RAD, dtype=np.float32)
 
 
 def pose_to_array(msg: PoseStamped) -> np.ndarray:
@@ -93,39 +94,35 @@ def _normalize_xyz(xyz: np.ndarray) -> np.ndarray:
     )
 
 
+def _normalize_joints(joint_positions: np.ndarray) -> np.ndarray:
+    span = np.maximum(_JOINT_UPPER - _JOINT_LOWER, 1e-6)
+    normalized = 2.0 * ((joint_positions - _JOINT_LOWER) / span) - 1.0
+    return np.clip(normalized, -1.0, 1.0).astype(np.float32)
+
+
 def build_observation(
     state: Mapping[str, Any],
     step_count: int = 0,
     max_episode_steps: int = 200,
 ) -> np.ndarray:
-    """Builds the normalized 13D PPO observation vector."""
+    """Builds the normalised 14D Phase-A PPO observation vector.
 
-    ee_position = np.asarray(state["end_effector_position"], dtype=np.float32).reshape(3)
-    object_position = np.asarray(state["object_position"], dtype=np.float32).reshape(3)
-    bin_position = np.asarray(
-        state.get("goal_position", BIN_POSITION),
-        dtype=np.float32,
-    ).reshape(3)
+    Layout: ee_xyz(3) + cube_xyz(3) + joint_positions(6) + ee_height(1) + timestep(1) = 14
+    """
+    ee_position     = np.asarray(state["end_effector_position"], dtype=np.float32).reshape(3)
+    object_position = np.asarray(state["object_position"],       dtype=np.float32).reshape(3)
+    joint_positions = np.asarray(state["joint_positions"],       dtype=np.float32).reshape(6)
 
-    grasped = 1.0 if float(state.get("grasped", 0.0)) > 0.5 else 0.0
-    gripper_state = 1.0 if float(state.get("gripper_state", 0.0)) > 0.5 else 0.0
     ee_height_norm = float(np.clip(float(ee_position[2]) / WORKSPACE_HEIGHT_M, -1.0, 1.0))
-    timestep_norm = float(
-        np.clip(float(step_count) / max(float(max_episode_steps), 1.0), 0.0, 1.0)
-    )
+    timestep_norm  = float(np.clip(float(step_count) / max(float(max_episode_steps), 1.0), 0.0, 1.0))
 
-    observation = np.array(
-        [
-            *_normalize_xyz(ee_position),
-            *_normalize_xyz(object_position),
-            *_normalize_xyz(bin_position),
-            grasped,
-            gripper_state,
-            ee_height_norm,
-            timestep_norm,
-        ],
-        dtype=np.float32,
-    )
+    observation = np.concatenate([
+        _normalize_xyz(ee_position),        # [0:3]
+        _normalize_xyz(object_position),    # [3:6]
+        _normalize_joints(joint_positions), # [6:12]
+        [ee_height_norm, timestep_norm],    # [12:14]
+    ]).astype(np.float32)
+
     observation = np.clip(observation, -1.0, 1.0).astype(np.float32)
 
     if observation.shape != (OBSERVATION_SIZE,):

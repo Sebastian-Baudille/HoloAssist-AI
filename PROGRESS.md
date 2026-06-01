@@ -1,54 +1,131 @@
-# HoloAssist-AI Progress
+# HoloAssist-AI — Progress
 
-## Completed
-- [x] Bug fixes (Section 0)
-- [x] Gazebo bridge topics (Section 1)
-- [x] 13D observation space (Section 2)
-- [x] Target-position actions (Section 3)
-- [x] Gripper integration (Section 4)
-- [x] Pick-place reward (Section 5)
-- [x] Point cloud pipeline (Section 6)
-- [ ] Training run (Section 7)
-- [ ] Sim-to-real transfer (Section 8)
+_Last updated: 2026-05-28_
+
+Current in-flight work. For the system design, see [ARCHITECTURE.md](ARCHITECTURE.md).
+For commands, see [LAUNCH.md](LAUNCH.md).
+
+---
+
+## Stage checklist
+
+- [x] Section 0 — bug fixes (reward arg mismatch, shared action-scale constants, policy scaling)
+- [x] Section 1 — Gazebo bridge topics (dynamic pose bridge for `/cube_0..3/pose`)
+- [x] Section 2 — 13-D normalised observation space
+- [x] Section 3 — target-position joint actions (+0.3 s trajectory interpolation)
+- [x] Section 4 — gripper integration (7-D action space, grasped signal)
+- [x] Section 5 — pick / place shaped reward + `cube_in_bin` info path
+- [x] Section 6 — point cloud cube detector node (Open3D pipeline)
+- [ ] Section 7 — long-run PPO training
+- [ ] Section 8 — sim-to-real transfer
+
+---
 
 ## Current section
-Section 7 — Training run
+
+**Section 7 — Training run.** Single-env and parallel-startup paths re-validated after
+the safety slew-limit fix. Next step: long uninterrupted parallel run to collect 50k,
+200k, 500k checkpoints with reward / success metrics in this doc.
+
+---
 
 ## Last known working state
-- Sections 0–6 are complete and built (`colcon build --packages-select ur3e_rl_env ur3e_policy_controller ur3e_safety_layer` passed).
-- Section 7 in progress:
-- Added per-step target slew limiting in `SafetyChecker.make_safe_target(...)` using shared `JOINT_DELTA_ACTION_SCALE_RAD=0.24` while keeping absolute target-position actions.
-- Updated env/policy call sites to pass current joint positions into safety clamping before sending trajectories.
-- `smoke_test_joint_command` passes (joint 0 moves by +0.1 rad and joint states reflect motion).
-- Single-env PPO sanity run reaches 200+ steps post-fix with no NaN/crash and no trajectory tolerance-violation logs.
-- Parallel PPO startup (`train_ppo_parallel`) was validated: 4 workers launch, PPO initializes, then run was manually stopped.
-- URGENT cube-pose bridge fix applied in `gazebo_pose_bridge.py`:
-- Added explicit live mapping from `/world/ur3e_pick_place_world/dynamic_pose/info` TF child frames `cube_1..cube_4` to published `/cube_0..3/pose`.
-- Reset callback retained as fallback only (`/gazebo_pose_bridge/cube_reset_pose` updates `cube_0` fallback pose).
-- Rebuilt: `colcon build --packages-select ur3e_gazebo_sim --symlink-install`.
-- Verification (ROS_DOMAIN_ID=30): `/cube_0/pose` position values changed across messages when cube_1 was moved with Gazebo `set_pose` (observed values included baseline `0.009,-0.4049,1.109999...` and moved `0.2,-0.35,1.109999...`).
 
-## Known issues
-- `PROGRESS.md` did not exist previously; created in this session.
-- `https://github.com/DavidPL1/onrobot_ros2.git` could not be cloned here (GitHub auth prompt / inaccessible). Suggested fallback `shadow-robot/sr_ur_arm` is ROS1/catkin-based and not compatible with this ROS 2 workspace, so it was removed after validation.
-- `pointcloud_cube_detector` uses `open3d`; installed with `python3 -m pip install open3d --break-system-packages`. This introduced a SciPy warning about NumPy version compatibility in this environment, but node startup works.
-- `train_ppo_parallel` does not support `--help`; invoking it starts training immediately.
-- Parallel Gazebo launches can fail if stale `ros2 launch ur3e_gazebo_sim ...` / `gz sim` processes are left running. Clean old processes before each new parallel run.
+- Sections 0–6 complete and built:
+  `colcon build --packages-select ur3e_rl_env ur3e_policy_controller ur3e_safety_layer` passes.
+- Section 7 stabilisation in place:
+  - `SafetyChecker.make_safe_target(...)` applies absolute joint-limit clamp **plus**
+    per-step slew limit (`max_delta_rad = JOINT_DELTA_ACTION_SCALE_RAD = 0.24`) relative
+    to current joints.
+  - Env and runtime policy now pass current joint positions into safety targeting.
+  - `smoke_test_joint_command` passes (joint 0 moves by +0.1 rad and joint states reflect motion).
+  - Single-env PPO sanity run stable for 200+ steps post-fix; no NaN, no trajectory
+    tolerance-violation logs.
+  - Parallel PPO startup validated (4 workers launched, PPO initialised) then manually stopped.
+- URGENT cube-pose bridge fix landed in `gazebo_pose_bridge.py`:
+  - Explicit live mapping from `/world/ur3e_pick_place_world/dynamic_pose/info` TF child
+    frames `cube_1..cube_4` to published `/cube_0..3/pose`.
+  - Reset callback retained as fallback only.
+  - Verified on `ROS_DOMAIN_ID=30`: `/cube_0/pose` reflects live cube_1 movement.
+
+---
 
 ## Training results
-- Single-env sanity run (pre-slew-limit): 400 steps reached without NaN/crash before manual stop.
-- Snapshot: 200 steps reward ~ -106.1, 400 steps reward ~ -100.2 (success 0/10).
-- Single-env sanity run (post-slew-limit): callback printed at 100 and 200 steps with stable execution.
-- Snapshot: 200 steps reward ~ -78.7 (success 0/10).
-- Parallel run: initialization confirmed (`Using cpu device`, `Logging to ./tb_logs/PPO_16`, `Training PPO with 4 Gazebo envs...`) then manually stopped before a long checkpoint.
 
-## cube_perception package
-- [x] Package created and built
-- [x] TF transform verified (base_link → camera_link)
+| Run | Steps | `ep_rew_mean` | Success | Notes |
+|---|---|---|---|---|
+| Single-env (pre-slew-limit) | 200 | -106.1 | 0/10 | sanity run |
+| Single-env (pre-slew-limit) | 400 | -100.2 | 0/10 | sanity run |
+| Single-env (post-slew-limit) | 200 | -78.7 | 0/10 | reward trend improved with slew clamp |
+| Parallel (4 envs) | — | — | — | initialisation confirmed, run manually stopped before checkpoint |
+| Parallel (4 envs) | 50k | — | — | **pending** |
+| Parallel (4 envs) | 200k | — | — | **pending** |
+| Parallel (4 envs) | 500k | — | — | **pending** |
+
+Logs at `ur3e_rl_ws/tb_logs/`. Open with `tensorboard --logdir ur3e_rl_ws/tb_logs`.
+
+---
+
+## `cube_perception` package
+
+Live D435i DBSCAN perception with temporal tracking + occlusion hold. Package created
+in a separate session.
+
+- [x] Package created and built (`colcon build --packages-select cube_perception` passes)
+- [x] TF transform verified (`base_link → camera_link` via easy_handeye2 calibration)
 - [x] Node launches without error
-- [ ] Topics publishing at ~10Hz
-- [ ] Single cube detected correctly
-- [ ] Occlusion test passed (pose held during hand occlusion)
-- [ ] RViz markers showing (green=confident, yellow=partial, red=low)
+- [x] Detector pipeline wired: workspace crop → RANSAC plane removal → DBSCAN →
+      centroid + confidence
+- [x] Temporal tracker with occlusion hold + confidence decay
+- [x] Publishes `/cube_0..3/pose`, `/cube_0..3/confidence`, `/cube_detections/debug`,
+      `/cube_detections/markers`
+- [ ] 10 Hz publish-rate confirmation with live D435i stream
+- [ ] Single-cube detection accuracy and occlusion tests
+- [ ] RViz visual confirmation (green = confident, yellow = partial, red = low)
 - [ ] All 4 cubes detected simultaneously
-- [ ] Benchmark run — std deviation results: ___mm
+- [ ] Benchmark run — std deviation result
+
+Run commands: see "Real D435i — live perception runbook" in [LAUNCH.md](LAUNCH.md).
+
+---
+
+## Next steps
+
+1. **Section 7 — single-env full run.** Let the post-fix single-env training complete
+   10k steps unattended:
+   ```bash
+   UR3E_RL_TOTAL_TIMESTEPS=10000 ros2 run ur3e_rl_env train_ppo
+   ```
+2. **Section 7 — full parallel run.** Long parallel run with checkpoint capture at 50k,
+   200k, 500k. Record `ep_rew_mean` and success rate in the table above:
+   ```bash
+   UR3E_RL_TOTAL_TIMESTEPS=500000 \
+   UR3E_RL_NUM_ENVS=4 \
+   UR3E_RL_PPO_N_STEPS=2048 \
+   UR3E_RL_PPO_BATCH_SIZE=256 \
+   ros2 run ur3e_rl_env train_ppo_parallel
+   ```
+3. **Section 8 — sim-to-real checks.** Real hardware topics, RealSense stream, bounds
+   calibration, policy deploy. Use [LAUNCH.md](LAUNCH.md) → "Real D435i" + "RL evaluation
+   and deployment".
+4. **Forward — Isaac Sim port.** See [ISAAC_SIM_PLAN.md](ISAAC_SIM_PLAN.md). Independent
+   track that should unlock 100×–1000× training throughput once landed.
+
+---
+
+## Known issues / gotchas
+
+- `train_ppo_parallel` does not support `--help` — invoking it starts training immediately.
+  Do not use it as a dry-run.
+- Stale Gazebo processes break parallel launches. Clear before each run:
+  `pkill -f "ign|gz|train_ppo_parallel" || true`.
+- `open3d` was installed system-wide for the perception node via
+  `python3 -m pip install open3d --break-system-packages`. This introduces a SciPy/NumPy
+  compatibility warning at runtime, but the detector node starts.
+- `https://github.com/DavidPL1/onrobot_ros2.git` was inaccessible during initial setup.
+  The suggested fallback `shadow-robot/sr_ur_arm` is ROS 1 / catkin and was removed after
+  verification — not compatible with this ROS 2 workspace.
+- Training speed on a developer laptop is slow (~3.2 steps/s during single-env sanity run).
+  Use parallel training for any serious run; the Isaac Sim port is the long-term fix.
+- `cube_perception` calibration path is `~/.ros2/easy_handeye2/calibrations/holoassist_calibration.calib`.
+  Missing file → launch falls back to identity transform (camera at world origin).

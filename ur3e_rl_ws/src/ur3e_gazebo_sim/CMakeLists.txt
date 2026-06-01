@@ -12,7 +12,6 @@ install(
   PROGRAMS
     scripts/gazebo_pose_bridge.py
     scripts/pointcloud_cube_detector
-    scripts/pointcloud_cube_detector.py
     scripts/send_home_trajectory.py
     scripts/setup_controllers.py
   DESTINATION lib/${PROJECT_NAME}
