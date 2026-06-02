@@ -12,6 +12,9 @@ install(
   PROGRAMS
     scripts/render_world.py
     scripts/save_pointcloud.py
+    scripts/scene_controller.py
+    scripts/dataset_capture.py
+    scripts/randomize_scene.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

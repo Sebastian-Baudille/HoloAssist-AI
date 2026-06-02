@@ -70,7 +70,11 @@ cubes:
 # ---------------------------------------------------------------------
 camera:
   name: d435i
-  pose: [-0.6, 0.0, 0.85, 0.0, 0.5281, 0.0]   # x y z R P Y
+  pose: [0.0, 0.0, 1.2, 0.0, 1.5708, 0.0]   # x y z R P Y
+  # True overhead: camera directly above table centre, looking straight down.
+  # pitch=π/2 (1.5708 rad) points camera +X axis downward (-Z world).
+  # Eliminates oblique-angle depth artefacts (ghost stripe, far-side Z bias)
+  # that affected the 59° camera. All cubes at ~0.66 m depth, uniform accuracy.
   topic: /camera           # ROS topics: /camera/image, /depth_image, /points, /camera_info
   update_rate: 30.0        # Hz
   width: 848
@@ -93,7 +97,7 @@ capture:
   # Short label for this scene variant — appears first in the filename.
   # Change this when you rearrange cubes, move the camera, etc.
   # Example values: "default", "spread", "clustered", "cam_top", "occluded"
-  description: "default"
+  description: "topdown"
   # If true, save_pointcloud.py exits after the first frame is written.
   one_shot: true
   # Voxel-grid downsample before saving (metres). 0 = no filter.

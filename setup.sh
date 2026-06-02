@@ -12,7 +12,7 @@
 #   ./setup.sh --ros-only # only build the ROS workspace
 #   ./setup.sh --py-only  # only create the Python 3.12 clustering venv
 
-set -euo pipefail
+set -eo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROS_WS="$REPO_ROOT/ros2_ws"
