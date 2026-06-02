@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clustering — HoloAssist-AI</title>
+    <link rel="stylesheet" href="../shared.css">
+</head>
+<body>
+
+<nav class="nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-back">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            Back
+        </a>
+        <span class="nav-brand">Holo<span>Assist-AI</span> &mdash; Docs</span>
+    </div>
+</nav>
+
+<section class="hero" id="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+        <p class="hero-eyebrow">HoloAssist-AI &mdash; Clustering</p>
+        <div class="hero-line"></div>
+        <h1 class="hero-title">DBSCAN<br><span class="thin">Clustering</span></h1>
+        <p class="hero-desc">Density-based point cloud segmentation, centroid extraction, and Polyscope visualisation.</p>
+        <div class="hero-meta">
+            <div><span class="hero-meta-val">1.6cm</span>Accuracy</div>
+            <div><span class="hero-meta-val">100%</span>Recall</div>
+            <div><span class="hero-meta-val">60</span>Scenes</div>
+        </div>
+    </div>
+</section>
+
+<section class="section" id="pipeline">
+    <div class="section-in">
+        <p class="section-lbl">Pipeline</p>
+        <div class="ph-line"></div>
+        <h2>Clustering Pipeline</h2>
+        <p>The clustering pipeline transforms raw point clouds into 3D cube centroids suitable for the RL observation vector.</p>
+
+        <div class="pipe-grid">
+            <div class="pipe-step">
+                <div class="pipe-num">01</div>
+                <h4>Transform</h4>
+                <p>Camera body frame to world frame using the static TF chain.</p>
+                <div class="pipe-arrow">&rsaquo;</div>
+            </div>
+            <div class="pipe-step">
+                <div class="pipe-num">02</div>
+                <h4>Height Crop</h4>
+                <p>Z-crop above table surface: <code>z_min = table_top + 0.015</code>, <code>z_max = table_top + cube_height + 0.01</code></p>
+                <div class="pipe-arrow">&rsaquo;</div>
+            </div>
+            <div class="pipe-step">
+                <div class="pipe-num">03</div>
+                <h4>DBSCAN</h4>
+                <p>Density-based clustering on XYZ only. No prior knowledge of cube count needed. <code>color_weight = 0.0</code></p>
+                <div class="pipe-arrow">&rsaquo;</div>
+            </div>
+            <div class="pipe-step">
+                <div class="pipe-num">04</div>
+                <h4>Centroids</h4>
+                <p>Per-cluster mean yields world-frame (x, y, z) centroids fed to the PPO state vector.</p>
+            </div>
+        </div>
+
+        <h3>Key Parameters</h3>
+        <table class="data-table">
+            <thead><tr><th>Parameter</th><th>Value</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td>z_min</td><td>table_top + 0.015</td><td>3&times; sensor noise margin</td></tr>
+                <tr><td>z_max</td><td>table_top + cube_height + 0.01</td><td>Upper crop bound</td></tr>
+                <tr><td>color_weight</td><td>0.0</td><td>XYZ-only clustering</td></tr>
+                <tr><td>centroid</td><td>cluster_pts.mean(axis=0)</td><td>World-frame mean per cluster</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Validation Results</h3>
+        <p>Validated across <strong>60 scenes</strong> with varying cube configurations:</p>
+        <ul>
+            <li><strong>Centroid error:</strong> ~1.6 cm vs ground truth (within sensor noise &sigma; = 0.005 m)</li>
+            <li><strong>Cube recall:</strong> 100% &mdash; all cubes detected in every scene</li>
+            <li><strong>Output shape:</strong> <code>(k*3,)</code> = <code>(12,)</code> for 4 cubes</li>
+        </ul>
+
+        <h3>Visualisation</h3>
+        <p>Polyscope renders the cropped point cloud with cluster colours and centroid markers. PCA axes are shown for orientation (visualisation only).</p>
+        <div class="code-block"><span class="cm"># Run clustering with Polyscope viewer</span>
+source clustering/.venv/bin/activate
+python clustering/detect_cubes.py</div>
+    </div>
+</section>
+
+<footer class="doc-footer">
+    <div class="doc-footer-in">
+        <div><h3>HoloAssist-AI</h3><p>UTS 41118 AI in Robotics, 2026</p></div>
+        <a href="../index.html" class="doc-footer-back">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            Back to Main Site
+        </a>
+    </div>
+</footer>
+
+<script src="../shared.js"></script>
+<script>
+buildDock([
+    { label:'Home', href:'../index.html', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13V10.5"/></svg>' },
+    { label:'Pipeline', href:'#pipeline', id:'pipeline', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="7" r="3"/><circle cx="7" cy="17" r="3"/><circle cx="17" cy="17" r="3"/></svg>' }
+]);
+</script>
+</body>
+</html>
