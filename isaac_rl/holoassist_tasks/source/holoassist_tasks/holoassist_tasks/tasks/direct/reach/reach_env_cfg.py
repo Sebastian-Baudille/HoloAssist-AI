@@ -31,6 +31,7 @@ module — the cfg holds the USD path + actuator groups + default joint state,
 the env cfg points at it.
 """
 
+import math
 from pathlib import Path
 
 import isaaclab.sim as sim_utils
@@ -191,13 +192,22 @@ class HoloassistReachEnvCfg(DirectRLEnvCfg):
     action_scale_rad: float = 0.08
 
     # ---------------------------------------------------------------- 5. home pose
-    # UR3e zero pose (vertical "candle" — all joints at 0 rad, arm straight up).
-    # EE starts at z ≈ 1.55 m (≈ 0.55 m above the robot base / table top),
-    # well above the target spawn height (z ≈ 1.11). Policy descends to reach.
-    # Documented here for reference; the actual init is set by UR_ONROBOT_CFG
-    # above (which Articulation reads at reset time as default_joint_pos).
+    # READY pose (Guy's UR3e ready posture, used in his ROS Phase A training).
+    # shoulder_lift=-π/2 lifts the upper arm; wrist_1=-π/2 hangs the wrist
+    # downward. EE sits roughly 30-40 cm in front of and below the robot
+    # base — much closer to the table-level target than the previous
+    # vertical-zero pose, so the policy doesn't waste the first ~50
+    # steps just descending. Also matches the IK reference family
+    # (kinematics._approach_seed defaults), so the dense_reach_v3_ik IK
+    # tracking term has a sensible gradient from step 0.
+    #
+    # This field IS used (read by _reset_idx in reach_env.py and written
+    # to the 6 arm joints, overriding the all-zeros default in
+    # UR_ONROBOT_CFG). Gripper joints continue to come from the asset
+    # default (closed).
+    #
     # Order: shoulder_pan, shoulder_lift, elbow, wrist_1, wrist_2, wrist_3
-    home_joint_pos: list[float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    home_joint_pos: list[float] = [0.0, -math.pi / 2, 0.0, -math.pi / 2, 0.0, 0.0]
 
     # ---------------------------------------------------------------- 6. target randomisation
     # Lifted from legacy CUBE_X/Y_RANGE (env vars UR3E_RL_CUBE_X_MIN/MAX, etc.).
@@ -221,7 +231,12 @@ class HoloassistReachEnvCfg(DirectRLEnvCfg):
     #     smoke test had mean episode length ~10 with min_ee_z=0.5)
     #   - For sim-to-real, the real-robot SafetyChecker enforces its own height
     #     guard at deployment time (out of scope for the Isaac env)
-    min_ee_clearance_below_base_m: float = 0.9
+    # Lowered from 0.9 to 0.5 with the v3 ready home pose: the bent ready
+    # config starts EE closer to the table than vertical zero, so the
+    # original generous 0.9 m margin would let the EE legitimately reach
+    # below the termination plane during normal exploration. 0.5 m
+    # (effective min EE z = 0.5) is still well below any valid reach.
+    min_ee_clearance_below_base_m: float = 0.5
 
     # ---------------------------------------------------------------- 8. reward scales
     # Kept at legacy values where applicable (see ur3e_rl_ws/.../reward.py).
@@ -286,6 +301,50 @@ class HoloassistReachEnvCfg(DirectRLEnvCfg):
     # 0 and 1 of each episode (reset clears it), so jerk is garbage for those
     # two steps but the spurious contribution is bounded.
     rew_scale_jerk_v2: float = -0.02            # per sum(jerk^2) over the 6 arm-joint action dims
+
+    # ---- v3-only IK-guided + soft joint-limit extras (used by rewards/dense_reach_v3_ik.py) ----
+    # V3 replaces v1/v2's smoothness-by-penalty approach with a soft IK
+    # reference signal: an IK solver computes a sensible elbow-up
+    # top-down-approach pose per target, and the reward pulls the
+    # policy's joint configuration toward it. Idea + tuning ported (with
+    # adaptations) from Guy's ROS reward.py:
+    #   ur3e_rl_ws/src/ur3e_rl_env/ur3e_rl_env/reward.py
+    #
+    # All fields below are ignored by dense_reach.py / dense_reach_v1.py
+    # / dense_reach_v2.py — only dense_reach_v3_ik.py reads them.
+
+    # IK reference tracking weight: pulls the 6 arm joints toward the
+    # IK solution for the current target. env._ik_reference is the
+    # cached IK joints (filled in _reset_idx by nearest-neighbour lookup
+    # against a precomputed grid). Penalty is L2 distance in joint space.
+    rew_scale_ik_track_v3: float = -0.10        # per ||arm_joints - ik_ref||
+
+    # Elbow near-straight (singularity / fold avoidance). Penalty ramps
+    # linearly from 0 at |elbow| = threshold to rew_scale at elbow = 0.
+    # Pushes the policy toward a healthy bent-elbow configuration.
+    rew_scale_elbow_singular_v3: float = -0.20
+    elbow_singular_threshold_v3: float = 0.40   # rad; below this the elbow is "near-straight"
+
+    # Shoulder-lift soft safety. Penalty ramps from 0 when shoulder_lift
+    # is below threshold (default -0.5 rad) to scale * (shoulder_lift -
+    # threshold) above. Provides a gradient warning before any hard
+    # joint limit (we keep USD's looser hard limits and rely on this
+    # soft signal for guidance).
+    rew_scale_shoulder_soft_v3: float = -2.0
+    shoulder_soft_threshold_v3: float = -0.5    # rad; penalty starts here
+
+    # Action rate (adapted from v1/v2). Mild scale since the IK
+    # reference does most of the smoothness work. 2x v1's -0.01,
+    # 40% of v2's over-aggressive -0.05.
+    rew_scale_action_rate_v3: float = -0.02     # per sum(action_delta^2)
+
+    # IK precompute grid resolution. The env builds a grid_resolution x
+    # grid_resolution grid over (target_pos_range_x, target_pos_range_y)
+    # at env init, runs scipy IK for each cell, caches the joints.
+    # _reset_idx does nearest-neighbour lookup. At 20x20 = 400 IK calls
+    # at ~5ms each, env init takes ~2s. Larger grid = better reference
+    # accuracy, slower init.
+    ik_grid_resolution: int = 20
 
     # ---------------------------------------------------------------- 9. scene element toggles
     # All visual / non-physics scene additions can be disabled to speed up

@@ -17,12 +17,15 @@ below (or subclass this env and override the delegator method).
 
 from __future__ import annotations
 
+import numpy as np
 import torch
 
 import isaaclab.sim as sim_utils
 from isaaclab.assets import Articulation, RigidObject, RigidObjectCfg
 from isaaclab.envs import DirectRLEnv
 from isaaclab.markers import VisualizationMarkers, VisualizationMarkersCfg
+
+from holoassist_tasks.common import kinematics
 
 from .actions import joint_delta as action_strategy
 from .observations import ground_truth_12d as obs_strategy
@@ -95,6 +98,17 @@ class HoloassistReachEnv(DirectRLEnv):
         # so the jerk term is undefined for those two steps — bounded spurious
         # contribution that washes out across the rollout.
         self.prev_prev_actions = torch.zeros((self.num_envs, self.cfg.action_space), device=self.device)
+
+        # Per-env IK reference joints — written in _reset_idx via nearest-
+        # neighbour lookup against the precomputed grid built below.
+        # Read by dense_reach_v3_ik for the IK tracking reward term.
+        # Allocated for all task variants; v0/v1/v2 ignore it.
+        self._ik_reference = torch.zeros((self.num_envs, 6), device=self.device)
+
+        # Precompute the IK grid once at env init (see _build_ik_grid).
+        # ~2 sec for default 20x20=400 IK calls; trivial cost amortised
+        # over training. Populates self._ik_grid_xy and self._ik_grid_joints.
+        self._build_ik_grid()
 
         # Cached min-EE-z scalar — used in _get_dones every step.
         self._min_ee_z = self.cfg.robot_base_height_m - self.cfg.min_ee_clearance_below_base_m
@@ -172,6 +186,69 @@ class HoloassistReachEnv(DirectRLEnv):
         else:
             self._target_marker = None
 
+    def _build_ik_grid(self) -> None:
+        """Precompute IK solutions over the target spawn grid.
+
+        Called once from __init__. Walks a `cfg.ik_grid_resolution`-square
+        grid over (target_pos_range_x, target_pos_range_y) at
+        target_pos_z, runs scipy IK for each grid point via
+        holoassist_tasks.common.kinematics.compute_ik_reference, and
+        caches the joint solutions + grid positions as device tensors.
+
+        Trade-off: ~1-2 cm of IK reference error (from nearest-neighbour
+        rounding) vs running fresh scipy IK per reset which would 20-30x
+        training time at 4096 envs. The IK term is a soft pull, not a
+        target — that error is well within the noise it tolerates.
+
+        Populates:
+            self._ik_grid_xy     : (n_grid, 2) float tensor on device —
+                                    local-frame XY coordinates
+            self._ik_grid_joints : (n_grid, 6) float tensor on device —
+                                    IK joint solutions for each grid cell
+        """
+        n = self.cfg.ik_grid_resolution
+        x_min, x_max = self.cfg.target_pos_range_x
+        y_min, y_max = self.cfg.target_pos_range_y
+        z = self.cfg.target_pos_z
+
+        xs = torch.linspace(x_min, x_max, n)
+        ys = torch.linspace(y_min, y_max, n)
+        grid_xy = torch.stack(torch.meshgrid(xs, ys, indexing="ij"), dim=-1).reshape(-1, 2)
+
+        print(
+            f"[reach_env] Precomputing {n}x{n}={n*n} IK solutions over reach spawn zone...",
+            flush=True,
+        )
+
+        ik_joints_list = []
+        n_failed = 0
+        for i in range(grid_xy.shape[0]):
+            target_world = np.array([float(grid_xy[i, 0]), float(grid_xy[i, 1]), z])
+            ok, joints, fk_err = kinematics.compute_ik_reference(target_world)
+            if not ok:
+                n_failed += 1
+                print(
+                    f"  WARN: IK failed at ({target_world[0]:+.2f}, {target_world[1]:+.2f}), "
+                    f"err={fk_err*100:.1f}cm; using approach seed as fallback",
+                    flush=True,
+                )
+                joints = kinematics._approach_seed(target_world)
+            ik_joints_list.append(joints)
+
+        self._ik_grid_xy = grid_xy.to(self.device)
+        self._ik_grid_joints = torch.tensor(
+            np.array(ik_joints_list), dtype=torch.float32, device=self.device
+        )
+
+        if n_failed > 0:
+            print(
+                f"[reach_env] IK grid built with {n_failed}/{n*n} fallback seeds. "
+                "Consider tightening target_pos_range_* if many cells are unreachable.",
+                flush=True,
+            )
+        else:
+            print(f"[reach_env] IK grid built: {n*n} solutions, all converged", flush=True)
+
     def _reset_idx(self, env_ids: torch.Tensor | None) -> None:
         """Reset the given envs: joints to home pose, target to a new random pos."""
         if env_ids is None:
@@ -180,16 +257,20 @@ class HoloassistReachEnv(DirectRLEnv):
 
         n = len(env_ids)
 
-        # Reset robot joints to default (UR3e parked + RG2 closed)
-        default_joint_pos = self._robot.data.default_joint_pos[env_ids]
-        default_joint_vel = self._robot.data.default_joint_vel[env_ids]
-        self._robot.write_joint_state_to_sim(default_joint_pos, default_joint_vel, env_ids=env_ids)
+        # Reset robot joints. Arm goes to cfg.home_joint_pos (the v3+
+        # ready pose: [0, -π/2, 0, -π/2, 0, 0]); gripper joints stay at
+        # the articulation default (closed; see UR_ONROBOT_CFG.init_state).
+        joint_pos = self._robot.data.default_joint_pos[env_ids].clone()
+        home_arm = torch.tensor(self.cfg.home_joint_pos, device=self.device, dtype=joint_pos.dtype)
+        joint_pos[:, self._arm_joint_ids] = home_arm.unsqueeze(0).expand(n, -1)
+        joint_vel = self._robot.data.default_joint_vel[env_ids]
+        self._robot.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
         # Seed drive targets so drives hold the pose (legacy bug: targets default
         # to 0 which would drive the arm horizontal — see robot_test_v0.py)
-        self._robot.set_joint_position_target(default_joint_pos, env_ids=env_ids)
+        self._robot.set_joint_position_target(joint_pos, env_ids=env_ids)
 
         # Seed our cached arm-joint target so the first _apply_action holds home
-        self._joint_pos_target[env_ids] = default_joint_pos[:, self._arm_joint_ids]
+        self._joint_pos_target[env_ids] = joint_pos[:, self._arm_joint_ids]
 
         # Zero per-env action caches on reset so the first step of a new
         # episode doesn't see a stale "previous action" left over from the
@@ -218,6 +299,16 @@ class HoloassistReachEnv(DirectRLEnv):
         # with spacing cfg.scene.env_spacing — env_origins captures the offsets)
         env_origins = self.scene.env_origins[env_ids]  # (n, 3)
         self._target_pos[env_ids] = local_target + env_origins
+
+        # Look up IK reference for each just-reset env by nearest-
+        # neighbour against the precomputed grid (in local frame).
+        # local_target is already in local frame (env_origin not yet
+        # added), which matches the frame the grid was built in.
+        # Read by dense_reach_v3_ik for the IK tracking reward term.
+        local_target_xy = local_target[:, :2]                                  # (n, 2)
+        dist_to_grid = torch.cdist(local_target_xy, self._ik_grid_xy)          # (n, n_grid)
+        nearest_idx = dist_to_grid.argmin(dim=1)                               # (n,)
+        self._ik_reference[env_ids] = self._ik_grid_joints[nearest_idx]
 
         # Update marker visuals (skip if disabled in cfg)
         if self._target_marker is not None:
