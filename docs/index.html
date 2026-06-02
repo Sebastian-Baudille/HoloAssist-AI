@@ -130,8 +130,8 @@ python clustering/detect_cubes.py</div>
         <h3>Perception &amp; clustering</h3>
         <ul class="issues">
             <li>
-                <div class="issue-ttl">Regenerate DBSCAN dataset at 2.0&times; cube spacing</div>
-                <div class="issue-body">The 82% exact-count rate is limited by close-cube merging at 1.5&times; spacing. The fix is committed to <code>scene_controller.py</code>; just needs a fresh 60-scene capture run (~1 min). Expected to push exact-count above 90%. See <a href="clustering.html#dataset" style="color:var(--blue-light)">clustering.html &rarr; Dataset</a>.</div>
+                <div class="issue-ttl">Add validation graphs to the clustering pipeline &#x26A0;</div>
+                <div class="issue-body">Validation was done numerically via <code>verify_detection.py</code> (Hungarian matching, 60 scenes, results in <code>accuracy_report.json</code>). The final validated numbers are: 1.63 cm mean error, 100% exact count, 100% recall (185/185 cubes) at 2.0&times; cube spacing. No plots exist &mdash; no matplotlib histogram of per-scene errors, no error-vs-cube-count breakdown chart, no confusion matrix. Adding these to the clustering README and to the site would make the validation claim much more credible for the report. See <a href="clustering.html#dataset" style="color:var(--blue-light)">clustering.html &rarr; Dataset</a>.</div>
             </li>
             <li>
                 <div class="issue-ttl">Validate DBSCAN on real D435i hardware</div>

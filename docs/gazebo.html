@@ -22,7 +22,7 @@
     <div class="hero-bg"></div>
     <div class="hero-grid"></div>
     <div class="hero-overlay"></div>
-    <img class="hero-photo" src="../screenshots/visualisation.gif" alt="">
+    <img class="hero-photo" src="../screenshots/gazebo.gif" alt="">
     <div class="hero-content">
         <p class="hero-eyebrow">HoloAssist-AI &mdash; Simulation &mdash; Ollie Lau</p>
         <div class="hero-line"></div>
@@ -75,8 +75,12 @@
         </table>
 
         <div class="photo-row">
-            <div class="photo-slot"><img src="../screenshots/visualisation.png" alt="RViz + Gazebo dual view"></div>
-            <div class="photo-slot"><img src="../screenshots/ollieteleop.png" alt="Gazebo teleoperation demo"></div>
+            <div class="photo-slot"><img src="../screenshots/gazebo.gif" alt="Gazebo simulation animation"></div>
+            <div class="photo-slot"><img src="../screenshots/gazeborvizformoveit.jpg" alt="RViz view for MoveIt integration"></div>
+        </div>
+        <div class="photo-row">
+            <div class="photo-slot"><img src="../screenshots/gazeboclassicbrokenworld.png" alt="Gazebo Classic broken world debug screenshot"></div>
+            <div class="photo-slot"><img src="../screenshots/gazeboignitionbrokenworld.png" alt="Gazebo Ignition broken world debug screenshot"></div>
         </div>
     </div>
 </section>
@@ -290,6 +294,11 @@ cropped = world_points[world_points[:, 2] > table_top_z + 0.015]</div>
 
         <h3>5 &mdash; Two static TFs required</h3>
         <p>An early version only published one static TF (<code>map &rarr; camera_link</code>). The point cloud&rsquo;s <code>frame_id</code> was <code>d435i/d435i_link/rgbd</code> (the Ignition-scoped name), which had no TF chain to <code>map</code>. RViz showed no point cloud, and transformation in Python had to be done manually. Adding a second TF (<code>camera_link &rarr; d435i/d435i_link/rgbd</code>, identity) fixed both RViz and the clustering pipeline.</p>
+
+        <div class="photo-row">
+            <div class="photo-slot"><img src="../screenshots/gazebobrokengripper.jpg" alt="Gazebo broken gripper debug state"></div>
+            <div class="photo-slot"><img src="../screenshots/gazeboclassicfailure" alt="Gazebo Classic failure animation"></div>
+        </div>
     </div>
 </section>
 

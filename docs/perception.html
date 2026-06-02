@@ -22,7 +22,7 @@
     <div class="hero-bg"></div>
     <div class="hero-grid"></div>
     <div class="hero-overlay"></div>
-    <img class="hero-photo" src="../screenshots/perception.png" alt="">
+    <img class="hero-photo" src="../screenshots/rawpointcloudimage.png" alt="">
     <div class="hero-content">
         <p class="hero-eyebrow">HoloAssist-AI &mdash; Perception</p>
         <div class="hero-line"></div>
@@ -47,6 +47,11 @@
         <p>Instead we built a full point cloud processing pipeline in Python: statistical outlier removal, height cropping, density-based clustering, and centroid extraction. Every step is code we wrote and tuned. The only external dependency is Open3D for point cloud I/O &mdash; the clustering logic itself is our own DBSCAN implementation backed by scikit-learn.</p>
         <div class="callout callout-note">
             <strong>Continuity with the base project:</strong> We kept the same <em>calibration approach</em>. The eye-to-hand calibration system Nic built for HoloAssist (Park solver, OpenCV calibrateHandEye) established the camera&rarr;robot transform with &lt;2 mm accuracy. That same transform concept is used here to convert point clouds from camera frame to world frame before clustering. The geometry is the same &mdash; only the detection method changed.
+        </div>
+
+        <div class="photo-row">
+            <div class="photo-slot"><img src="../screenshots/rawpointcloudimage.png" alt="Raw RGB-D point cloud capture"></div>
+            <div class="photo-slot"><img src="../screenshots/calibration.png" alt="Calibration view"></div>
         </div>
 
         <h3>AprilTag vs DBSCAN point cloud</h3>
@@ -96,8 +101,8 @@
             <div class="photo-slot"><img src="../screenshots/camera_setup.jpeg" alt="Physical camera and workspace setup"></div>
         </div>
         <div class="photo-row">
-            <div class="photo-slot"><img src="../screenshots/multicubetracking.png" alt="4 cubes tracked in RViz"></div>
-            <div class="photo-slot"><img src="../screenshots/rviz_cubes.png" alt="TF tree after calibration"></div>
+            <div class="photo-slot"><img src="../screenshots/cubebintracking.png" alt="Cube and bin tracking"></div>
+            <div class="photo-slot"><img src="../screenshots/apriltest.png" alt="AprilTag test capture"></div>
         </div>
         <div class="photo-row">
             <div class="photo-slot"><img src="../screenshots/aprilcube2docs.png" alt="AprilTag cube documentation"></div>
@@ -180,8 +185,8 @@
             <thead><tr><th>Method</th><th>Mean centroid error</th><th>Exact-count rate</th><th>Notes</th></tr></thead>
             <tbody>
                 <tr><td>K-Means (baseline)</td><td>2.65 cm</td><td>~90% (k fixed)</td><td>Requires knowing cube count upfront</td></tr>
-                <tr><td>DBSCAN (1.5&times; spacing)</td><td>1.63 cm</td><td>82%</td><td>Adjacent cubes merge at eps=1.5 cm gap</td></tr>
-                <tr><td>DBSCAN (2.0&times; spacing)</td><td>TBD</td><td>Expected &gt;90%</td><td>Gap fix in progress &mdash; regenerating dataset</td></tr>
+                <tr><td>DBSCAN (1.5&times; spacing, early)</td><td>1.63 cm</td><td>82%</td><td>Adjacent cubes merge at eps=1.5 cm gap</td></tr>
+                <tr><td>DBSCAN (2.0&times; spacing, validated)</td><td>1.63 cm</td><td><strong>100%</strong></td><td>185/185 cubes, 100% recall, zero merges</td></tr>
             </tbody>
         </table>
 

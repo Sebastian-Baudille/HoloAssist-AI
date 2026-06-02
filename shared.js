@@ -68,3 +68,66 @@ function buildDock(items, opts) {
     window.addEventListener('resize', reset);
     reset();
 }
+
+function initImageLightbox() {
+    if (document.querySelector('.img-lightbox')) return;
+
+    var overlay = document.createElement('div');
+    overlay.className = 'img-lightbox';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Expanded image');
+    overlay.innerHTML =
+        '<button class="img-lightbox-close" type="button" aria-label="Close image">&times;</button>' +
+        '<img class="img-lightbox-img" alt="">' +
+        '<div class="img-lightbox-caption"></div>';
+    document.body.appendChild(overlay);
+
+    var fullImg = overlay.querySelector('.img-lightbox-img');
+    var caption = overlay.querySelector('.img-lightbox-caption');
+    var closeBtn = overlay.querySelector('.img-lightbox-close');
+
+    function close() {
+        overlay.classList.remove('open');
+        document.body.classList.remove('lightbox-open');
+        fullImg.removeAttribute('src');
+        caption.textContent = '';
+    }
+
+    function open(img) {
+        var src = img.currentSrc || img.src;
+        if (!src || img.closest('.img-lightbox') || img.offsetParent === null) return;
+        fullImg.src = src;
+        fullImg.alt = img.alt || '';
+        caption.textContent = img.alt || '';
+        overlay.classList.add('open');
+        document.body.classList.add('lightbox-open');
+        closeBtn.focus();
+    }
+
+    document.addEventListener('click', function(e) {
+        var img = e.target.closest && e.target.closest('img');
+        if (!img && e.target.closest) {
+            var holder = e.target.closest('.photo-slot, .result-shot');
+            if (holder) img = holder.querySelector('img');
+        }
+        if (!img) return;
+        if (img.closest('.img-lightbox')) return;
+        e.preventDefault();
+        open(img);
+    });
+
+    closeBtn.addEventListener('click', close);
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) close();
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && overlay.classList.contains('open')) close();
+    });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initImageLightbox);
+} else {
+    initImageLightbox();
+}

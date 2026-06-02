@@ -62,6 +62,15 @@
             <strong>Critical version pins:</strong> <code>tensordict==0.7.2</code> and <code>h5py==3.11.0</code> must be force-installed after any <code>isaaclab.bat --install</code> run. Newer versions crash on Windows with Isaac Sim 5.1&rsquo;s PyTorch 2.7.0 ABI.
         </div>
 
+        <div class="photo-row">
+            <div class="photo-slot"><img src="../screenshots/isaacsim.gif" alt="Isaac Sim training playback"></div>
+            <div class="photo-slot"><img src="../screenshots/isaacsimmanyrobots.png" alt="Many parallel Isaac Sim robot environments"></div>
+        </div>
+        <div class="photo-row">
+            <div class="photo-slot"><img src="../screenshots/isaacsim-16robots.png" alt="Sixteen Isaac Sim robot environments"></div>
+            <div class="photo-slot"><img src="../screenshots/isaacsim-PPO.png" alt="Isaac Sim PPO training results"></div>
+        </div>
+
         <h3>Task progression</h3>
         <table class="data-table">
             <thead><tr><th>Task</th><th>Goal</th><th>Status</th></tr></thead>
@@ -151,6 +160,10 @@ robot.write_joint_stiffness_to_sim(stiff, joint_ids=linkage_ids_tensor)</div>
         <h3>EE proxy</h3>
         <p>Isaac Sim&rsquo;s &ldquo;merge fixed joints&rdquo; pass fuses frame-only links with no inertia into their parent. <code>gripper_tcp</code> (the true TCP frame) gets merged into <code>onrobot_base_link</code> and is not queryable. The closest available body approximating the grasp point is <code>left_inner_finger</code>. For the grab task, gripper centre is the <strong>midpoint of both inner fingers</strong>:</p>
         <div class="code-block">gripper_center = (left_finger_pos + right_finger_pos) * 0.5</div>
+        <div class="photo-row">
+            <div class="photo-slot"><img src="../screenshots/isaacsimendeffectorbug.png" alt="Isaac Sim end-effector proxy bug"></div>
+            <div class="photo-slot"><img src="../screenshots/isaacsimbrokengripper.png" alt="Isaac Sim gripper linkage issue"></div>
+        </div>
     </div>
 </section>
 
@@ -252,6 +265,16 @@ action[6]   &isin; [-1, 1]  &rarr; gripper signal (+1 = open, -1 = close)</div>
         <h3>Run naming convention</h3>
         <div class="code-block">&lt;task&gt;-r&lt;reward_version&gt;-run&lt;N&gt;   <span class="cm">full training runs</span>
 &lt;task&gt;-r&lt;reward_version&gt;-pretest  <span class="cm">wiring-check runs (4 envs &times; 5 iters)</span></div>
+        <div class="result-shot-grid">
+            <div class="result-shot">
+                <img src="../screenshots/tensorboard-isaacsim-earlyPPO.png" alt="Isaac Sim early PPO TensorBoard results">
+                <div class="result-shot-label">Isaac Sim Early PPO TensorBoard</div>
+            </div>
+            <div class="result-shot">
+                <img src="../screenshots/isaacsim-PPO.png" alt="Isaac Sim PPO result plot">
+                <div class="result-shot-label">Isaac Sim PPO Run Snapshot</div>
+            </div>
+        </div>
     </div>
 </section>
 

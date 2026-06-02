@@ -74,7 +74,7 @@
         .hs-item p  { font-size: 0.78rem; color: var(--orange); margin-top: 2px; }
 
         /* ── STATUS ── */
-        .page-status .pi { background: var(--steel); }
+        .page-status .pi { background: var(--steel); justify-content: flex-start; }
         .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: rgba(255,102,0,0.1); border: 1px solid rgba(255,102,0,0.1); }
         .feat-item { background: #1a1a1a; padding: 1rem 1.4rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; transition: background 0.15s; }
         .feat-item:hover { background: rgba(51,187,255,0.05); }
@@ -84,12 +84,12 @@
         .sub-slide { scroll-snap-align: start; min-height: 100vh; position: relative; overflow: hidden; }
         .sc-bg { position: absolute; inset: 0; background-size: cover; background-position: center; transition: transform 0.7s ease; }
         .sub-slide:hover .sc-bg { transform: scale(1.03); }
-        .s-perc .sc-bg { background-color: #0f1826; background-image: url('screenshots/perception.png'); }
-        .s-clus .sc-bg { background-color: #0a1910; background-image: url('screenshots/clustering.png'); }
-        .s-rl   .sc-bg { background-color: #111118; background-image: url('screenshots/training.png'); }
-        .s-gaz  .sc-bg { background-color: #0c1a0e; background-image: url('screenshots/visualisation.gif'); background-size: cover; }
-        .s-muj  .sc-bg { background-color: #10100a; background-image: url('screenshots/teleoperation.gif'); background-size: cover; }
-        .s-sim  .sc-bg { background-color: #0e0e18; background-image: url('screenshots/autonomous.gif'); background-size: cover; background-position: center; }
+        .s-perc .sc-bg { background-color: #0f1826; background-image: url('screenshots/rawpointcloudimage.png'); }
+        .s-clus .sc-bg { background-color: #0a1910; background-image: url('screenshots/clusteringPolyscopeimage.png'); }
+        .s-rl   .sc-bg { background-color: #111118; background-image: url('screenshots/tensorboard-mujoco_panlockedreach.png'); }
+        .s-gaz  .sc-bg { background-color: #0c1a0e; background-image: url('screenshots/gazebo.gif'); background-size: cover; }
+        .s-muj  .sc-bg { background-color: #10100a; background-image: url('screenshots/mujoco.gif'); background-size: cover; }
+        .s-sim  .sc-bg { background-color: #0e0e18; background-image: url('screenshots/isaacsim.gif'); background-size: cover; background-position: center; }
         .sc-overlay { position: absolute; inset: 0; background: linear-gradient(to right, rgba(0,0,0,.88) 0%, rgba(0,0,0,.6) 55%, rgba(0,0,0,.22) 100%); }
         .sc-gif { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.45s ease; pointer-events: none; }
         .sub-slide:hover .sc-gif { opacity: 0.8; }
@@ -138,14 +138,15 @@
         .spec-sub { font-size: 0.84rem; color: var(--body); }
 
         /* ── TEAM CARDS ── */
-        .team-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: rgba(255,102,0,0.1); border: 1px solid rgba(255,102,0,0.1); }
-        .tc { position: relative; overflow: hidden; background: #1a1a1a; padding: 2rem 1.75rem; display: flex; align-items: flex-start; gap: 1.25rem; transition: background 0.2s; }
+        .team-grid { flex: 1; min-height: 560px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, minmax(260px, 1fr)); gap: 1px; background: rgba(255,102,0,0.1); border: 1px solid rgba(255,102,0,0.1); }
+        .tc { position: relative; overflow: hidden; background: #1a1a1a; padding: clamp(2rem, 4vh, 3rem) clamp(1.75rem, 2.6vw, 2.8rem); display: flex; align-items: center; gap: 1.45rem; transition: background 0.2s; }
         .tc:hover { background: #1e1e1e; }
         .tc-gif { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.55s ease; pointer-events: none; z-index: 0; filter: saturate(0.55) brightness(0.75); }
         .tc:hover .tc-gif { opacity: 0.28; }
         .tc-body { flex: 1; min-width: 0; position: relative; z-index: 1; }
         .tc-docs { display: inline-flex; align-items: center; gap: 5px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.5px; color: var(--orange-light); border: 1px solid rgba(255,102,0,0.38); background: rgba(255,102,0,0.1); padding: 4px 11px; border-radius: 3px; text-decoration: none; transition: background 0.15s, color 0.15s, border-color 0.15s; white-space: nowrap; }
         .tc-docs:hover { background: rgba(255,102,0,0.22); color: var(--orange); border-color: rgba(255,102,0,0.6); }
+        .team-link-card { min-height: 100%; background:#111; padding: clamp(2rem, 4vh, 3rem) clamp(1.75rem, 2.6vw, 2.8rem); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:0.75rem; text-align:center; border-left:1px solid rgba(255,102,0,0.1); }
 
         /* ── RESULTS / BIBTEX ── */
         .page-results .pi { background: #0d0d0d; }
@@ -155,15 +156,6 @@
         .bibtex-block { background: rgba(0,0,0,0.55); border: 1px solid rgba(255,102,0,0.14); border-left: 3px solid rgba(255,102,0,0.5); border-radius: 4px; padding: 1.5rem 1.75rem; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 0.8rem; color: #888; line-height: 1.85; overflow-x: auto; white-space: pre; margin-top: 1.25rem; }
         .bibtex-block .bk { color: var(--orange-light); }
         .bibtex-block .bv { color: var(--blue-light); }
-
-        /* ── GALLERY ── */
-        .page-gallery .pi { background: var(--steel); justify-content: flex-start; }
-        .gal-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); flex: 1; min-height: 0; gap: 1px; background: rgba(255,102,0,0.1); }
-        .gal-item { background: var(--darker); position: relative; overflow: hidden; }
-        .gal-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .gal-ph { width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#2a2a2a; gap:.5rem; }
-        .gal-ph span { font-size: 0.78rem; font-family: monospace; color: #333333; }
-        .gal-lbl { position:absolute; bottom:0; left:0; right:0; padding:.5rem .8rem; background:rgba(8,8,8,.88); font-size:0.8rem; color:var(--body); backdrop-filter:blur(4px); }
 
         /* ── MAIN FOOTER ── */
         .main-footer { scroll-snap-align: start; background: #080808; border-top: 1px solid rgba(255,102,0,0.13); color: var(--body); padding: 3.5rem 4rem 2.5rem 9.5rem; }
@@ -187,6 +179,7 @@
             html { scroll-snap-type: none; font-size: 18px; }
             .page, .hero, .sub-slide { min-height: auto; }
             .pi { padding: 3.5rem 2.5rem 3.5rem 2.5rem; min-height: auto; }
+            .team-grid { flex: none; min-height: 0; grid-template-rows: auto; }
             .hero-content { padding: 0 2.5rem 4rem; }
             .hero-strip { grid-template-columns: 1fr; }
             .hs-item:first-child { padding-left: 2rem; }
@@ -207,14 +200,12 @@
             .hs-item:first-child { padding-left: 1.5rem; }
             .main-footer { padding: 2.5rem 1.5rem 5.5rem; }
             .footer-in { grid-template-columns: 1fr; }
-            .gal-grid { grid-template-columns: 1fr 1fr; }
             .feat-grid { grid-template-columns: 1fr; }
             .arch-specs { grid-template-columns: 1fr 1fr; }
             .pi { padding: 2.5rem 1.5rem 5.5rem; }
             .team-grid { grid-template-columns: 1fr; }
         }
         @media (max-width: 480px) {
-            .gal-grid { grid-template-columns: 1fr; }
             .arch-specs { grid-template-columns: 1fr; }
         }
     </style>
@@ -238,7 +229,7 @@
             PPO policy trained in NVIDIA Isaac Sim controls a UR3e arm to pick and place them.
         </p>
         <div class="hero-cta">
-            <a href="#gallery" class="btn btn-p">View Gallery</a>
+            <a href="#results" class="btn btn-p">View Results</a>
             <a href="docs/index.html" class="btn btn-o">Read the Docs</a>
         </div>
     </div>
@@ -250,7 +241,7 @@
             <div><h3>Architecture</h3><p>D435i &rarr; DBSCAN &rarr; RSL-RL PPO &rarr; UR3e + RG2</p></div>
         </a>
         <a href="#results" class="hs-item">
-            <div><h3>Results</h3><p>&lt;2 mm calibration &middot; 1.63 cm DBSCAN &middot; 99% reach</p></div>
+            <div><h3>Results</h3><p>easy_handeye2 calibration &middot; 1.63 cm DBSCAN &middot; PPO iteration</p></div>
         </a>
     </div>
 </section>
@@ -334,7 +325,7 @@
             </div>
             <!-- Nic -->
             <div class="tc">
-                <img class="tc-gif" src="screenshots/perception.gif" alt="" aria-hidden="true">
+                <img class="tc-gif" src="screenshots/rawpointcloudimage.png" alt="" aria-hidden="true">
                 <div class="sp-photo" style="width:72px;height:72px;flex-shrink:0;position:relative;z-index:1;">
                     <img src="screenshots/team/nic.jpg" alt="Nic" onerror="this.style.display='none'">
                     <div class="sp-init">NS</div>
@@ -342,7 +333,7 @@
                 <div class="tc-body">
                     <h3 style="font-size:1.05rem;font-weight:700;color:var(--light);margin-bottom:3px;">Nic Sabatta</h3>
                     <p style="font-size:0.8rem;color:var(--orange);margin-bottom:6px;">Perception, Website, Teleop &amp; RL Support</p>
-                    <p style="font-size:0.78rem;color:var(--body);line-height:1.55;margin:0 0 0.6rem;">Original AprilTag perception system, eye-to-hand calibration (Park solver, &lt;2mm), sim-to-real pipeline, teleop training data collection, Unity XR dashboard, this website &amp; docs.</p>
+                    <p style="font-size:0.78rem;color:var(--body);line-height:1.55;margin:0 0 0.6rem;">Original AprilTag perception system, easy_handeye2 calibration workflow, sim-to-real pipeline, teleop training data collection, Unity XR dashboard, this website &amp; docs.</p>
                     <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
                         <a href="https://www.linkedin.com/in/nicholas-sabatta/" target="_blank" rel="noreferrer" class="sp-link sp-link-li" style="font-size:0.68rem;padding:4px 10px;"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg> LinkedIn</a>
                         <a href="https://github.com/Mafia-Pineapple" target="_blank" rel="noreferrer" class="sp-link sp-link-gh" style="font-size:0.68rem;padding:4px 10px;"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg> GitHub</a>
@@ -351,7 +342,7 @@
                 </div>
             </div>
             <!-- Base project link -->
-            <div style="background:#111; padding:2rem 1.75rem; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:0.75rem; text-align:center; border-left:1px solid rgba(255,102,0,0.1);">
+            <div class="team-link-card">
                 <p style="font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:rgba(255,102,0,0.5);margin:0;">Related Project</p>
                 <p style="font-size:0.9rem;font-weight:700;color:var(--light);margin:0;">HoloAssist</p>
                 <p style="font-size:0.78rem;color:var(--body);line-height:1.5;margin:0;">Mixed-reality teleoperation, AprilTag perception, Quest 3 XR dashboard &mdash; the platform this project extends.</p>
@@ -417,31 +408,64 @@
     </div>
 </section>
 
-<!-- ── GALLERY ── -->
-<section class="page page-gallery" id="gallery">
-    <div class="pi">
-        <div class="ph"><div class="ph-line"></div><h2>Gallery</h2><p>Drop images into <code style="background:rgba(51,187,255,.14);color:var(--blue-light);padding:2px 7px;border-radius:4px">screenshots/</code> and uncomment the img tags.</p></div>
-        <div class="gal-grid">
-            <div class="gal-item"><img src="screenshots/perception.png" alt="AprilTag perception"><div class="gal-lbl">AprilTag perception &mdash; 20 Hz, 4 cubes tracked</div></div>
-            <div class="gal-item"><img src="screenshots/multicubetracking.png" alt="Multi-cube tracking"><div class="gal-lbl">Multi-cube tracking in RViz</div></div>
-            <div class="gal-item"><img src="screenshots/calibration.png" alt="Hand-eye calibration"><div class="gal-lbl">Hand-eye calibration &mdash; Park solver, &lt;2 mm error</div></div>
-            <div class="gal-item"><img src="screenshots/quest_ar_overlay.png" alt="Quest 3 AR overlay"><div class="gal-lbl">Quest 3 AR &mdash; cube holograms on real scene</div></div>
-            <div class="gal-item"><img src="screenshots/session.png" alt="Full system demo"><div class="gal-lbl">Full system demo</div></div>
-            <div class="gal-item"><img src="screenshots/autonomous.gif" alt="Autonomous pick-and-place" style="width:100%;height:100%;object-fit:cover;display:block;"><div class="gal-lbl">Autonomous pick-and-place episode</div></div>
-        </div>
-    </div>
-</section>
-
 <!-- ── RESULTS ── -->
 <section class="page page-results" id="results">
     <div class="pi">
         <div class="ph"><div class="ph-line"></div><h2>Results, Discussion &amp; Reflection</h2><p>What we achieved, what surprised us, and what we would do differently.</p></div>
         <div class="results-body">
-            <p><strong>Perception &amp; Calibration:</strong> Nic's eye-to-hand calibration achieved &lt;2 mm reprojection error on the real UR3e using the Park–Martin AX=XB closed-form solver — well within the accuracy needed for reliable cube detection. The custom DBSCAN point-cloud pipeline (Guy) reached 1.63 cm centroid accuracy with 100% cube recall across 60 validated scenes, demonstrating that marker-free detection is viable without third-party packages when the depth sensor is well-calibrated.</p>
-            <p><strong>RL Training:</strong> Phase A reach training (Guy, Gazebo + SB3) converged at 99% success after 696k steps once joint positions were added to the observation — a clear lesson that the agent must know where its own arm is, not just where the target is. John's staged sub-policy architecture (Pan&rarr;Extend&rarr;Grasp in MuJoCo) addressed the reward sparsity of monolithic pick-and-place: each sub-policy converges independently in isolation. Sebastian's Isaac Lab environment ran 4096 GPU-parallel environments at 50k+ steps/s, reaching 60–70% reach success after 500 iterations — partially converged and on an improving trajectory, with ~1000–1500 more iterations expected to close the gap.</p>
-            <p><strong>Sim-to-real pipeline:</strong> The ONNX export bridge (John) provides a clean handoff from CPU training (MuJoCo + SB3) to GPU deployment (Isaac Sim) with no Python dependency or architecture changes. This was a deliberate design constraint that paid off — it decoupled the fast-iteration training loop from the high-throughput deployment environment.</p>
-            <p><strong>What we would do differently:</strong> The biggest bottleneck was obs/action space compatibility across three independently developed backends (Gazebo, MuJoCo, Isaac Lab). Defining and freezing the interface contract earlier would have saved significant coordination overhead. We would also invest earlier in joint limit and self-collision handling — the arm folding into itself during Phase A training was painful to debug and the fix (tighter limits + gradient-signal config penalty) was straightforward once identified.</p>
-            <p><strong>Limitations:</strong> Full end-to-end pick-and-place (reach&rarr;grasp&rarr;transport&rarr;place) was not demonstrated — the reach phase converged at high success rate, but grasp and transport remain in progress. Domain randomisation available in Isaac Lab was not tuned for sim-to-real transfer, which would be required for physical robot deployment.</p>
+            <p><strong>Perception &amp; calibration:</strong> The point-cloud work deliberately did not copy the RS2 HoloAssist pipeline 1:1. The base project originally explored dense point clouds, but the resource cost pushed it toward AprilTag tracking for reliable real-time use. For HoloAssist-AI we kept a marker-free point-cloud route because centroid extraction is directly relevant to the AI pipeline, while the final hand-eye calibration still depended on an external calibration package, <code>easy_handeye2</code>. The tradeoff is accuracy and compute: tag tracking can be very precise if tag size and a high-resolution feed are available, while high-definition point clouds need cropping, filtering, clustering, and more memory bandwidth.</p>
+            <p><strong>RL training evolution:</strong> The first PPO work ran in Gazebo Classic with a large 29D observation vector. The feedback we received was consistent: the observation space looked too large, some variables were probably redundant, and the robot motion was unstable. John then ported the environment to Ignition Fortress and reduced the observation space to roughly 15D. Ollie continued working on that reduced Gazebo setup, but it still was not producing the quality of behaviour we wanted, so John moved to MuJoCo and split the problem into staged sub-policies to reduce the learning load.</p>
+            <p><strong>MuJoCo and Isaac Sim:</strong> The MuJoCo branch became more hardcoded by design: pan, locked-reach, and grasp-style sub-policies, with network sizes tuned from 64x64 to 128x128 and finally 256x256 for the final <code>panlockedreach</code> file. The pan policy stayed at 64x64 because it was effectively 1D. Sebastian trained Isaac Sim in parallel from an early PPO weighting and parameter direction; it did not directly consume MuJoCo weights, but it converged toward similar behaviour because the design intent was similar. Isaac Sim is becoming the stronger long-term path because 4096 parallel environments train far more efficiently while preserving more robot DOF.</p>
+            <div class="result-shot-grid" aria-label="TensorBoard result placeholders">
+                <div class="result-shot">
+                    <img src="screenshots/tensorboard-gazebo-phasea.png" alt="Gazebo Phase A TensorBoard results" onerror="this.style.display='none'">
+                    <div class="result-shot-ph"><strong>TensorBoard Placeholder</strong><span>screenshots/tensorboard-gazebo-phasea.png</span></div>
+                    <div class="result-shot-label">Gazebo Phase A PPO</div>
+                </div>
+                <div class="result-shot">
+                    <img src="screenshots/tensorboard-mujoco_panlockedreach.png" alt="MuJoCo panlockedreach TensorBoard results" onerror="this.style.display='none'">
+                    <div class="result-shot-ph"><strong>TensorBoard Placeholder</strong><span>screenshots/tensorboard-mujoco_panlockedreach.png</span></div>
+                    <div class="result-shot-label">MuJoCo PanLockedReach</div>
+                </div>
+                <div class="result-shot">
+                    <img src="screenshots/mujoco-latereach.gif" alt="MuJoCo late reach policy animation" onerror="this.style.display='none'">
+                    <div class="result-shot-ph"><strong>MuJoCo GIF</strong><span>screenshots/mujoco-latereach.gif</span></div>
+                    <div class="result-shot-label">MuJoCo Late Reach</div>
+                </div>
+                <div class="result-shot">
+                    <img src="screenshots/mujoco-final-fullmodel.gif" alt="MuJoCo final full model animation" onerror="this.style.display='none'">
+                    <div class="result-shot-ph"><strong>MuJoCo GIF</strong><span>screenshots/mujoco-final-fullmodel.gif</span></div>
+                    <div class="result-shot-label">MuJoCo Final Full Model</div>
+                </div>
+                <div class="result-shot">
+                    <img src="screenshots/mujoco-finaltensorboard.png" alt="MuJoCo final TensorBoard results" onerror="this.style.display='none'">
+                    <div class="result-shot-ph"><strong>TensorBoard Placeholder</strong><span>screenshots/mujoco-finaltensorboard.png</span></div>
+                    <div class="result-shot-label">MuJoCo Final TensorBoard</div>
+                </div>
+                <div class="result-shot">
+                    <img src="screenshots/tensorboard-mujoco-phaseb.png" alt="MuJoCo Phase B TensorBoard results" onerror="this.style.display='none'">
+                    <div class="result-shot-ph"><strong>TensorBoard Placeholder</strong><span>screenshots/tensorboard-mujoco-phaseb.png</span></div>
+                    <div class="result-shot-label">MuJoCo Phase B</div>
+                </div>
+                <div class="result-shot">
+                    <img src="screenshots/tensorboard-mujoco-earlyPPO.png" alt="Early MuJoCo PPO TensorBoard results" onerror="this.style.display='none'">
+                    <div class="result-shot-ph"><strong>TensorBoard Placeholder</strong><span>screenshots/tensorboard-mujoco-earlyPPO.png</span></div>
+                    <div class="result-shot-label">MuJoCo Early PPO</div>
+                </div>
+                <div class="result-shot">
+                    <img src="screenshots/tensorboard-mujoco-horrible-PPO.png" alt="Poor MuJoCo PPO TensorBoard results" onerror="this.style.display='none'">
+                    <div class="result-shot-ph"><strong>TensorBoard Placeholder</strong><span>screenshots/tensorboard-mujoco-horrible-PPO.png</span></div>
+                    <div class="result-shot-label">MuJoCo Failed PPO</div>
+                </div>
+                <div class="result-shot">
+                    <img src="screenshots/tensorboard-isaacsim-earlyPPO.png" alt="Isaac Sim early PPO TensorBoard results" onerror="this.style.display='none'">
+                    <div class="result-shot-ph"><strong>TensorBoard Placeholder</strong><span>screenshots/tensorboard-isaacsim-earlyPPO.png</span></div>
+                    <div class="result-shot-label">Isaac Sim Early PPO</div>
+                </div>
+            </div>
+            <p><strong>Feedback-driven changes:</strong> Raphael's feedback pushed us to question PCA-style feature extraction and the practicality of teleoperation data at small scale. Pengshuo and Louis both flagged the observation vector size and redundancy problem. Louis also suggested learned pose models and trajectory-level actions, which would reduce low-level smoothness issues. Augustine's notes aligned with the PPO plus imitation-learning direction, but the robot movement quality showed that the control interface needed more work before imitation data could solve the problem.</p>
+            <p><strong>What we would do differently:</strong> We would define the observation/action contract earlier and aggressively remove correlated state before training. We would also evaluate whether trajectory actions or MoveIt-style planning, like in the RS2 HoloAssist project, are better for parts of the task than raw PPO joint deltas. For perception, we would compare the lightweight DBSCAN approach against learned pose estimators such as MegaPose or FoundationPose, but only if the target hardware can afford the additional model cost.</p>
+            <p><strong>Limitations:</strong> Full end-to-end pick-and-place was not demonstrated as one deployed policy. MuJoCo reduced the training difficulty but became more scripted and lower-DOF than Isaac Sim. Dense point clouds remain expensive, and tag tracking requires known tag size plus a sufficiently high-resolution feed. We all developed on different generations of high-end Dell XPS laptops, which means both HoloAssist projects are still difficult to deploy on lower-power field hardware without acceleration.</p>
         </div>
     </div>
 </section>
@@ -485,7 +509,6 @@
             <li><a href="#team">Team</a></li>
             <li><a href="#video">Demo Video</a></li>
             <li><a href="#architecture">Architecture</a></li>
-            <li><a href="#gallery">Gallery</a></li>
             <li><a href="#results">Results</a></li>
             <li><a href="#bibtex">BibTeX</a></li>
         </ul></div>
@@ -513,8 +536,6 @@ buildDock([
       svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>' },
     { label:'Architecture',  href:'#architecture',  id:'architecture',
       svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
-    { label:'Gallery',       href:'#gallery',       id:'gallery',
-      svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>' },
 ], { base: 60, mag: 76, dist: 88 });
 
 // ── CLICK SPARK ──

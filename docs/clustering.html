@@ -31,7 +31,7 @@
         <div class="hero-meta">
             <div><span class="hero-meta-val">1.63cm</span>Centroid error</div>
             <div><span class="hero-meta-val">100%</span>Cube recall</div>
-            <div><span class="hero-meta-val">82%</span>Exact count</div>
+            <div><span class="hero-meta-val">100%</span>Exact count</div>
             <div><span class="hero-meta-val">60</span>Scenes</div>
         </div>
     </div>
@@ -54,6 +54,11 @@
 Clustering pipeline (Python 3.11 / clustering/.venv)
     &rarr; reads PLY from ~/holoassist_pointclouds/</div>
 
+        <div class="photo-row">
+            <div class="photo-slot"><img src="../screenshots/clustering.gif" alt="DBSCAN clustering animation"></div>
+            <div class="photo-slot"><img src="../screenshots/clusteringPolyscopeimage.png" alt="Polyscope clustering visualisation"></div>
+        </div>
+
         <div class="code-block"><span class="cm"># Install clustering environment</span>
 cd clustering && python3.11 -m venv .venv
 source .venv/bin/activate
@@ -73,10 +78,10 @@ pip install -r requirements.txt
             <tbody>
                 <tr><td>AprilTag 3 (base HoloAssist)</td><td>~5&ndash;10 mm</td><td>100%</td><td>Physical markers on every cube face. Not our code.</td></tr>
                 <tr><td>K-Means (initial baseline)</td><td>2.65 cm</td><td>~90%</td><td>Requires knowing cube count <em>k</em> upfront. Assigns every point (including noise) to a cluster.</td></tr>
-                <tr><td>DBSCAN (current)</td><td>1.63 cm</td><td>82% *</td><td>Merges cubes at &lt;2&times; spacing. Fix in progress.</td></tr>
+                <tr><td>DBSCAN, 1.5&times; spacing (early)</td><td>1.63 cm</td><td>82%</td><td>Adjacent cubes merged at eps=1.5 cm gap</td></tr>
+                <tr><td>DBSCAN, 2.0&times; spacing (validated)</td><td><strong>1.63 cm</strong></td><td><strong>100%</strong></td><td>185/185 cubes, zero missed or merged</td></tr>
             </tbody>
         </table>
-        <p style="font-size:0.82rem;color:rgba(204,204,204,0.5);margin-top:0.5rem;">* 82% on original 1.5&times; spacing dataset. Expected &gt;90% after regenerating dataset at 2.0&times; spacing.</p>
 
         <p>DBSCAN wins on two metrics that matter: better accuracy than K-Means (because it labels noise as &minus;1 and discards it rather than forcing it into a cluster), and no need to know how many cubes are in the scene.</p>
 
@@ -199,27 +204,29 @@ state_vector = centroids.flatten()                          <span class="cm"># (
         <p>This produces honest accuracy numbers &mdash; a pipeline that misses half the cubes doesn&rsquo;t hide behind averaging only the cubes it found.</p>
 
         <h3>Validated accuracy</h3>
+        <p>Measured 27 May 2026 using <code>verify_detection.py</code> on the 60-scene dataset with 2.0&times; cube spacing. Results are terminal output + <code>accuracy_report.json</code> &mdash; no graphs exist.</p>
         <table class="data-table">
-            <thead><tr><th>Split</th><th>Mean error</th><th>Exact count rate</th><th>Cube recall</th></tr></thead>
+            <thead><tr><th>Split</th><th>Mean error</th><th>Std dev</th><th>Worst scene</th><th>Exact count rate</th><th>Cube recall</th></tr></thead>
             <tbody>
-                <tr><td>Train (50 scenes)</td><td>~1.63 cm</td><td>~82%</td><td>~91%</td></tr>
-                <tr><td>Val (10 scenes)</td><td>~1.63 cm</td><td>~82%</td><td>~91%</td></tr>
+                <tr><td>Train (50 scenes)</td><td>1.63 cm</td><td>0.04 cm</td><td>1.71 cm</td><td><strong>50/50 (100%)</strong></td><td><strong>152/152 (100%)</strong></td></tr>
+                <tr><td>Val (10 scenes)</td><td>1.65 cm</td><td>0.04 cm</td><td>1.69 cm</td><td><strong>10/10 (100%)</strong></td><td><strong>33/33 (100%)</strong></td></tr>
+                <tr><td><strong>Overall</strong></td><td><strong>1.63 cm</strong></td><td>&mdash;</td><td>&mdash;</td><td><strong>100%</strong></td><td><strong>185/185 (100%)</strong></td></tr>
             </tbody>
         </table>
-        <p style="font-size:0.82rem;color:rgba(204,204,204,0.5);margin-top:0.5rem;">Target was &lt;3 cm. <strong>PASS.</strong> Dominant error source: close-cube merging when DBSCAN treats two adjacent cubes as one cluster.</p>
+        <p style="font-size:0.82rem;color:rgba(204,204,204,0.5);margin-top:0.5rem;">Target was &lt;3 cm. <strong>PASS.</strong> Zero missed or merged cubes across all 60 scenes.</p>
 
         <h3>The spacing bug &amp; fix</h3>
-        <p>The 82% exact-count rate was caused by cubes placed with minimum separation 1.5&times; cube size (~2 cm surface gap). DBSCAN with <code>eps=0.015 m</code> bridges this gap when depth noise fills it. Minimum separation was increased to 2.0&times; (~4 cm). The dataset is being regenerated to confirm expected &gt;90% exact-count rate.</p>
+        <p>Early in development the scene controller used 1.5&times; cube size as minimum separation (~2 cm surface gap), giving an 82% exact-count rate and ~91% recall because DBSCAN with <code>eps=0.015 m</code> would bridge the narrow gap between close cubes. Minimum separation was increased to 2.0&times; (~4 cm surface gap), the dataset was regenerated, and the validated results are the 100%/100% figures above.</p>
 
-        <div class="code-block"><span class="cm"># Regenerate dataset with fixed spacing</span>
-ros2 run holoassist_sim dataset_capture.py --scenes 60 --min-separation 2.0
-
-<span class="cm"># Benchmark results</span>
-python clustering/verify_detection.py \
-    --ply ~/holoassist_pointclouds/ \
-    --labels dataset/labels/</div>
+        <div class="code-block"><span class="cm"># Run DBSCAN verification benchmark</span>
+source clustering/.venv/bin/activate
+python3 clustering/verify_detection.py
+<span class="cm"># Saves accuracy_report.json → ~/holoassist_dataset/</span></div>
 
         <h3>Polyscope visualisation</h3>
+        <div class="photo-row">
+            <div class="photo-slot"><img src="../screenshots/clusteringPolyscopeimage.png" alt="Cluster labels, centroids, and PCA axes in Polyscope"></div>
+        </div>
         <div class="code-block"><span class="cm"># Run DBSCAN with interactive Polyscope viewer</span>
 source clustering/.venv/bin/activate
 python3 clustering/detect_cubes.py                          <span class="cm"># auto-picks most recent capture</span>

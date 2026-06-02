@@ -27,12 +27,12 @@
         <p class="hero-eyebrow">HoloAssist-AI &mdash; RL Training &mdash; John Chen &amp; Guy Smith</p>
         <div class="hero-line"></div>
         <h1 class="hero-title">PPO<br><span class="thin">Training</span></h1>
-        <p class="hero-desc">Three parallel training backends: MuJoCo + SB3 for fast staged policy design (John Chen), Gazebo + SB3 for Phase A reach validation (Guy Smith), and Isaac Lab RSL-RL for GPU-scale grasping (Sebastian Baudille). Sub-policies exported to ONNX for cross-framework deployment.</p>
+        <p class="hero-desc">Three parallel training backends: Gazebo for the first PPO attempts, MuJoCo + SB3 for fast staged policy design (John Chen), and Isaac Lab RSL-RL for GPU-scale training (Sebastian Baudille). Isaac Sim was trained in parallel from early PPO weighting and parameter choices rather than directly loading MuJoCo weights.</p>
         <div class="hero-meta">
             <div><span class="hero-meta-val">4096</span>Isaac Lab envs</div>
             <div><span class="hero-meta-val">99%</span>Phase A reach</div>
             <div><span class="hero-meta-val">3</span>Sub-policies</div>
-            <div><span class="hero-meta-val">ONNX</span>Export</div>
+            <div><span class="hero-meta-val">15D</span>Reduced obs</div>
         </div>
     </div>
 </section>
@@ -42,7 +42,7 @@
         <p class="section-lbl">Architecture Decision</p>
         <div class="ph-line"></div>
         <h2>Why two training backends (three if you count Gazebo)</h2>
-        <p>A single Isaac Sim environment takes minutes to spin up and requires a GPU. Iterating on reward shaping, action spaces, and staged task decomposition in that environment is slow. Instead we used backends with a shared obs/action contract:</p>
+        <p>A single Isaac Sim environment takes minutes to spin up and requires a GPU. Iterating on reward shaping, action spaces, and staged task decomposition in that environment is slow. Instead we used separate backends to explore different levels of control and training throughput:</p>
         <table class="data-table">
             <thead><tr><th>Backend</th><th>Speed</th><th>Purpose</th><th>Owner</th></tr></thead>
             <tbody>
@@ -51,7 +51,7 @@
                 <tr><td>Isaac Lab RSL-RL</td><td>50k+ steps/s (GPU)</td><td>Final scale training, 4096 parallel envs</td><td>Sebastian Baudille</td></tr>
             </tbody>
         </table>
-        <p>The key constraint: <strong>obs/action spaces must be identical</strong> across backends so trained weights transfer. MuJoCo sub-policies are exported to ONNX and loaded into Isaac Sim for deployment.</p>
+        <p>The original goal was a shared obs/action contract, but the final workflow was more practical: MuJoCo was used for fast staged-policy experiments, while Isaac Sim trained in parallel from a similar PPO design direction. The similar convergence was a design alignment result, not a direct MuJoCo-to-Isaac weight transfer.</p>
     </div>
 </section>
 
@@ -76,10 +76,25 @@
         </table>
 
         <h3>Coordinator state machine</h3>
-        <p>A <code>MuJoCoCoordinator</code> chains the stages: <strong>PAN &rarr; EXTEND &rarr; GRASP &rarr; TRANSPORT &rarr; RELEASE</strong>. Each stage runs until its done condition is met, then hands off to the next. The coordinator is responsible for loading each sub-policy&rsquo;s ONNX weights and managing the joint action/obs routing for whichever stage is active.</p>
+        <p>A <code>MuJoCoCoordinator</code> chains the stages: <strong>PAN &rarr; EXTEND &rarr; GRASP &rarr; TRANSPORT &rarr; RELEASE</strong>. Each stage runs until its done condition is met, then hands off to the next. This made the MuJoCo branch more hardcoded than Isaac Sim, but it reduced the learning load enough to tune each component independently.</p>
+
+        <div class="photo-row">
+            <div class="photo-slot"><img src="../screenshots/mujoco-latereach.gif" alt="MuJoCo late reach policy animation"></div>
+            <div class="photo-slot"><img src="../screenshots/mujoco-final-fullmodel.gif" alt="MuJoCo final full model animation"></div>
+        </div>
+        <div class="photo-row">
+            <div class="photo-slot"><img src="../screenshots/mujoco.gif" alt="MuJoCo staged reach animation"></div>
+            <div class="photo-slot"><img src="../screenshots/mujoco-earlyPAN.gif" alt="Early MuJoCo pan policy animation"></div>
+        </div>
+        <div class="photo-row">
+            <div class="photo-slot"><img src="../screenshots/mujoco-closegrasp.png" alt="MuJoCo close grasp result"></div>
+            <div class="photo-slot"><img src="../screenshots/mujocopoorgrasp.png" alt="MuJoCo poor grasp attempt"></div>
+        </div>
 
         <h3>Key design decisions</h3>
         <ul>
+            <li><strong>Observation reduction:</strong> the first Gazebo Classic PPO setup used a 29D observation vector; after feedback about redundancy, the Ignition Fortress port reduced this to roughly 15D</li>
+            <li><strong>Network tuning:</strong> MuJoCo reach experiments moved from 64x64 to 128x128 and finally 256x256 for the final <code>panlockedreach</code> file; pan stayed 64x64 because it was effectively 1D</li>
             <li><strong>Home pose at all-zeros:</strong> TCP starts near cube height instead of 70 cm above table, giving the pan policy a meaningful starting configuration</li>
             <li><strong>Orientation constraint removed from IK:</strong> arm uses full joint range for reaching; constraint removed to allow more reachable configurations</li>
             <li><strong>ctrl set during reset:</strong> position actuators hold home pose during physics settle phase so the arm starts stable</li>
@@ -99,7 +114,7 @@
         </ul>
 
         <div class="callout callout-note">
-            <strong>Weight transfer guarantee:</strong> The MuJoCo env observation and action spaces are defined identically to the Gazebo env. A policy trained in MuJoCo can be loaded directly into Gazebo or exported via ONNX to Isaac Sim with no architecture changes.
+            <strong>Interface lesson:</strong> Keeping obs/action spaces compatible is still valuable, but we did not complete a direct MuJoCo-to-Isaac deployment path. Isaac Sim is increasingly the better long-term backend because it trains far more efficiently while keeping more robot DOF.
         </div>
 
         <h3>Key files</h3>
@@ -136,8 +151,8 @@
             <li>5 unit tests: cache building, output shape/dtype, joint limit clamping, directional movement, zero-action stability</li>
         </ul>
 
-        <h3>ONNX export for Isaac Sim</h3>
-        <p>All three sub-policies are exported to ONNX (opset 17, float32, deterministic inference) so Sebastian can load them into Isaac Sim without needing a Python SB3 environment. Inputs/outputs all in [&minus;1, 1]. Actions are delta joint angles, not absolute positions.</p>
+        <h3>ONNX export prototype</h3>
+        <p>The MuJoCo sub-policies can be exported to ONNX (opset 17, float32, deterministic inference), but this was a prototype compatibility path rather than the final Isaac Sim training route. Sebastian's Isaac Sim work trained in parallel from similar PPO weighting and parameters.</p>
         <div class="code-block"><span class="cm"># Export all sub-policies to ONNX</span>
 python3 export_onnx.py \
     --pan    rl_models/pan/best/best_model.zip \
@@ -151,27 +166,27 @@ python3 export_onnx.py \
 
 <section class="section alt" id="phasea">
     <div class="section-in">
-        <p class="section-lbl">Gazebo Phase A &mdash; Guy Smith</p>
+        <p class="section-lbl">Gazebo Phase A &mdash; Gazebo + SB3</p>
         <div class="ph-line"></div>
-        <h2>Phase A reach training (99% success)</h2>
-        <p>Before the MuJoCo and Isaac Sim backends were established, Guy ran Phase A training directly in Gazebo to prove the reach task was solvable and identify what observation/reward design worked.</p>
+        <h2>Gazebo PPO iteration path</h2>
+        <p>Before the MuJoCo and Isaac Sim backends were established, the PPO work ran through Gazebo. The first version used Gazebo Classic with a large 29D observation vector. After feedback that the observation space was probably too large and redundant, John ported the setup to Ignition Fortress and reduced the state to roughly 15D. Ollie continued iterating on that reduced Gazebo setup, but the resulting motion quality still was not good enough to treat it as the final approach.</p>
 
         <h3>What changed from the initial attempt</h3>
-        <p>The initial policy failed at 0% success after 300k steps. The root cause: <strong>the observation didn&rsquo;t include joint positions</strong>. The agent could see where the cube was but had no idea where its own arm was, making it impossible to plan a trajectory.</p>
+        <p>The initial policy failed at 0% success after 300k steps. One root cause was that the observation did not provide enough useful robot state. Adding joint positions and reducing redundant variables helped the reach metric, but did not fully fix the control-quality problem.</p>
 
-        <h3>Phase A design (converged at 696k steps, 99% success)</h3>
+        <h3>Reduced-observation design</h3>
         <table class="data-table">
             <thead><tr><th>Component</th><th>Design</th><th>Why</th></tr></thead>
             <tbody>
-                <tr><td>Observation (14D)</td><td>EE XYZ + cube XYZ + 6 joints + height + timestep</td><td>Adding joint positions was the fix that unlocked learning</td></tr>
+                <tr><td>Observation (~15D)</td><td>EE XYZ + cube XYZ + joints + height + timestep</td><td>Reduced redundancy and gave the policy more useful robot state</td></tr>
                 <tr><td>Action (6D)</td><td>Joint deltas, no gripper</td><td>Gripper not needed for reach; removing it reduces policy noise</td></tr>
                 <tr><td>Reward</td><td>&minus;0.3&times;dist + time penalty + smoothness + &plus;5.0 terminal reach bonus</td><td>Dense guidance + terminal sparse bonus</td></tr>
                 <tr><td>Success</td><td>TCP within 4 cm of cube</td><td>Previous condition (<code>cube_in_bin</code>) never triggered in 300k steps</td></tr>
             </tbody>
         </table>
 
-        <h3>Joint limit tightening (self-collision fix)</h3>
-        <p>Phase A hit 99% success but the arm exhibited self-collision: upper arm sweeping through workspace, arm folding into itself. Guy tightened joint limits and added a soft config penalty:</p>
+        <h3>Joint limit tightening (self-collision mitigation)</h3>
+        <p>Some runs produced high reach metrics, but the arm still exhibited bad movement: upper arm sweeping through workspace, arm folding into itself, and self-collision-like behaviour. Tightening joint limits and adding a soft config penalty helped, but this was part of why the team moved toward MuJoCo sub-policies and Isaac Sim parallel training.</p>
         <ul>
             <li><code>shoulder_lift</code>: upper bound &rarr; &minus;0.2 rad (keeps upper arm elevated, prevents horizontal sweep)</li>
             <li><code>elbow</code>: lower bound &rarr; &minus;2.5 rad (prevents extreme reverse fold)</li>
@@ -231,26 +246,65 @@ tensorboard --logdir IsaacLab/logs/rsl_rl/holoassist_reach_direct/</div>
 
         <h3>Successes</h3>
         <ul>
-            <li><strong>Phase A (Gazebo):</strong> 99% reach success at 696k steps &mdash; proves the observation/reward design works</li>
-            <li><strong>Staged architecture:</strong> each sub-policy converges independently; the coordinator chains them without additional training</li>
-            <li><strong>IK seeding:</strong> meaningfully accelerated convergence by eliminating degenerate early episodes</li>
-            <li><strong>ONNX pipeline:</strong> clean handoff from MuJoCo (CPU training) to Isaac Sim (GPU deployment) with no Python environment dependency</li>
-            <li><strong>Grab v0:</strong> 97% success rate &mdash; proves the grab task is solvable with the Isaac Lab architecture</li>
+            <li><strong>Observation reduction:</strong> feedback on the 29D Gazebo Classic observation vector led to an Ignition Fortress port with roughly 15D observations</li>
+            <li><strong>Staged MuJoCo policies:</strong> breaking the task into pan and reach-style sub-policies made the training load manageable after the reduced Gazebo setup still produced poor movement quality</li>
+            <li><strong>Network tuning:</strong> MuJoCo experiments scaled from 64x64 to 128x128 and then 256x256 for <code>panlockedreach</code>, while the 1D pan policy stayed at 64x64</li>
+            <li><strong>Isaac Sim parallel training:</strong> Sebastian's Isaac Sim runs did not load MuJoCo weights, but converged toward similar behaviour from similar PPO weighting and parameter intent</li>
+            <li><strong>Training throughput:</strong> Isaac Lab is becoming the stronger backend because thousands of parallel environments train much more efficiently than CPU-only Gazebo or MuJoCo loops</li>
         </ul>
+
+        <div class="result-shot-grid" aria-label="TensorBoard result placeholders">
+            <div class="result-shot">
+                <img src="../screenshots/tensorboard-gazebo-phasea.png" alt="Gazebo Phase A TensorBoard results" onerror="this.style.display='none'">
+                <div class="result-shot-ph"><strong>TensorBoard Placeholder</strong><span>screenshots/tensorboard-gazebo-phasea.png</span></div>
+                <div class="result-shot-label">Gazebo Phase A PPO</div>
+            </div>
+            <div class="result-shot">
+                <img src="../screenshots/tensorboard-mujoco_panlockedreach.png" alt="MuJoCo panlockedreach TensorBoard results" onerror="this.style.display='none'">
+                <div class="result-shot-ph"><strong>TensorBoard Placeholder</strong><span>screenshots/tensorboard-mujoco_panlockedreach.png</span></div>
+                <div class="result-shot-label">MuJoCo PanLockedReach</div>
+            </div>
+            <div class="result-shot">
+                <img src="../screenshots/mujoco-finaltensorboard.png" alt="MuJoCo final TensorBoard results" onerror="this.style.display='none'">
+                <div class="result-shot-ph"><strong>TensorBoard Placeholder</strong><span>screenshots/mujoco-finaltensorboard.png</span></div>
+                <div class="result-shot-label">MuJoCo Final TensorBoard</div>
+            </div>
+            <div class="result-shot">
+                <img src="../screenshots/tensorboard-mujoco-phaseb.png" alt="MuJoCo Phase B TensorBoard results" onerror="this.style.display='none'">
+                <div class="result-shot-ph"><strong>TensorBoard Placeholder</strong><span>screenshots/tensorboard-mujoco-phaseb.png</span></div>
+                <div class="result-shot-label">MuJoCo Phase B</div>
+            </div>
+            <div class="result-shot">
+                <img src="../screenshots/tensorboard-mujoco-earlyPPO.png" alt="MuJoCo early PPO TensorBoard results" onerror="this.style.display='none'">
+                <div class="result-shot-ph"><strong>TensorBoard Placeholder</strong><span>screenshots/tensorboard-mujoco-earlyPPO.png</span></div>
+                <div class="result-shot-label">MuJoCo Early PPO</div>
+            </div>
+            <div class="result-shot">
+                <img src="../screenshots/tensorboard-mujoco-horrible-PPO.png" alt="Poor MuJoCo PPO TensorBoard results" onerror="this.style.display='none'">
+                <div class="result-shot-ph"><strong>TensorBoard Placeholder</strong><span>screenshots/tensorboard-mujoco-horrible-PPO.png</span></div>
+                <div class="result-shot-label">MuJoCo Failed PPO</div>
+            </div>
+            <div class="result-shot">
+                <img src="../screenshots/tensorboard-isaacsim-earlyPPO.png" alt="Isaac Sim TensorBoard results" onerror="this.style.display='none'">
+                <div class="result-shot-ph"><strong>TensorBoard Placeholder</strong><span>screenshots/tensorboard-isaacsim-earlyPPO.png</span></div>
+                <div class="result-shot-label">Isaac Sim Early PPO</div>
+            </div>
+        </div>
 
         <h3>Challenges</h3>
         <ul class="issues">
-            <li><div class="issue-ttl">Self-collision in Gazebo</div><div class="issue-body">The collision checker never triggered reliably during training. Fixed by tightening joint limits and adding gradient-signal config penalty instead of relying on binary collision flags.</div></li>
-            <li><div class="issue-ttl">Isaac Lab partially converged on reach</div><div class="issue-body">60&ndash;70% reach success after 500 iterations. Needs ~1500 total iterations and entropy coefficient tuning. The reward curve is improving monotonically, so this is a compute/time issue, not a design problem.</div></li>
-            <li><div class="issue-ttl">Grab reward exploitation (5 iterations)</div><div class="issue-body">Each of v1&ndash;v4 uncovered a new policy exploit: hover trap, hold-below-threshold, finger drag, and safe hover. v5 returns to the only proven configuration (v0) and changes exactly one thing at a time.</div></li>
-            <li><div class="issue-ttl">Obs/action space compatibility</div><div class="issue-body">MuJoCo and Isaac Lab envs must have identical spaces for weight transfer. Maintaining this contract across three independently developed backends required careful coordination.</div></li>
+            <li><div class="issue-ttl">Large observation vector</div><div class="issue-body">Pengshuo and Louis both flagged that the 29D observation space was probably too large and redundant. Reducing it helped, but did not fully solve the motion-quality problem in Gazebo.</div></li>
+            <li><div class="issue-ttl">Robot movement quality</div><div class="issue-body">Augustine's feedback matched what we saw in training: the robot movement was weird. Raw joint-delta PPO made smooth control difficult, and trajectory-level actions or MoveIt-style planning may be better for parts of the task.</div></li>
+            <li><div class="issue-ttl">Teleoperation data scale</div><div class="issue-body">Raphael noted that training from teleoperation is hard because the amount of demonstration data is limited. Teleop data is useful, but it was not enough by itself to solve policy learning.</div></li>
+            <li><div class="issue-ttl">Hardcoding vs DOF</div><div class="issue-body">MuJoCo sub-policies reduced complexity, but they also encoded more task structure than Isaac Sim. Isaac Sim is less scripted and keeps more robot DOF, which makes it more promising as training throughput improves.</div></li>
         </ul>
 
         <h3>Limitations &amp; future work</h3>
         <ul>
-            <li>Full pick-and-place (reach &rarr; grasp &rarr; transport &rarr; place) not yet demonstrated end-to-end &mdash; reach phase converged; grasp and transport in progress</li>
-            <li>Domain randomisation available in Isaac Lab (built-in) but not yet tuned for sim-to-real transfer</li>
-            <li>ONNX sub-policies need integration into a live Isaac Sim deployment node that feeds real camera centroids from the DBSCAN pipeline</li>
+            <li>Full pick-and-place (reach &rarr; grasp &rarr; transport &rarr; place) was not demonstrated as one deployed end-to-end policy</li>
+            <li>The MuJoCo approach may be less useful than MoveIt-style planning for deterministic motion segments, even if it is useful for fast PPO experiments</li>
+            <li>Learned pose models or learned features could replace PCA/SVM/classical extraction, but only if the hardware budget can support them</li>
+            <li>Domain randomisation available in Isaac Lab is promising but not yet tuned for sim-to-real transfer</li>
         </ul>
     </div>
 </section>
@@ -259,7 +313,7 @@ tensorboard --logdir IsaacLab/logs/rsl_rl/holoassist_reach_direct/</div>
     <div class="doc-footer-in">
         <div>
             <h3>RL Training</h3>
-            <p>John Chen (MuJoCo) &middot; Guy Smith (Gazebo Phase A) &middot; Sebastian Baudille (Isaac Lab) &middot; Nic Sabatini (Teleop data) &middot; UTS 41118, 2026</p>
+            <p>John Chen (MuJoCo) &middot; Guy Smith and Ollie Lau (Gazebo Phase A) &middot; Sebastian Baudille (Isaac Lab) &middot; Nic Sabatini (Teleop data) &middot; UTS 41118, 2026</p>
         </div>
         <a href="../index.html" class="doc-footer-back">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
