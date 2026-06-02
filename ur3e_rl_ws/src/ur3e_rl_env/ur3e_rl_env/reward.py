@@ -12,6 +12,43 @@ SUCCESS_REWARD = 10.0
 TIME_PENALTY = 0.01
 ACTION_PENALTY_SCALE = 0.01
 
+# ── Success / failure thresholds ──────────────────────────────────────────────
+
+SUCCESS_DISTANCE_M   = 0.04   # TCP must be within 4 cm of cube
+MIN_EE_Z_M           = 0.02   # minimum safe end-effector height
+
+# Gripper orientation: ||tcp_z_axis - [0,0,-1]|| at 20° tilt ≈ 0.35.
+# Both distance AND orientation must be satisfied for success.
+ORIENT_SUCCESS_TOL   = 0.35   # ~20° from straight down
+
+# ── Per-step reward weights ───────────────────────────────────────────────────
+
+DISTANCE_WEIGHT           = 1.0    # dominant signal — pull TCP toward cube
+TIME_PENALTY              = 0.0    # removed: cumulative penalty buries distance signal
+ACTION_PENALTY_SCALE      = 0.002  # tiny — don't punish exploration
+COLLISION_PENALTY         = 0.50   # one-off on collision flag
+
+# Orientation: small secondary signal — don't let it compete with distance.
+ORIENT_WEIGHT             = 0.05
+
+# IK reference tracking: disabled — competes with distance from home and
+# is non-stationary (different per episode), confusing early-stage learning.
+IK_TRACK_WEIGHT           = 0.0
+
+# Elbow near-straight: disabled — home position has elbow=0 which triggers
+# maximum penalty immediately, fighting the distance signal from step 1.
+ELBOW_NEAR_STRAIGHT_WEIGHT    = 0.0
+ELBOW_NEAR_STRAIGHT_THRESHOLD = 0.40
+
+# Shoulder-lift soft safety: keep off during initial training.
+SHOULDER_LIFT_UPPER_RAD  = -0.2
+CONFIG_PENALTY_SCALE      = 0.0
+
+# Terminal bonus — large enough to dominate a full episode of distance penalty.
+REACH_BONUS               = 15.0
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _distance(a: Sequence[float], b: Sequence[float]) -> float:
     return float(np.linalg.norm(np.asarray(a, dtype=np.float32) - np.asarray(b, dtype=np.float32)))
