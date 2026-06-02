@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Isaac Sim RL — HoloAssist-AI</title>
-    <link rel="stylesheet" href="../shared.css">
+    <link rel="stylesheet" href="../shared.css?v=20260603">
 </head>
 <body>
 
@@ -265,12 +265,12 @@ action[6]   &isin; [-1, 1]  &rarr; gripper signal (+1 = open, -1 = close)</div>
         <h3>Run naming convention</h3>
         <div class="code-block">&lt;task&gt;-r&lt;reward_version&gt;-run&lt;N&gt;   <span class="cm">full training runs</span>
 &lt;task&gt;-r&lt;reward_version&gt;-pretest  <span class="cm">wiring-check runs (4 envs &times; 5 iters)</span></div>
-        <div class="result-shot-grid">
-            <div class="result-shot">
+        <div class="photo-row result-shot-grid">
+            <div class="photo-slot contain-slot result-shot">
                 <img src="../screenshots/tensorboard-isaacsim-earlyPPO.png" alt="Isaac Sim early PPO TensorBoard results">
                 <div class="result-shot-label">Isaac Sim Early PPO TensorBoard</div>
             </div>
-            <div class="result-shot">
+            <div class="photo-slot contain-slot result-shot">
                 <img src="../screenshots/isaacsim-PPO.png" alt="Isaac Sim PPO result plot">
                 <div class="result-shot-label">Isaac Sim PPO Run Snapshot</div>
             </div>
@@ -328,7 +328,7 @@ action[6]   &isin; [-1, 1]  &rarr; gripper signal (+1 = open, -1 = close)</div>
     </div>
 </footer>
 
-<script src="../shared.js"></script>
+<script src="../shared.js?v=20260603"></script>
 <script>
 buildDock([
     { label:'Home',        href:'../index.html', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13V10.5"/></svg>' },

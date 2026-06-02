@@ -206,6 +206,7 @@ body.has-cursor * { cursor: none !important; }
 .photo-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-top: 2rem; }
 .photo-slot { aspect-ratio: 16/9; overflow: hidden; border-radius: 6px; background: rgba(255,102,0,.04); border: 1px dashed rgba(255,102,0,.18); display: flex; align-items: center; justify-content: center; position: relative; }
 .photo-slot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.photo-slot.contain-slot img { object-fit: contain; background: #080808; }
 .photo-slot-ph { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 0.6rem; color: rgba(255,102,0,.28); letter-spacing: 1.5px; text-transform: uppercase; text-align: center; }
 
 /* ── RESULT IMAGE PLACEHOLDERS ── */

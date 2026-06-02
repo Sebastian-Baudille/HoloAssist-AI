@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HoloAssist-AI — Perception + Reinforcement Learning for Robotic Grasping</title>
     <link rel="icon" href="screenshots/logo.png">
-    <link rel="stylesheet" href="shared.css">
+    <link rel="stylesheet" href="shared.css?v=20260603">
     <style>
         /* ── INDEX PAGE OVERRIDES + UNIQUE STYLES ── */
 
@@ -416,48 +416,48 @@
             <p><strong>Perception &amp; calibration:</strong> The point-cloud work deliberately did not copy the RS2 HoloAssist pipeline 1:1. The base project originally explored dense point clouds, but the resource cost pushed it toward AprilTag tracking for reliable real-time use. For HoloAssist-AI we kept a marker-free point-cloud route because centroid extraction is directly relevant to the AI pipeline, while the final hand-eye calibration still depended on an external calibration package, <code>easy_handeye2</code>. The tradeoff is accuracy and compute: tag tracking can be very precise if tag size and a high-resolution feed are available, while high-definition point clouds need cropping, filtering, clustering, and more memory bandwidth.</p>
             <p><strong>RL training evolution:</strong> The first PPO work ran in Gazebo Classic with a large 29D observation vector. The feedback we received was consistent: the observation space looked too large, some variables were probably redundant, and the robot motion was unstable. John then ported the environment to Ignition Fortress and reduced the observation space to roughly 15D. Ollie continued working on that reduced Gazebo setup, but it still was not producing the quality of behaviour we wanted, so John moved to MuJoCo and split the problem into staged sub-policies to reduce the learning load.</p>
             <p><strong>MuJoCo and Isaac Sim:</strong> The MuJoCo branch became more hardcoded by design: pan, locked-reach, and grasp-style sub-policies, with network sizes tuned from 64x64 to 128x128 and finally 256x256 for the final <code>panlockedreach</code> file. The pan policy stayed at 64x64 because it was effectively 1D. Sebastian trained Isaac Sim in parallel from an early PPO weighting and parameter direction; it did not directly consume MuJoCo weights, but it converged toward similar behaviour because the design intent was similar. Isaac Sim is becoming the stronger long-term path because 4096 parallel environments train far more efficiently while preserving more robot DOF.</p>
-            <div class="result-shot-grid" aria-label="TensorBoard result placeholders">
-                <div class="result-shot">
+            <div class="photo-row result-shot-grid" aria-label="TensorBoard result placeholders">
+                <div class="photo-slot contain-slot result-shot">
                     <img src="screenshots/tensorboard-gazebo-phasea.png" alt="Gazebo Phase A TensorBoard results" onerror="this.style.display='none'">
                     <div class="result-shot-ph"><strong>TensorBoard Placeholder</strong><span>screenshots/tensorboard-gazebo-phasea.png</span></div>
                     <div class="result-shot-label">Gazebo Phase A PPO</div>
                 </div>
-                <div class="result-shot">
+                <div class="photo-slot contain-slot result-shot">
                     <img src="screenshots/tensorboard-mujoco_panlockedreach.png" alt="MuJoCo panlockedreach TensorBoard results" onerror="this.style.display='none'">
                     <div class="result-shot-ph"><strong>TensorBoard Placeholder</strong><span>screenshots/tensorboard-mujoco_panlockedreach.png</span></div>
                     <div class="result-shot-label">MuJoCo PanLockedReach</div>
                 </div>
-                <div class="result-shot">
+                <div class="photo-slot contain-slot result-shot">
                     <img src="screenshots/mujoco-latereach.gif" alt="MuJoCo late reach policy animation" onerror="this.style.display='none'">
                     <div class="result-shot-ph"><strong>MuJoCo GIF</strong><span>screenshots/mujoco-latereach.gif</span></div>
                     <div class="result-shot-label">MuJoCo Late Reach</div>
                 </div>
-                <div class="result-shot">
+                <div class="photo-slot contain-slot result-shot">
                     <img src="screenshots/mujoco-final-fullmodel.gif" alt="MuJoCo final full model animation" onerror="this.style.display='none'">
                     <div class="result-shot-ph"><strong>MuJoCo GIF</strong><span>screenshots/mujoco-final-fullmodel.gif</span></div>
                     <div class="result-shot-label">MuJoCo Final Full Model</div>
                 </div>
-                <div class="result-shot">
+                <div class="photo-slot contain-slot result-shot">
                     <img src="screenshots/mujoco-finaltensorboard.png" alt="MuJoCo final TensorBoard results" onerror="this.style.display='none'">
                     <div class="result-shot-ph"><strong>TensorBoard Placeholder</strong><span>screenshots/mujoco-finaltensorboard.png</span></div>
                     <div class="result-shot-label">MuJoCo Final TensorBoard</div>
                 </div>
-                <div class="result-shot">
+                <div class="photo-slot contain-slot result-shot">
                     <img src="screenshots/tensorboard-mujoco-phaseb.png" alt="MuJoCo Phase B TensorBoard results" onerror="this.style.display='none'">
                     <div class="result-shot-ph"><strong>TensorBoard Placeholder</strong><span>screenshots/tensorboard-mujoco-phaseb.png</span></div>
                     <div class="result-shot-label">MuJoCo Phase B</div>
                 </div>
-                <div class="result-shot">
+                <div class="photo-slot contain-slot result-shot">
                     <img src="screenshots/tensorboard-mujoco-earlyPPO.png" alt="Early MuJoCo PPO TensorBoard results" onerror="this.style.display='none'">
                     <div class="result-shot-ph"><strong>TensorBoard Placeholder</strong><span>screenshots/tensorboard-mujoco-earlyPPO.png</span></div>
                     <div class="result-shot-label">MuJoCo Early PPO</div>
                 </div>
-                <div class="result-shot">
+                <div class="photo-slot contain-slot result-shot">
                     <img src="screenshots/tensorboard-mujoco-horrible-PPO.png" alt="Poor MuJoCo PPO TensorBoard results" onerror="this.style.display='none'">
                     <div class="result-shot-ph"><strong>TensorBoard Placeholder</strong><span>screenshots/tensorboard-mujoco-horrible-PPO.png</span></div>
                     <div class="result-shot-label">MuJoCo Failed PPO</div>
                 </div>
-                <div class="result-shot">
+                <div class="photo-slot contain-slot result-shot">
                     <img src="screenshots/tensorboard-isaacsim-earlyPPO.png" alt="Isaac Sim early PPO TensorBoard results" onerror="this.style.display='none'">
                     <div class="result-shot-ph"><strong>TensorBoard Placeholder</strong><span>screenshots/tensorboard-isaacsim-earlyPPO.png</span></div>
                     <div class="result-shot-label">Isaac Sim Early PPO</div>
@@ -524,7 +524,7 @@
     </div>
 </footer>
 
-<script src="shared.js"></script>
+<script src="shared.js?v=20260603"></script>
 <script>
 // ── DOCK ──
 buildDock([
