@@ -12,6 +12,8 @@ __pycache__/
 *.pyo
 clustering/.venv/
 .vscode/
+.claude/
+superpowers/
 .DS_Store
 *.ply
 *.pcd

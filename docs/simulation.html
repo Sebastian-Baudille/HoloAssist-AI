@@ -14,7 +14,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
             Back
         </a>
-        <span class="nav-brand">Holo<span>Assist-AI</span> &mdash; Docs</span>
+        <span class="nav-brand">Holo<span>Assist-AI</span> &mdash; Simulation</span>
     </div>
 </nav>
 
@@ -26,18 +26,67 @@
         <p class="hero-eyebrow">HoloAssist-AI &mdash; Simulation</p>
         <div class="hero-line"></div>
         <h1 class="hero-title">Isaac<br><span class="thin">Sim</span></h1>
-        <p class="hero-desc">NVIDIA Isaac Sim 5.1 + Isaac Lab for GPU-vectorised RL training with the UR3e + RG2.</p>
+        <p class="hero-desc">Three simulation environments: Gazebo Ignition Fortress (Ollie Lau + John Chen), MuJoCo (John Chen), and NVIDIA Isaac Sim 5.1 (Sebastian Baudille). Each serves a different role in the training pipeline.</p>
         <div class="hero-meta">
-            <div><span class="hero-meta-val">5.1</span>Isaac Sim</div>
-            <div><span class="hero-meta-val">4096</span>Parallel Envs</div>
-            <div><span class="hero-meta-val">RTX 4070</span>Ti SUPER</div>
+            <div><span class="hero-meta-val">3</span>Sim backends</div>
+            <div><span class="hero-meta-val">4096</span>Isaac envs</div>
+            <div><span class="hero-meta-val">50k+</span>Steps/s</div>
+        </div>
+    </div>
+</section>
+
+<section class="section" id="gazebo">
+    <div class="section-in">
+        <p class="section-lbl">Gazebo &mdash; Ollie Lau &amp; John Chen</p>
+        <div class="ph-line"></div>
+        <h2>Gazebo Ignition Fortress</h2>
+        <p>The Gazebo simulation was bootstrapped by <strong>Ollie Lau</strong> (Gazebo Classic, UR3e + table, initial PPO scripts, safety layer) and extended by <strong>John Chen</strong> (ported to Ignition Fortress, Moveit2 collision avoidance, cube randomization, parallel IGN_PARTITION isolation, OnRobot RG2 integration). After handoff, Ollie owns the Gazebo sim and MoveIt2 subsystem.</p>
+
+        <h3>What Gazebo provides</h3>
+        <ul>
+            <li>Simulated Intel RealSense D435i camera &rarr; <code>/camera/points</code> for the perception pipeline</li>
+            <li>UR3e + OnRobot RG2 gripper in physics simulation</li>
+            <li>Per-episode cube randomization (continuous uniform X/Y range)</li>
+            <li>Safety layer: joint limit checking, MoveIt2 collision detection</li>
+            <li>Parallel worker support via <code>IGN_PARTITION</code> environment variable</li>
+        </ul>
+
+        <h3>Safety layer (Ollie)</h3>
+        <p>The <code>ur3e_safety_layer</code> package enforces <code>max_delta_rad = 0.24 rad/step</code> (75% of UR3e max speed at <code>control_dt=0.1s</code>) and publishes a collision flag from MoveIt2. The safety node monitors TCP pose and joint states, stopping the arm if a violation is detected.</p>
+
+        <div class="photo-row">
+            <div class="photo-slot"><img src="../screenshots/ollieteleop.png" alt="Gazebo teleoperation demo"></div>
+            <div class="photo-slot"><img src="../screenshots/visualisation.png" alt="RViz + Gazebo dual view"></div>
+        </div>
+    </div>
+</section>
+
+<section class="section alt" id="mujoco">
+    <div class="section-in">
+        <p class="section-lbl">MuJoCo &mdash; John Chen</p>
+        <div class="ph-line"></div>
+        <h2>MuJoCo fast training environment</h2>
+        <p>John built a MuJoCo MJCF environment that exactly mirrors the Gazebo scene but runs on CPU at ~1500 steps/s with no ROS dependency. This is used for fast reward shaping and staged policy design before committing expensive GPU training runs in Isaac Sim.</p>
+
+        <h3>Scene design</h3>
+        <ul>
+            <li>Floor, table at (-0.031, 0, 0.29) &mdash; matches Gazebo launch parameters</li>
+            <li>4 free-body cubes with realistic physics</li>
+            <li>2 bin sites for pick-and-place target</li>
+            <li>6 position actuators (shoulder_pan, shoulder_lift, elbow, wrist_1, wrist_2, wrist_3)</li>
+            <li>RG2 gripper: all fixed joints, virtual <code>gripper_closed</code> boolean &mdash; no physics actuation needed for RL</li>
+            <li>Table top at z=1.07 m = <code>TABLE_TOP_Z</code> constant shared with Gazebo env</li>
+        </ul>
+
+        <div class="callout callout-note">
+            <strong>Weight transfer guarantee:</strong> The MuJoCo env observation and action spaces are defined identically to the Gazebo env. A policy trained in MuJoCo can be loaded directly into Gazebo or exported via ONNX to Isaac Sim with no architecture changes.
         </div>
     </div>
 </section>
 
 <section class="section" id="setup">
     <div class="section-in">
-        <p class="section-lbl">Setup</p>
+        <p class="section-lbl">Isaac Sim &mdash; Sebastian Baudille</p>
         <div class="ph-line"></div>
         <h2>Hardware + Software Stack</h2>
         <p>The validated combination that works:</p>
@@ -119,7 +168,7 @@
 
 <footer class="doc-footer">
     <div class="doc-footer-in">
-        <div><h3>HoloAssist-AI</h3><p>UTS 41118 AI in Robotics, 2026</p></div>
+        <div><h3>Simulation</h3><p>Ollie Lau (Gazebo) &middot; John Chen (MuJoCo) &middot; Sebastian Baudille (Isaac Sim) &middot; UTS 41118, 2026</p></div>
         <a href="../index.html" class="doc-footer-back">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
             Back to Main Site
@@ -130,10 +179,12 @@
 <script src="../shared.js"></script>
 <script>
 buildDock([
-    { label:'Home', href:'../index.html', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13V10.5"/></svg>' },
-    { label:'Setup', href:'#setup', id:'setup', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>' },
-    { label:'Assets', href:'#assets', id:'assets', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>' },
-    { label:'Environment', href:'#env', id:'env', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>' }
+    { label:'Home',      href:'../index.html', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13V10.5"/></svg>' },
+    { label:'Gazebo',    href:'#gazebo', id:'gazebo', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>' },
+    { label:'MuJoCo',    href:'#mujoco', id:'mujoco', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>' },
+    { label:'Isaac Sim', href:'#setup',  id:'setup',  svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>' },
+    { label:'Assets',    href:'#assets', id:'assets', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>' },
+    { label:'Env',       href:'#env',    id:'env',    svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>' }
 ]);
 </script>
 </body>

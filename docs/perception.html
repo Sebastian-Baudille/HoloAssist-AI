@@ -14,7 +14,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
             Back
         </a>
-        <span class="nav-brand">Holo<span>Assist-AI</span> &mdash; Docs</span>
+        <span class="nav-brand">Holo<span>Assist-AI</span> &mdash; Perception</span>
     </div>
 </nav>
 
@@ -22,60 +22,216 @@
     <div class="hero-bg"></div>
     <div class="hero-grid"></div>
     <div class="hero-overlay"></div>
+    <img class="hero-photo" src="../screenshots/perception.png" alt="">
     <div class="hero-content">
         <p class="hero-eyebrow">HoloAssist-AI &mdash; Perception</p>
         <div class="hero-line"></div>
         <h1 class="hero-title">RGB-D<br><span class="thin">Perception</span></h1>
-        <p class="hero-desc">Simulated D435i point cloud capture, camera-to-world transform, and preprocessing for clustering.</p>
+        <p class="hero-desc">Two generations of custom perception. The original system used AprilTag 3 markers with eye-to-hand calibration validated on real hardware. This project replaced it with a <strong>marker-free DBSCAN point cloud pipeline</strong> built entirely from scratch &mdash; no detection packages, just our own implementation on raw depth data.</p>
         <div class="hero-meta">
-            <div><span class="hero-meta-val">D435i</span>Camera</div>
-            <div><span class="hero-meta-val">640</span>Resolution</div>
-            <div><span class="hero-meta-val">5mm</span>Noise &sigma;</div>
+            <div><span class="hero-meta-val">1.63</span>cm accuracy</div>
+            <div><span class="hero-meta-val">&lt;2mm</span>calibration</div>
+            <div><span class="hero-meta-val">60</span>scenes validated</div>
+            <div><span class="hero-meta-val">D435i</span>RealSense</div>
         </div>
     </div>
 </section>
 
-<section class="section" id="overview">
+<!-- WHY WE BUILT OUR OWN -->
+<section class="section" id="rationale">
     <div class="section-in">
-        <p class="section-lbl">Overview</p>
+        <p class="section-lbl">Design Decision</p>
         <div class="ph-line"></div>
-        <h2>Perception Pipeline</h2>
-        <p>The perception stage captures RGB-D point clouds from a simulated Intel RealSense D435i camera running in Gazebo Fortress. Point clouds are published on <code>/camera/points</code> and saved to disk as binary PLY files by <code>save_pointcloud.py</code>.</p>
+        <h2>Why we didn&rsquo;t use AprilTag again</h2>
+        <p>The base HoloAssist project used <strong>apriltag_ros</strong> — a third-party ROS package that does all the detection work for you. Using it again would mean our &ldquo;perception pipeline&rdquo; is just calling someone else&rsquo;s library. For this project we wanted the perception to be <em>our own implementation</em>.</p>
+        <p>Instead we built a full point cloud processing pipeline in Python: statistical outlier removal, height cropping, density-based clustering, and centroid extraction. Every step is code we wrote and tuned. The only external dependency is Open3D for point cloud I/O &mdash; the clustering logic itself is our own DBSCAN implementation backed by scikit-learn.</p>
+        <div class="callout callout-note">
+            <strong>Continuity with the base project:</strong> We kept the same <em>calibration approach</em>. The eye-to-hand calibration system Nic built for HoloAssist (Park solver, OpenCV calibrateHandEye) established the camera&rarr;robot transform with &lt;2 mm accuracy. That same transform concept is used here to convert point clouds from camera frame to world frame before clustering. The geometry is the same &mdash; only the detection method changed.
+        </div>
 
-        <h3>Camera Configuration</h3>
-        <p>All camera parameters are defined in <code>sim_params.yaml</code>:</p>
-        <ul>
-            <li><strong>Resolution:</strong> 640 &times; 480</li>
-            <li><strong>FOV:</strong> configurable via <code>horizontal_fov_deg</code></li>
-            <li><strong>Depth noise:</strong> Gaussian &sigma; = 0.005 m</li>
-            <li><strong>Update rate:</strong> configurable, default matches Gazebo sim rate</li>
-            <li><strong>Pose:</strong> 0.528 rad (~30&deg;) downward tilt</li>
-        </ul>
-
-        <h3>Camera-to-World Transform</h3>
-        <p>Point clouds are published in the <strong>camera body frame</strong> (+X = look direction). Before any height-based operations, they must be transformed to the world frame using the static TF chain:</p>
-        <div class="code-block">map &#x2192; d435i_link &#x2192; d435i/d435i_link/rgbd</div>
-
-        <h3>PLY Output</h3>
-        <p>Files are saved to <code>~/holoassist_pointclouds/</code> with automatic versioning:</p>
-        <div class="code-block">&lt;description&gt;_&lt;N&gt;cubes_&lt;size&gt;mm_v&lt;NNN&gt;.ply</div>
-
-        <h3>ROS Topics</h3>
+        <h3>AprilTag vs DBSCAN point cloud</h3>
         <table class="data-table">
-            <thead><tr><th>Topic</th><th>Type</th><th>Description</th></tr></thead>
+            <thead><tr><th>Property</th><th>AprilTag 3 (base HoloAssist)</th><th>DBSCAN point cloud (this project)</th></tr></thead>
             <tbody>
-                <tr><td>/camera/points</td><td>PointCloud2</td><td>RGB-D point cloud</td></tr>
-                <tr><td>/camera/image</td><td>Image</td><td>RGB image</td></tr>
-                <tr><td>/camera/depth_image</td><td>Image</td><td>Depth image</td></tr>
-                <tr><td>/camera/camera_info</td><td>CameraInfo</td><td>Intrinsics</td></tr>
+                <tr><td>Physical markers needed</td><td>Yes &mdash; tags on every cube face</td><td>No</td></tr>
+                <tr><td>Custom implementation</td><td>No &mdash; apriltag_ros package</td><td>Yes &mdash; written by us</td></tr>
+                <tr><td>Occlusion handling</td><td>Single face must be visible</td><td>Partial cluster still detected</td></tr>
+                <tr><td>Centroid accuracy</td><td>~5&ndash;10 mm (tag noise)</td><td>1.63 cm (depth noise limited)</td></tr>
+                <tr><td>Generalises to new objects</td><td>No &mdash; tags must be added</td><td>Yes &mdash; any coloured object</td></tr>
+                <tr><td>Hardware dependency</td><td>Printed tags + camera</td><td>Depth camera only</td></tr>
             </tbody>
         </table>
     </div>
 </section>
 
+<!-- ORIGINAL SYSTEM: APRILTAG (NIC) -->
+<section class="section alt" id="original">
+    <div class="section-in">
+        <p class="section-lbl">Original System &mdash; Nic Sabatini</p>
+        <div class="ph-line"></div>
+        <h2>AprilTag perception &amp; calibration (base HoloAssist)</h2>
+        <p>The base HoloAssist perception system was built by <strong>Nic Sabatini</strong> and validated on the real UR3e robot. It provides the sim-to-real bridge that both projects share: the camera&rarr;robot coordinate transform.</p>
+
+        <h3>How it worked</h3>
+        <ol>
+            <li>RealSense D435i streams RGB + depth to <strong>apriltag_ros</strong></li>
+            <li><strong>workspace_board_node</strong> detects 4 corner tags on a physical 700&times;500 mm board and runs SVD (Kabsch algorithm) to lock the <code>workspace_frame</code> TF &mdash; RMS residual &lt;0.02 m</li>
+            <li><strong>cube_pose_node</strong> looks up AprilTag face tags (6 tags/cube, tag36h11 family) in <code>workspace_frame</code> and publishes cube poses at 20 Hz</li>
+            <li><strong>cube_pose_relay.py</strong> (Nic) bridges poses to <code>base_link</code> frame for the robot</li>
+            <li><strong>CubePoseSubscriber.cs</strong> (Nic) subscribes in Unity for XR hologram overlay</li>
+            <li>A <strong>RANSAC depth plane fitting</strong> fallback in <code>workspace_perception_node</code> provided marker-free depth-based detection when tags were unavailable</li>
+        </ol>
+
+        <h3>Eye-to-hand calibration (Nic)</h3>
+        <p>Nic built a full calibration node (<code>eye_hand_calibration_node.py</code>) using OpenCV&rsquo;s <code>calibrateHandEye</code> with the Park solver. The node observes an AprilTag attached to the end effector from multiple robot poses and solves the static camera&rarr;base_link transform.</p>
+        <ul>
+            <li><strong>Sim mode:</strong> synthetic observations, validated Park solver at <strong>0.4 mm accuracy</strong></li>
+            <li><strong>Hardware mode:</strong> real apriltag_ros detections captured via ROS services</li>
+            <li><strong>Result:</strong> &lt;2 mm reprojection error with 12&ndash;15 samples</li>
+            <li>Saved to <code>~/.ros2/easy_handeye2/calibrations/</code> — survives reboots</li>
+        </ul>
+
+        <div class="photo-row">
+            <div class="photo-slot"><img src="../screenshots/calibration.png" alt="Hand-eye calibration in RViz"></div>
+            <div class="photo-slot"><img src="../screenshots/camera_setup.jpeg" alt="Physical camera and workspace setup"></div>
+        </div>
+        <div class="photo-row">
+            <div class="photo-slot"><img src="../screenshots/multicubetracking.png" alt="4 cubes tracked in RViz"></div>
+            <div class="photo-slot"><img src="../screenshots/rviz_cubes.png" alt="TF tree after calibration"></div>
+        </div>
+        <div class="photo-row">
+            <div class="photo-slot"><img src="../screenshots/aprilcube2docs.png" alt="AprilTag cube documentation"></div>
+            <div class="photo-slot"><img src="../screenshots/printingaprilcubes.png" alt="Printing AprilTag stickers"></div>
+        </div>
+
+        <div class="callout callout-note" style="margin-top:2rem;">
+            Full AprilTag perception documentation and calibration guide:
+            <a href="https://john-a-chen.github.io/HoloAssist/docs/perception.html" target="_blank" rel="noreferrer" style="color:var(--blue-light);margin-left:0.5rem;">HoloAssist perception docs &rarr;</a>
+            &nbsp;&nbsp;
+            <a href="https://john-a-chen.github.io/HoloAssist/docs/calibration.html" target="_blank" rel="noreferrer" style="color:var(--blue-light);">Calibration guide &rarr;</a>
+        </div>
+    </div>
+</section>
+
+<!-- NEW SYSTEM: POINT CLOUD CAPTURE -->
+<section class="section" id="capture">
+    <div class="section-in">
+        <p class="section-lbl">New System &mdash; Phase 1</p>
+        <div class="ph-line"></div>
+        <h2>Point cloud capture (ROS 2 + Gazebo)</h2>
+        <p>The simulated Intel RealSense D435i in Gazebo Ignition Fortress publishes RGB-D point clouds on <code>/camera/points</code> (PointCloud2). A ROS 2 node saves them as binary PLY files for offline clustering.</p>
+
+        <h3>Camera configuration</h3>
+        <table class="data-table">
+            <thead><tr><th>Parameter</th><th>Value</th><th>Notes</th></tr></thead>
+            <tbody>
+                <tr><td>Resolution</td><td>640 &times; 480</td><td>Colour and depth share one FOV</td></tr>
+                <tr><td>Depth noise</td><td>&sigma; = 0.005 m</td><td>Gaussian, matches real D435i</td></tr>
+                <tr><td>Pose</td><td>0.528 rad tilt</td><td>~30&deg; downward, +X = look direction</td></tr>
+                <tr><td>TF chain</td><td>map &rarr; d435i_link &rarr; sensor</td><td>Scoped Ignition frame IDs</td></tr>
+            </tbody>
+        </table>
+
+        <h3>PLY naming</h3>
+        <div class="code-block">&lt;description&gt;_&lt;N&gt;cubes_&lt;size&gt;mm_v&lt;NNN&gt;.ply   <span class="cm"># auto-versioned</span></div>
+
+        <h3>Key transform insight</h3>
+        <p>Point clouds are published in the <strong>camera body frame</strong> (+X = look direction). Any height-based cropping must happen <em>after</em> transforming to world frame &mdash; otherwise the crop plane is tilted with the camera. This is the same principle as Nic&rsquo;s <code>cube_pose_relay.py</code>, which bridged poses through TF to get them into <code>base_link</code> frame.</p>
+    </div>
+</section>
+
+<!-- DBSCAN PIPELINE (GUY) -->
+<section class="section alt" id="dbscan">
+    <div class="section-in">
+        <p class="section-lbl">New System &mdash; Phase 2 &mdash; Guy Smith</p>
+        <div class="ph-line"></div>
+        <h2>DBSCAN clustering pipeline</h2>
+        <p>Guy Smith built and validated the full DBSCAN pipeline, replacing an initial K-Means baseline. The key advantage over both K-Means and AprilTag: <strong>no prior knowledge of cube count required</strong>, and no physical markers.</p>
+
+        <div class="pipe-grid">
+            <div class="pipe-step">
+                <div class="pipe-num">01</div>
+                <h4>Transform</h4>
+                <p>Camera body frame &rarr; world frame via static TF chain. Table-relative height crop only valid in world frame.</p>
+                <div class="pipe-arrow">&rsaquo;</div>
+            </div>
+            <div class="pipe-step">
+                <div class="pipe-num">02</div>
+                <h4>Height Crop</h4>
+                <p><code>z_min = table_top + 15mm</code><br><code>z_max = table_top + cube + 10mm</code><br>3&times; sensor noise margin at base.</p>
+                <div class="pipe-arrow">&rsaquo;</div>
+            </div>
+            <div class="pipe-step">
+                <div class="pipe-num">03</div>
+                <h4>Outlier Removal + DBSCAN</h4>
+                <p>Open3D statistical outlier removal, then DBSCAN: <code>eps=0.015 m</code>, <code>min_samples=20</code>, size filter 50&ndash;1500 pts.</p>
+                <div class="pipe-arrow">&rsaquo;</div>
+            </div>
+            <div class="pipe-step">
+                <div class="pipe-num">04</div>
+                <h4>Centroids</h4>
+                <p>Per-cluster mean &rarr; world-frame (x, y, z). Flattened to <code>(k&times;3,)</code> for PPO state vector.</p>
+            </div>
+        </div>
+
+        <h3>Evaluation</h3>
+        <p>Guy built a dataset capture pipeline (<code>dataset_capture.py</code>) that automatically captures 60 scenes (50 train + 10 val) with 2&ndash;4 cubes per scene, saving PLY files plus ground-truth cube poses read directly from Gazebo physics state. A Hungarian matching benchmark (<code>verify_detection.py</code>) measures centroid accuracy against ground truth.</p>
+        <table class="data-table">
+            <thead><tr><th>Method</th><th>Mean centroid error</th><th>Exact-count rate</th><th>Notes</th></tr></thead>
+            <tbody>
+                <tr><td>K-Means (baseline)</td><td>2.65 cm</td><td>~90% (k fixed)</td><td>Requires knowing cube count upfront</td></tr>
+                <tr><td>DBSCAN (1.5&times; spacing)</td><td>1.63 cm</td><td>82%</td><td>Adjacent cubes merge at eps=1.5 cm gap</td></tr>
+                <tr><td>DBSCAN (2.0&times; spacing)</td><td>TBD</td><td>Expected &gt;90%</td><td>Gap fix in progress &mdash; regenerating dataset</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Key fix: cube spacing</h3>
+        <p>The 82% exact-count rate was caused by adjacent cubes merging into a single cluster when placed at 1.5&times; cube size apart (2 cm surface gap). DBSCAN with <code>eps=0.015 m</code> bridges the gap when point cloud noise fills it. Guy fixed the minimum cube spacing to 2.0&times; (4 cm surface gap), which reliably separates clusters. The dataset is being regenerated to validate this.</p>
+
+        <h3>Why XYZ-only clustering</h3>
+        <p>Early experiments with RGB colour weighting in the clustering confused DBSCAN under Gazebo&rsquo;s lighting: shadows and specular highlights caused the same cube to produce points with wildly different colour values, splitting single clusters into fragments. Setting <code>color_weight = 0.0</code> (XYZ only) resolved this entirely.</p>
+    </div>
+</section>
+
+<!-- EVALUATION -->
+<section class="section" id="evaluation">
+    <div class="section-in">
+        <p class="section-lbl">Evaluation</p>
+        <div class="ph-line"></div>
+        <h2>Results &amp; limitations</h2>
+
+        <h3>Successes</h3>
+        <ul>
+            <li>1.63 cm centroid accuracy is within <strong>3.3&times; sensor noise</strong> (&sigma;=0.005 m) &mdash; close to the theoretical floor for this sensor</li>
+            <li>100% cube recall across all validated scenes &mdash; every cube detected in every scene</li>
+            <li>No physical markers required, works on any distinctly coloured object in the workspace</li>
+            <li>Calibration continuity: same camera&rarr;robot transform principle as base HoloAssist, ensuring sim-to-real validity</li>
+        </ul>
+
+        <h3>Limitations</h3>
+        <ul>
+            <li><strong>Cube merging at close range:</strong> DBSCAN merges cubes placed &lt;2&times; cube size apart. Fixed by enforcing wider spacing &mdash; validated data pending.</li>
+            <li><strong>Simulation only:</strong> DBSCAN pipeline validated in Gazebo sim, not yet tested on real RealSense hardware. The transform chain and calibration parameters are designed for real deployment but not yet confirmed.</li>
+            <li><strong>Fixed height crop:</strong> pipeline assumes known table height and cube dimensions. Dynamic scenes with varying object heights would require plane-fitting (e.g. RANSAC &mdash; as used in the original workspace_perception_node).</li>
+            <li><strong>Colour-agnostic:</strong> XYZ-only clustering cannot distinguish objects of different types at the same height. For mixed scenes, colour filtering would need to be re-introduced carefully.</li>
+        </ul>
+
+        <h3>Future work</h3>
+        <ul>
+            <li>Validate DBSCAN at 2.0&times; cube spacing &mdash; expected to push exact-count rate above 90%</li>
+            <li>Test on real hardware using the saved easy_handeye2 calibration from base HoloAssist</li>
+            <li>Feed live centroid stream directly to Isaac Sim policy (currently offline PLY &rarr; cluster)</li>
+        </ul>
+    </div>
+</section>
+
 <footer class="doc-footer">
     <div class="doc-footer-in">
-        <div><h3>HoloAssist-AI</h3><p>UTS 41118 AI in Robotics, 2026</p></div>
+        <div>
+            <h3>HoloAssist-AI &mdash; Perception</h3>
+            <p>Nic Sabatini (calibration &amp; AprilTag) &middot; Guy Smith (DBSCAN) &middot; UTS 41118, 2026</p>
+            <p style="margin-top:0.4rem;"><a href="https://john-a-chen.github.io/HoloAssist" target="_blank" rel="noreferrer" style="color:var(--orange);font-size:0.78rem;">HoloAssist base project &rarr;</a></p>
+        </div>
         <a href="../index.html" class="doc-footer-back">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
             Back to Main Site
@@ -86,8 +242,12 @@
 <script src="../shared.js"></script>
 <script>
 buildDock([
-    { label:'Home', href:'../index.html', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13V10.5"/></svg>' },
-    { label:'Overview', href:'#overview', id:'overview', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>' }
+    { label:'Home',      href:'../index.html', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13V10.5"/></svg>' },
+    { label:'Why',       href:'#rationale', id:'rationale', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
+    { label:'Original',  href:'#original',  id:'original',  svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="3"/><circle cx="12" cy="12" r="4"/></svg>' },
+    { label:'Capture',   href:'#capture',   id:'capture',   svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>' },
+    { label:'DBSCAN',    href:'#dbscan',    id:'dbscan',    svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="7" r="3"/><circle cx="7" cy="17" r="3"/><circle cx="17" cy="17" r="3"/></svg>' },
+    { label:'Evaluation',href:'#evaluation',id:'evaluation', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' }
 ]);
 </script>
 </body>

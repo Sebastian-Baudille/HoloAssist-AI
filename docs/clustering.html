@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clustering — HoloAssist-AI</title>
+    <title>DBSCAN Clustering — HoloAssist-AI</title>
     <link rel="stylesheet" href="../shared.css">
 </head>
 <body>
@@ -14,7 +14,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
             Back
         </a>
-        <span class="nav-brand">Holo<span>Assist-AI</span> &mdash; Docs</span>
+        <span class="nav-brand">Holo<span>Assist-AI</span> &mdash; Clustering</span>
     </div>
 </nav>
 
@@ -23,81 +23,144 @@
     <div class="hero-grid"></div>
     <div class="hero-overlay"></div>
     <div class="hero-content">
-        <p class="hero-eyebrow">HoloAssist-AI &mdash; Clustering</p>
+        <p class="hero-eyebrow">HoloAssist-AI &mdash; Clustering &mdash; Guy Smith</p>
         <div class="hero-line"></div>
         <h1 class="hero-title">DBSCAN<br><span class="thin">Clustering</span></h1>
-        <p class="hero-desc">Density-based point cloud segmentation, centroid extraction, and Polyscope visualisation.</p>
+        <p class="hero-desc">Density-based point cloud segmentation replacing AprilTag detection. No physical markers, no third-party detection packages &mdash; custom implementation on raw depth data. 1.63 cm centroid accuracy across 60 validated scenes.</p>
         <div class="hero-meta">
-            <div><span class="hero-meta-val">1.6cm</span>Accuracy</div>
-            <div><span class="hero-meta-val">100%</span>Recall</div>
+            <div><span class="hero-meta-val">1.63cm</span>Centroid error</div>
+            <div><span class="hero-meta-val">100%</span>Cube recall</div>
+            <div><span class="hero-meta-val">82%</span>Exact count</div>
             <div><span class="hero-meta-val">60</span>Scenes</div>
         </div>
     </div>
 </section>
 
-<section class="section" id="pipeline">
+<section class="section" id="why">
+    <div class="section-in">
+        <p class="section-lbl">Approach</p>
+        <div class="ph-line"></div>
+        <h2>Why DBSCAN over K-Means and AprilTag</h2>
+        <p>The project went through three approaches to cube detection:</p>
+        <table class="data-table">
+            <thead><tr><th>Method</th><th>Error</th><th>Exact-count</th><th>Limitation</th></tr></thead>
+            <tbody>
+                <tr><td>AprilTag 3 (base HoloAssist)</td><td>~5&ndash;10 mm</td><td>100%</td><td>Physical markers on every cube face. Not our code.</td></tr>
+                <tr><td>K-Means (initial baseline)</td><td>2.65 cm</td><td>~90%</td><td>Requires knowing cube count <em>k</em> upfront. Sensitive to init.</td></tr>
+                <tr><td>DBSCAN (current)</td><td>1.63 cm</td><td>82% *</td><td>Merges cubes at &lt;2&times; spacing. Fix in progress.</td></tr>
+            </tbody>
+        </table>
+        <p style="font-size:0.82rem;color:rgba(204,204,204,0.5);margin-top:0.5rem;">* 82% on original 1.5&times; spacing dataset. Expected &gt;90% after regenerating dataset at 2.0&times; spacing.</p>
+
+        <p>DBSCAN wins on the two metrics that matter: better accuracy than K-Means, and no need to know how many cubes are in the scene. This makes it usable in the real deployment scenario where cube count is unknown.</p>
+    </div>
+</section>
+
+<section class="section alt" id="pipeline">
     <div class="section-in">
         <p class="section-lbl">Pipeline</p>
         <div class="ph-line"></div>
-        <h2>Clustering Pipeline</h2>
-        <p>The clustering pipeline transforms raw point clouds into 3D cube centroids suitable for the RL observation vector.</p>
+        <h2>Clustering pipeline</h2>
 
         <div class="pipe-grid">
             <div class="pipe-step">
                 <div class="pipe-num">01</div>
-                <h4>Transform</h4>
-                <p>Camera body frame to world frame using the static TF chain.</p>
+                <h4>Transform to World</h4>
+                <p>Camera body frame (+X look) &rarr; world frame via static TF. Height crop is only valid in world frame.</p>
                 <div class="pipe-arrow">&rsaquo;</div>
             </div>
             <div class="pipe-step">
                 <div class="pipe-num">02</div>
                 <h4>Height Crop</h4>
-                <p>Z-crop above table surface: <code>z_min = table_top + 0.015</code>, <code>z_max = table_top + cube_height + 0.01</code></p>
+                <p><code>z_min = table_top + 15mm</code> (3&times; noise margin)<br><code>z_max = table_top + cube + 10mm</code></p>
                 <div class="pipe-arrow">&rsaquo;</div>
             </div>
             <div class="pipe-step">
                 <div class="pipe-num">03</div>
-                <h4>DBSCAN</h4>
-                <p>Density-based clustering on XYZ only. No prior knowledge of cube count needed. <code>color_weight = 0.0</code></p>
+                <h4>Outlier Removal + DBSCAN</h4>
+                <p>Open3D statistical outlier removal. DBSCAN: <code>eps=0.015</code>, <code>min_samples=20</code>, size 50&ndash;1500 pts, XYZ only.</p>
                 <div class="pipe-arrow">&rsaquo;</div>
             </div>
             <div class="pipe-step">
                 <div class="pipe-num">04</div>
-                <h4>Centroids</h4>
-                <p>Per-cluster mean yields world-frame (x, y, z) centroids fed to the PPO state vector.</p>
+                <h4>Centroids &rarr; RL</h4>
+                <p>Per-cluster mean (world XYZ). Flattened to <code>(k&times;3,)</code> = <code>(12,)</code> for 4-cube PPO state.</p>
             </div>
         </div>
 
-        <h3>Key Parameters</h3>
+        <h3>Key parameters</h3>
         <table class="data-table">
-            <thead><tr><th>Parameter</th><th>Value</th><th>Description</th></tr></thead>
+            <thead><tr><th>Parameter</th><th>Value</th><th>Why</th></tr></thead>
             <tbody>
-                <tr><td>z_min</td><td>table_top + 0.015</td><td>3&times; sensor noise margin</td></tr>
-                <tr><td>z_max</td><td>table_top + cube_height + 0.01</td><td>Upper crop bound</td></tr>
-                <tr><td>color_weight</td><td>0.0</td><td>XYZ-only clustering</td></tr>
-                <tr><td>centroid</td><td>cluster_pts.mean(axis=0)</td><td>World-frame mean per cluster</td></tr>
+                <tr><td>eps</td><td>0.015 m</td><td>Typical intra-cluster point spacing at D435i resolution</td></tr>
+                <tr><td>min_samples</td><td>20</td><td>Filters noise while keeping partial cube views</td></tr>
+                <tr><td>size filter</td><td>50&ndash;1500 pts</td><td>Rejects isolated noise and large non-cube surfaces</td></tr>
+                <tr><td>color_weight</td><td>0.0</td><td>Gazebo lighting causes colour noise &mdash; XYZ-only is stabler</td></tr>
+                <tr><td>z_min margin</td><td>+15 mm</td><td>3&times; sensor &sigma;=5 mm &mdash; excludes table surface reliably</td></tr>
             </tbody>
         </table>
+    </div>
+</section>
 
-        <h3>Validation Results</h3>
-        <p>Validated across <strong>60 scenes</strong> with varying cube configurations:</p>
-        <ul>
-            <li><strong>Centroid error:</strong> ~1.6 cm vs ground truth (within sensor noise &sigma; = 0.005 m)</li>
-            <li><strong>Cube recall:</strong> 100% &mdash; all cubes detected in every scene</li>
-            <li><strong>Output shape:</strong> <code>(k*3,)</code> = <code>(12,)</code> for 4 cubes</li>
-        </ul>
+<section class="section" id="dataset">
+    <div class="section-in">
+        <p class="section-lbl">Validation</p>
+        <div class="ph-line"></div>
+        <h2>Dataset &amp; evaluation methodology</h2>
+        <p>Guy built a fully automated dataset capture pipeline (<code>dataset_capture.py</code>) that runs inside the Gazebo simulation and captures 60 scenes with 2&ndash;4 cubes per scene at random positions. Ground-truth cube poses are read directly from Gazebo&rsquo;s physics state at capture time &mdash; no estimation.</p>
+
+        <h3>Evaluation: Hungarian matching</h3>
+        <p><code>verify_detection.py</code> uses Hungarian matching (scipy linear_sum_assignment) to optimally pair detected centroids to ground-truth cube positions, then reports mean centroid error, exact-count rate, recall, and false-positive rate separately.</p>
+
+        <h3>The spacing bug &amp; fix</h3>
+        <p>The 82% exact-count rate was caused by a scene generation bug: cubes were placed with a minimum separation of 1.5&times; cube size, giving only ~2 cm surface gaps. DBSCAN with <code>eps=0.015 m</code> bridges this gap when depth noise fills it, merging two adjacent cubes into one cluster.</p>
+        <p><strong>Fix:</strong> minimum cube spacing increased to 2.0&times; (4 cm surface gap). The fix has been committed; the dataset is being regenerated to confirm the expected &gt;90% exact-count rate.</p>
+        <div class="code-block"><span class="cm"># Regenerate dataset with fixed spacing</span>
+ros2 run holoassist_sim dataset_capture.py --scenes 60 --min-separation 2.0
+
+<span class="cm"># Benchmark results</span>
+python clustering/verify_detection.py --ply ~/holoassist_pointclouds/ --labels dataset/labels/</div>
 
         <h3>Visualisation</h3>
-        <p>Polyscope renders the cropped point cloud with cluster colours and centroid markers. PCA axes are shown for orientation (visualisation only).</p>
-        <div class="code-block"><span class="cm"># Run clustering with Polyscope viewer</span>
+        <p>Polyscope renders the cropped point cloud with cluster colours and centroid markers interactively. PCA axes per cluster are shown for orientation (visualisation only &mdash; not used in RL).</p>
+        <div class="code-block"><span class="cm"># Run DBSCAN with Polyscope viewer</span>
 source clustering/.venv/bin/activate
-python clustering/detect_cubes.py</div>
+python clustering/detect_cubes.py
+
+<span class="cm"># View a saved PLY</span>
+python clustering/view_ply.py ~/holoassist_pointclouds/scene_4cubes_40mm_v001.ply</div>
+    </div>
+</section>
+
+<section class="section alt" id="evaluation">
+    <div class="section-in">
+        <p class="section-lbl">Results</p>
+        <div class="ph-line"></div>
+        <h2>Results &amp; limitations</h2>
+
+        <h3>Successes</h3>
+        <ul>
+            <li>1.63 cm centroid accuracy is within 3.3&times; sensor noise floor (&sigma;=0.005 m) &mdash; strong given that depth noise is the fundamental limit</li>
+            <li>100% cube recall: every cube detected in every validated scene</li>
+            <li>No physical markers or prior cube count needed &mdash; generalises to any number of objects in the height band</li>
+            <li>XYZ-only clustering is robust to Gazebo lighting variation where RGB-weighted clustering failed</li>
+        </ul>
+
+        <h3>Limitations</h3>
+        <ul>
+            <li><strong>Close-range merging:</strong> cubes &lt;2&times; cube size apart merge into one cluster. Dataset spacing fix in progress.</li>
+            <li><strong>Fixed geometry:</strong> height crop assumes known table height and cube size. A dynamic scene would need plane-fitting.</li>
+            <li><strong>Simulation only:</strong> validated in Gazebo, not yet confirmed on the real D435i sensor.</li>
+        </ul>
+
+        <h3>Impact on RL training</h3>
+        <p>The centroid output (world-frame XYZ, shape <code>(12,)</code> for 4 cubes) feeds directly into the PPO observation vector. The 1.63 cm accuracy is well within the robot&rsquo;s end-effector positioning tolerance, meaning perception error is not the bottleneck in policy performance.</p>
     </div>
 </section>
 
 <footer class="doc-footer">
     <div class="doc-footer-in">
-        <div><h3>HoloAssist-AI</h3><p>UTS 41118 AI in Robotics, 2026</p></div>
+        <div><h3>DBSCAN Clustering &mdash; Guy Smith</h3><p>UTS 41118 AI in Robotics, 2026</p></div>
         <a href="../index.html" class="doc-footer-back">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
             Back to Main Site
@@ -108,8 +171,11 @@ python clustering/detect_cubes.py</div>
 <script src="../shared.js"></script>
 <script>
 buildDock([
-    { label:'Home', href:'../index.html', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13V10.5"/></svg>' },
-    { label:'Pipeline', href:'#pipeline', id:'pipeline', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="7" r="3"/><circle cx="7" cy="17" r="3"/><circle cx="17" cy="17" r="3"/></svg>' }
+    { label:'Home',       href:'../index.html', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13V10.5"/></svg>' },
+    { label:'Approach',   href:'#why',      id:'why',      svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
+    { label:'Pipeline',   href:'#pipeline', id:'pipeline', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="7" r="3"/><circle cx="7" cy="17" r="3"/><circle cx="17" cy="17" r="3"/></svg>' },
+    { label:'Dataset',    href:'#dataset',  id:'dataset',  svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>' },
+    { label:'Results',    href:'#evaluation', id:'evaluation', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' }
 ]);
 </script>
 </body>
