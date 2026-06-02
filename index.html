@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HoloAssist-AI — Perception + Reinforcement Learning for Robotic Grasping</title>
+    <link rel="icon" href="screenshots/logo.png">
+    <link rel="stylesheet" href="shared.css">
+    <style>
+        /* ── INDEX PAGE OVERRIDES + UNIQUE STYLES ── */
+
+        html {
+            scroll-snap-type: y mandatory;
+            height: 100%;
+        }
+        body { height: 100%; }
+
+        /* Dock larger on main page */
+        .di { --sz: 80px; }
+        .di-icon { width: 2rem; height: 2rem; }
+        @media (max-width: 768px) { .di { --sz: 52px; } .di-icon { width: 1.35rem; height: 1.35rem; } }
+
+        /* ── SECTIONS ── */
+        .page { scroll-snap-align: start; min-height: 100vh; position: relative; }
+        .pi { padding: 4rem 4rem 4rem 9.5rem; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; }
+        .ph { margin-bottom: 2.25rem; }
+        .ph h2 { font-size: 2.6rem; font-weight: 700; color: var(--light); letter-spacing: -0.5px; margin-bottom: 0.35rem; }
+        .ph p  { color: var(--body); font-size: 1rem; }
+
+        /* ── HERO ── */
+        .hero {
+            scroll-snap-align: start; min-height: 100vh;
+            background: var(--darker); position: relative;
+            display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden;
+        }
+        .hero-bg {
+            position: absolute; inset: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 60% 40%, rgba(255,102,0,0.12) 0%, transparent 60%),
+                radial-gradient(ellipse 50% 50% at 20% 70%, rgba(51,187,255,0.07) 0%, transparent 50%),
+                linear-gradient(160deg, #111111 0%, #1a1a1a 40%, #111111 100%);
+        }
+        .hero-grid {
+            position: absolute; inset: 0; opacity: 0.07;
+            background-image: linear-gradient(rgba(255,255,255,1) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+        .hero-orb {
+            position: absolute; width: 700px; height: 700px;
+            background: radial-gradient(circle, rgba(255,102,0,0.13) 0%, rgba(51,187,255,0.06) 50%, transparent 70%);
+            border-radius: 50%; top: 50%; right: 4%; transform: translateY(-50%); pointer-events: none;
+        }
+        .hero-overlay {
+            position: absolute; inset: 0;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.44) 60%, rgba(0,0,0,0.92) 100%);
+        }
+        .hero-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.3; }
+        .hero-content { position: relative; z-index: 2; padding: 0 4rem 4.5rem 9.5rem; max-width: 860px; }
+        .hero-eyebrow { font-size: 0.68rem; letter-spacing: 3px; text-transform: uppercase; color: var(--orange); margin-bottom: 0.75rem; font-weight: 600; }
+        .hero-title { font-size: clamp(3rem, 6vw, 5.2rem); font-weight: 700; color: var(--light); line-height: 1.05; margin-bottom: 1.3rem; letter-spacing: -1.5px; }
+        .hero-title span { color: var(--blue-light); }
+        .hero-desc { font-size: 1.1rem; color: var(--body); max-width: 600px; margin-bottom: 2.5rem; line-height: 1.75; }
+        .hero-cta { display: flex; gap: 1rem; flex-wrap: wrap; }
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 26px; font-size: 0.88rem; font-weight: 600; letter-spacing: 0.3px; text-decoration: none; border-radius: 4px; transition: all 0.2s; border: none; cursor: pointer; }
+        .btn-p { background: var(--blue); color: white; box-shadow: 0 4px 22px rgba(51,187,255,0.35); }
+        .btn-p:hover { background: #22aaee; box-shadow: 0 4px 32px rgba(51,187,255,0.55); }
+        .btn-o { background: transparent; color: var(--light); border: 1px solid rgba(255,255,255,0.28); }
+        .btn-o:hover { border-color: rgba(255,255,255,0.55); }
+        .hero-strip { position: relative; z-index: 2; display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid rgba(255,102,0,0.25); }
+        .hs-item { padding: 2.4rem 2rem 2.4rem 2.5rem; display: flex; align-items: center; text-decoration: none; border-left: 1px solid rgba(255,102,0,0.18); transition: background 0.2s; }
+        .hs-item:first-child { border-left: none; padding-left: 9.5rem; }
+        .hs-item:hover { background: rgba(255,102,0,0.07); }
+        .hs-item h3 { font-size: 0.88rem; font-weight: 600; color: var(--light); }
+        .hs-item p  { font-size: 0.78rem; color: var(--orange); margin-top: 2px; }
+
+        /* ── STATUS ── */
+        .page-status .pi { background: var(--steel); }
+        .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: rgba(255,102,0,0.1); border: 1px solid rgba(255,102,0,0.1); }
+        .feat-item { background: #1a1a1a; padding: 1rem 1.4rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; transition: background 0.15s; }
+        .feat-item:hover { background: rgba(51,187,255,0.05); }
+        .feat-name { font-size: 0.94rem; font-weight: 500; color: var(--body); }
+
+        /* ── SUBSYSTEM SLIDES ── */
+        .sub-slide { scroll-snap-align: start; min-height: 100vh; position: relative; overflow: hidden; }
+        .sc-bg { position: absolute; inset: 0; background-size: cover; background-position: center; transition: transform 0.7s ease; }
+        .sub-slide:hover .sc-bg { transform: scale(1.03); }
+        .s-perc .sc-bg { background-color: #0f1826; background-image: url('screenshots/perception.png'); }
+        .s-clus .sc-bg { background-color: #0a1910; background-image: url('screenshots/clustering.png'); }
+        .s-rl   .sc-bg { background-color: #111118; background-image: url('screenshots/training.png'); }
+        .s-sim  .sc-bg { background-color: #0e0e18; background-image: url('screenshots/isaacsim.png'); }
+        .sc-overlay { position: absolute; inset: 0; background: linear-gradient(to right, rgba(0,0,0,.88) 0%, rgba(0,0,0,.6) 55%, rgba(0,0,0,.22) 100%); }
+        .sc-gif { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.45s ease; pointer-events: none; }
+        .sub-slide:hover .sc-gif { opacity: 0.8; }
+        .slide-body { position: absolute; inset: 0; padding: 2.5rem 5rem 5rem 9.5rem; display: flex; flex-direction: column; justify-content: space-between; z-index: 2; }
+        .slide-top { display: flex; align-items: center; }
+        .slide-num { font-size: 0.6rem; letter-spacing: 3px; text-transform: uppercase; color: rgba(255,255,255,.22); }
+        .slide-docs { display: inline-flex; align-items: center; gap: 9px; font-size: 0.92rem; font-weight: 700; letter-spacing: 0.3px; color: var(--light); text-decoration: none; background: rgba(255,102,0,0.14); border: 1px solid rgba(255,102,0,.5); padding: 12px 26px; border-radius: 6px; backdrop-filter: blur(10px); transition: background 0.2s, border-color 0.2s, color 0.2s; }
+        .slide-docs svg { flex-shrink: 0; transition: transform 0.2s; }
+        .slide-docs:hover { background: var(--orange); color: #0e0800; border-color: var(--orange); }
+        .slide-docs:hover svg { transform: translateX(3px); }
+        .slide-right { display: flex; flex-direction: column; align-items: flex-end; gap: 0.9rem; flex-shrink: 0; }
+        .slide-mid { max-width: 660px; }
+        .slide-icon { width: 54px; height: 54px; margin-bottom: 1.25rem; color: var(--orange); filter: drop-shadow(0 0 14px rgba(255,102,0,.42)); }
+        .slide-icon svg { width: 100%; height: 100%; display: block; }
+        .slide-title { font-size: clamp(2rem, 4.5vw, 3.8rem); font-weight: 800; color: #fff; letter-spacing: -1.5px; line-height: .92; margin-bottom: 1rem; }
+        .slide-tag { font-size: 0.8rem; color: var(--orange); letter-spacing: .5px; margin-bottom: 1rem; }
+        .slide-desc { font-size: 1rem; color: rgba(255,255,255,.72); line-height: 1.72; max-width: 520px; }
+        .slide-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 2rem; }
+        .slide-specs { display: flex; gap: 2.5rem; }
+        .slide-spec { font-size: 0.6rem; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,.32); }
+        .slide-spec span { display: block; font-size: 1.8rem; font-weight: 800; color: #fff; letter-spacing: -1px; line-height: 1; margin-bottom: 0.2rem; }
+        .slide-person { display: flex; align-items: center; gap: 1.25rem; background: rgba(8,8,8,.88); border: 1px solid rgba(255,102,0,.25); backdrop-filter: blur(20px); padding: 1.5rem 1.75rem; border-radius: 8px; min-width: 400px; flex-shrink: 0; }
+        .sp-photo { width: 68px; height: 68px; border-radius: 50%; overflow: hidden; flex-shrink: 0; position: relative; background: linear-gradient(135deg, #992200, #FF6600); display: flex; align-items: center; justify-content: center; }
+        .sp-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        .sp-init { font-size: 1.1rem; font-weight: 800; color: white; }
+        .sp-info h3 { font-size: 1.05rem; font-weight: 700; color: white; margin-bottom: 3px; }
+        .sp-info p  { font-size: 0.82rem; color: var(--blue-light); }
+        .sp-links { display: flex; flex-direction: column; gap: 0.4rem; margin-left: auto; }
+        .sp-link { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.76rem; font-weight: 700; letter-spacing: .5px; text-decoration: none; padding: 7px 16px; border-radius: 4px; white-space: nowrap; }
+        .sp-link-li { background: rgba(51,187,255,.16); color: var(--blue-light); border: 1px solid rgba(51,187,255,.28); }
+        .sp-link-li:hover { background: rgba(51,187,255,.3); }
+        .sp-link-gh { background: rgba(255,102,0,.14); color: var(--orange-light); border: 1px solid rgba(255,102,0,.26); }
+        .sp-link-gh:hover { background: rgba(255,102,0,.28); }
+
+        /* ── ARCHITECTURE ── */
+        .page-arch .pi { background: #0d0d0d; }
+        .arch-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: stretch; }
+        .arch-code { background: #080808; border: 1px solid rgba(255,102,0,0.15); border-radius: 6px; padding: 2.5rem 2.25rem; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 0.84rem; color: #3a3a3a; line-height: 1.9; white-space: pre; overflow-x: auto; }
+        .an { color: var(--blue-light); font-weight: 600; }
+        .aa { color: var(--orange-light); }
+        .arch-specs { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: rgba(255,102,0,0.1); }
+        .spec { background: var(--darkest); padding: 1.6rem 1.5rem; transition: background .15s; }
+        .spec:hover { background: rgba(51,187,255,0.05); }
+        .spec-lbl { font-size: 0.62rem; letter-spacing: 2.5px; text-transform: uppercase; color: var(--orange); margin-bottom: 0.35rem; }
+        .spec-val { font-size: 2rem; font-weight: 800; color: var(--light); line-height: 1; margin-bottom: 0.25rem; }
+        .spec-sub { font-size: 0.84rem; color: var(--body); }
+
+        /* ── GALLERY ── */
+        .page-gallery .pi { background: var(--steel); justify-content: flex-start; }
+        .gal-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); flex: 1; min-height: 0; gap: 1px; background: rgba(255,102,0,0.1); }
+        .gal-item { background: var(--darker); position: relative; overflow: hidden; }
+        .gal-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .gal-ph { width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#2a2a2a; gap:.5rem; }
+        .gal-ph span { font-size: 0.78rem; font-family: monospace; color: #333333; }
+        .gal-lbl { position:absolute; bottom:0; left:0; right:0; padding:.5rem .8rem; background:rgba(8,8,8,.88); font-size:0.8rem; color:var(--body); backdrop-filter:blur(4px); }
+
+        /* ── MAIN FOOTER ── */
+        .main-footer { scroll-snap-align: start; background: #080808; border-top: 1px solid rgba(255,102,0,0.13); color: var(--body); padding: 3.5rem 4rem 2.5rem 9.5rem; }
+        .footer-in { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:3rem; padding-bottom:2rem; border-bottom:1px solid rgba(255,255,255,.05); margin-bottom:1.5rem; }
+        .ft-brand h3 { color:var(--light); font-size:1rem; margin-bottom:.6rem; }
+        .ft-brand p  { font-size:0.9rem; line-height:1.7; color:var(--body); }
+        .ft-col h4   { color:var(--orange); font-size:0.68rem; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:1rem; }
+        .ft-col ul   { list-style:none; }
+        .ft-col li   { margin-bottom:.5rem; }
+        .ft-col a    { color:var(--body); text-decoration:none; font-size:0.9rem; transition:color .2s; }
+        .ft-col a:hover { color:var(--blue-light); }
+        .ft-bot { font-size:0.82rem; color:#2a2a2a; display:flex; justify-content:space-between; align-items:center; }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 1200px) { .feat-grid { grid-template-columns: repeat(2, 1fr); } .arch-layout { grid-template-columns: 1fr; gap: 2rem; } }
+        @media (max-width: 1024px) {
+            html { scroll-snap-type: none; font-size: 18px; }
+            .page, .hero, .sub-slide { min-height: auto; }
+            .pi { padding: 3.5rem 2.5rem 3.5rem 2.5rem; min-height: auto; }
+            .hero-content { padding: 0 2.5rem 4rem; }
+            .hero-strip { grid-template-columns: 1fr; }
+            .hs-item:first-child { padding-left: 2rem; }
+            .slide-body { padding: 2rem 2.5rem 5rem; }
+            .slide-title { font-size: 3rem; }
+            .slide-bottom { flex-direction: column; align-items: flex-start; }
+            .slide-right { align-items: flex-start; width: 100%; }
+            .slide-person { min-width: unset; width: 100%; }
+            .main-footer { padding: 3rem 2.5rem; }
+            .footer-in { grid-template-columns: 1fr 1fr; gap: 2rem; }
+        }
+        @media (max-width: 768px) {
+            .hero-content { padding: 0 1.5rem 2.75rem; }
+            .slide-body { padding: 1.5rem 1.5rem 5.5rem; }
+            .slide-title { font-size: 2.5rem; }
+            .slide-specs { display: none; }
+            .hs-item { padding: 1.25rem 1.5rem; }
+            .hs-item:first-child { padding-left: 1.5rem; }
+            .main-footer { padding: 2.5rem 1.5rem 5.5rem; }
+            .footer-in { grid-template-columns: 1fr; }
+            .gal-grid { grid-template-columns: 1fr 1fr; }
+            .feat-grid { grid-template-columns: 1fr; }
+            .arch-specs { grid-template-columns: 1fr 1fr; }
+            .pi { padding: 2.5rem 1.5rem 5.5rem; }
+        }
+        @media (max-width: 480px) {
+            .gal-grid { grid-template-columns: 1fr; }
+            .arch-specs { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── HERO ── -->
+<section class="hero" id="home">
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+    <div class="hero-orb"></div>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+        <img src="screenshots/logo.png" alt="HoloAssist-AI" style="width:60px;height:60px;object-fit:contain;display:block;margin-bottom:1rem;filter:drop-shadow(0 0 14px rgba(255,102,0,0.55));" onerror="this.style.display='none'">
+        <p class="hero-eyebrow">AI-driven perception + reinforcement learning</p>
+        <div class="hero-line"></div>
+        <h1 class="hero-title">Perception to<br><span>Autonomous</span><br>Grasping</h1>
+        <p class="hero-desc">
+            HoloAssist-AI extends the HoloAssist platform with an end-to-end AI pipeline:
+            an RGB-D camera sees coloured cubes, DBSCAN clusters their 3D positions, and a
+            PPO policy trained in NVIDIA Isaac Sim controls a UR3e arm to pick and place them.
+        </p>
+        <div class="hero-cta">
+            <a href="#gallery" class="btn btn-p">View Gallery</a>
+            <a href="docs/index.html" class="btn btn-o">Read the Docs</a>
+        </div>
+    </div>
+    <div class="hero-strip">
+        <a href="#perception" class="hs-item">
+            <div><h3>RGB-D Perception</h3><p>Simulated D435i &mdash; point cloud capture via ROS 2</p></div>
+        </a>
+        <a href="#clustering" class="hs-item">
+            <div><h3>DBSCAN Clustering</h3><p>1.6 cm centroid accuracy &middot; 100% cube recall</p></div>
+        </a>
+        <a href="#rl" class="hs-item">
+            <div><h3>PPO Grasping</h3><p>Isaac Lab RSL-RL &middot; 4096 parallel envs &middot; GPU-vectorised</p></div>
+        </a>
+    </div>
+</section>
+
+<!-- ── TEAM ── -->
+<section class="page page-status" id="team">
+    <div class="pi">
+        <div class="ph"><div class="ph-line"></div><h2>Team</h2><p>41118 AI in Robotics &mdash; University of Technology Sydney, 2026</p></div>
+        <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:1px; background:rgba(255,102,0,0.1); border:1px solid rgba(255,102,0,0.1);">
+            <div style="background:#1a1a1a; padding:2.5rem 2rem; display:flex; align-items:center; gap:1.5rem;">
+                <div class="sp-photo" style="width:80px;height:80px;flex-shrink:0;">
+                    <img src="screenshots/team/nic.jpg" alt="Nic" onerror="this.style.display='none'">
+                    <div class="sp-init">NS</div>
+                </div>
+                <div>
+                    <h3 style="font-size:1.15rem;font-weight:700;color:var(--light);margin-bottom:4px;">Nic Sabatini</h3>
+                    <p style="font-size:0.88rem;color:var(--orange);margin-bottom:8px;">Perception &amp; Clustering</p>
+                    <p style="font-size:0.82rem;color:var(--body);line-height:1.6;margin:0;">RGB-D capture, DBSCAN pipeline, centroid extraction, Polyscope visualisation, point cloud preprocessing.</p>
+                    <div style="display:flex;gap:0.5rem;margin-top:0.75rem;">
+                        <a href="https://www.linkedin.com/in/nicholas-sabatta/" target="_blank" rel="noreferrer" class="sp-link sp-link-li" style="font-size:0.7rem;padding:5px 12px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg> LinkedIn</a>
+                        <a href="https://github.com/Mafia-Pineapple" target="_blank" rel="noreferrer" class="sp-link sp-link-gh" style="font-size:0.7rem;padding:5px 12px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg> GitHub</a>
+                    </div>
+                </div>
+            </div>
+            <div style="background:#1a1a1a; padding:2.5rem 2rem; display:flex; align-items:center; gap:1.5rem;">
+                <div class="sp-photo" style="width:80px;height:80px;flex-shrink:0;">
+                    <img src="screenshots/team/sebastian.jpg" alt="Sebastian" onerror="this.style.display='none'">
+                    <div class="sp-init">SB</div>
+                </div>
+                <div>
+                    <h3 style="font-size:1.15rem;font-weight:700;color:var(--light);margin-bottom:4px;">Sebastian Baudille</h3>
+                    <p style="font-size:0.88rem;color:var(--orange);margin-bottom:8px;">Simulation &amp; RL Control</p>
+                    <p style="font-size:0.82rem;color:var(--body);line-height:1.6;margin:0;">Isaac Sim setup, URDF-to-USD pipeline, Isaac Lab environment, PPO training, reward shaping, MuJoCo environment.</p>
+                    <div style="display:flex;gap:0.5rem;margin-top:0.75rem;">
+                        <a href="https://www.linkedin.com/in/sebastian-baudille-56ab542a0/" target="_blank" rel="noreferrer" class="sp-link sp-link-li" style="font-size:0.7rem;padding:5px 12px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg> LinkedIn</a>
+                        <a href="https://github.com/Sebastian-Baudille" target="_blank" rel="noreferrer" class="sp-link sp-link-gh" style="font-size:0.7rem;padding:5px 12px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg> GitHub</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── VIDEO ── -->
+<section class="page" id="video" style="background:var(--darkest);">
+    <div class="pi" style="align-items:center; text-align:center;">
+        <div class="ph"><div class="ph-line" style="margin-left:auto;margin-right:auto;"></div><h2>Demo Video</h2><p>See the full pipeline in action.</p></div>
+        <div style="width:100%; max-width:900px; aspect-ratio:16/9; background:#0a0a0a; border:1px solid rgba(255,102,0,0.15); border-radius:8px; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+            <!-- Replace the placeholder below with your YouTube/video embed -->
+            <div style="text-align:center; color:#2a2a2a;">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <p style="font-family:'SFMono-Regular',Consolas,monospace; font-size:0.72rem; letter-spacing:2px; text-transform:uppercase; margin-top:0.75rem; color:#333;">Replace with video embed</p>
+                <p style="font-size:0.68rem; color:#222; margin-top:0.35rem;">&lt;iframe src="https://youtube.com/embed/YOUR_VIDEO_ID" ...&gt;</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── PERCEPTION ── -->
+<section class="sub-slide s-perc" id="perception">
+    <div class="sc-bg"></div>
+    <div class="sc-overlay"></div>
+    <div class="slide-body">
+        <div class="slide-top"><span class="slide-num">01 / 04</span></div>
+        <div class="slide-mid">
+            <div class="slide-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="5" width="20" height="14" rx="3"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1.5"/></svg></div>
+            <h2 class="slide-title">RGB-D Perception</h2>
+            <p class="slide-tag">Simulated Intel D435i &middot; Isaac Sim 5.1 &middot; ROS 2 Humble &middot; PLY capture</p>
+            <p class="slide-desc">An Intel RealSense D435i camera captures RGB-D point clouds of coloured cubes on a tabletop. Point clouds are saved as binary PLY files via a ROS 2 node, ready for the clustering pipeline. Gaussian depth noise (&sigma;=0.005 m) simulates real sensor characteristics.</p>
+        </div>
+        <div class="slide-bottom">
+            <div class="slide-specs">
+                <div class="slide-spec"><span>D435i</span>RGB-D sensor</div>
+                <div class="slide-spec"><span>640px</span>resolution</div>
+                <div class="slide-spec"><span>5mm</span>noise &sigma;</div>
+            </div>
+            <div class="slide-right">
+                <a href="docs/perception.html" class="slide-docs">Read Docs <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+                <div class="slide-person">
+                    <div class="sp-photo">
+                        <img src="screenshots/team/nic.jpg" alt="Nic" onerror="this.style.display='none'">
+                        <div class="sp-init">NS</div>
+                    </div>
+                    <div class="sp-info"><h3>Nic Sabatini</h3><p>Perception &amp; RL</p></div>
+                    <div class="sp-links">
+                        <a href="https://www.linkedin.com/in/nicholas-sabatta/" target="_blank" rel="noreferrer" class="sp-link sp-link-li"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg> LinkedIn</a>
+                        <a href="https://github.com/Mafia-Pineapple" target="_blank" rel="noreferrer" class="sp-link sp-link-gh"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg> GitHub</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── CLUSTERING ── -->
+<section class="sub-slide s-clus" id="clustering">
+    <div class="sc-bg"></div>
+    <div class="sc-overlay"></div>
+    <div class="slide-body">
+        <div class="slide-top"><span class="slide-num">02 / 04</span></div>
+        <div class="slide-mid">
+            <div class="slide-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="7" r="3"/><circle cx="7" cy="17" r="3"/><circle cx="17" cy="17" r="3"/></svg></div>
+            <h2 class="slide-title">DBSCAN Clustering</h2>
+            <p class="slide-tag">Density-based segmentation &middot; XYZ-only &middot; ~1.6 cm accuracy &middot; Polyscope</p>
+            <p class="slide-desc">Point clouds are transformed to world frame, height-cropped above the table surface, and segmented with DBSCAN. No prior knowledge of cube count is needed. Per-cluster mean yields 3D centroids in world coordinates with ~1.6 cm accuracy across 60 validated scenes. Polyscope renders the results interactively.</p>
+        </div>
+        <div class="slide-bottom">
+            <div class="slide-specs">
+                <div class="slide-spec"><span>1.6</span>cm accuracy</div>
+                <div class="slide-spec"><span>100%</span>cube recall</div>
+                <div class="slide-spec"><span>60</span>scenes validated</div>
+            </div>
+            <div class="slide-right">
+                <a href="docs/clustering.html" class="slide-docs">Read Docs <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+                <div class="slide-person">
+                    <div class="sp-photo">
+                        <img src="screenshots/team/nic.jpg" alt="Nic" onerror="this.style.display='none'">
+                        <div class="sp-init">NS</div>
+                    </div>
+                    <div class="sp-info"><h3>Nic Sabatini</h3><p>Perception &amp; RL</p></div>
+                    <div class="sp-links">
+                        <a href="https://www.linkedin.com/in/nicholas-sabatta/" target="_blank" rel="noreferrer" class="sp-link sp-link-li"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg> LinkedIn</a>
+                        <a href="https://github.com/Mafia-Pineapple" target="_blank" rel="noreferrer" class="sp-link sp-link-gh"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg> GitHub</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── REINFORCEMENT LEARNING ── -->
+<section class="sub-slide s-rl" id="rl">
+    <div class="sc-bg"></div>
+    <div class="sc-overlay"></div>
+    <div class="slide-body">
+        <div class="slide-top"><span class="slide-num">03 / 04</span></div>
+        <div class="slide-mid">
+            <div class="slide-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+            <h2 class="slide-title">PPO Grasping</h2>
+            <p class="slide-tag">Isaac Lab RSL-RL PPO &middot; 4096 parallel envs &middot; GPU-vectorised &middot; shaped reward</p>
+            <p class="slide-desc">A PPO policy trained in Isaac Lab controls the UR3e arm with joint-delta actions. GPU-vectorised simulation runs 4096 environments in parallel on a single RTX 4070 Ti SUPER. Reward shaping guides reach &rarr; grasp &rarr; transport &rarr; place. 500 iterations in ~20 min wall-clock — 100&times; faster than CPU-based Gazebo training.</p>
+        </div>
+        <div class="slide-bottom">
+            <div class="slide-specs">
+                <div class="slide-spec"><span>4096</span>parallel envs</div>
+                <div class="slide-spec"><span>PPO</span>RSL-RL</div>
+                <div class="slide-spec"><span>~20</span>min / 500 iter</div>
+            </div>
+            <div class="slide-right">
+                <a href="docs/training.html" class="slide-docs">Read Docs <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+                <div class="slide-person">
+                    <div class="sp-photo">
+                        <img src="screenshots/team/sebastian.jpg" alt="Sebastian" onerror="this.style.display='none'">
+                        <div class="sp-init">SB</div>
+                    </div>
+                    <div class="sp-info"><h3>Sebastian Baudille</h3><p>Simulation &amp; Control</p></div>
+                    <div class="sp-links">
+                        <a href="https://www.linkedin.com/in/sebastian-baudille-56ab542a0/" target="_blank" rel="noreferrer" class="sp-link sp-link-li"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg> LinkedIn</a>
+                        <a href="https://github.com/Sebastian-Baudille" target="_blank" rel="noreferrer" class="sp-link sp-link-gh"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg> GitHub</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── SIMULATION ── -->
+<section class="sub-slide s-sim" id="simulation">
+    <div class="sc-bg"></div>
+    <div class="sc-overlay"></div>
+    <div class="slide-body">
+        <div class="slide-top"><span class="slide-num">04 / 04</span></div>
+        <div class="slide-mid">
+            <div class="slide-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+            <h2 class="slide-title">Isaac Sim</h2>
+            <p class="slide-tag">NVIDIA Isaac Sim 5.1 &middot; Isaac Lab &middot; USD scenes &middot; RTX 4070 Ti SUPER</p>
+            <p class="slide-desc">Training runs on NVIDIA Isaac Sim 5.1 with Isaac Lab's DirectRLEnv API. The UR3e + RG2 is modelled as a layered USD asset (base, physics, robot, sensor). GPU-vectorised simulation runs 4096 environments in a single process &mdash; 50k+ steps/s vs hundreds on CPU. Built-in domain randomisation for sim-to-real transfer.</p>
+        </div>
+        <div class="slide-bottom">
+            <div class="slide-specs">
+                <div class="slide-spec"><span>4096</span>envs</div>
+                <div class="slide-spec"><span>50k+</span>steps/s</div>
+                <div class="slide-spec"><span>USD</span>assets</div>
+            </div>
+            <div class="slide-right">
+                <a href="docs/simulation.html" class="slide-docs">Read Docs <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+                <div class="slide-person">
+                    <div class="sp-photo">
+                        <img src="screenshots/team/sebastian.jpg" alt="Sebastian" onerror="this.style.display='none'">
+                        <div class="sp-init">SB</div>
+                    </div>
+                    <div class="sp-info"><h3>Sebastian Baudille</h3><p>Simulation &amp; Control</p></div>
+                    <div class="sp-links">
+                        <a href="https://www.linkedin.com/in/sebastian-baudille-56ab542a0/" target="_blank" rel="noreferrer" class="sp-link sp-link-li"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg> LinkedIn</a>
+                        <a href="https://github.com/Sebastian-Baudille" target="_blank" rel="noreferrer" class="sp-link sp-link-gh"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg> GitHub</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── ARCHITECTURE ── -->
+<section class="page page-arch" id="architecture">
+    <div class="pi">
+        <div class="ph"><div class="ph-line"></div><h2>System Architecture</h2><p>Data flows from simulated D435i through clustering to an Isaac Lab PPO-controlled UR3e.</p></div>
+        <div class="arch-layout">
+            <div class="arch-code"><span class="an">Perception (ROS 2 + Gazebo)</span>
+  D435i camera &#x2192; /camera/points
+         &#x2502;
+         &#x25BC;
+<span class="an">Point Cloud Capture</span>
+  save_pointcloud.py &#x2192; binary PLY
+         &#x2502;
+         &#x25BC;
+<span class="an">DBSCAN Clustering</span>
+  XYZ-only &#x2192; centroids (k, 3)
+         &#x2502;
+         &#x2502;  <span class="aa">~1.6 cm accuracy, world frame</span>
+         &#x25BC;
+<span class="an">Isaac Sim 5.1 + Isaac Lab</span>
+  <span class="aa">4096 GPU-parallel environments</span>
+         &#x2502;
+         &#x25BC;
+<span class="an">RSL-RL PPO Policy</span>
+  DirectRLEnv &#x2192; joint-delta actions
+         &#x2502;
+         &#x25BC;
+<span class="an">UR3e + RG2</span>  <span class="aa">[USD asset, 7 DOF]</span>
+  <span class="aa">reach &#x2192; grasp &#x2192; place</span></div>
+            <div class="arch-specs">
+                <div class="spec"><div class="spec-lbl">Parallel Envs</div><div class="spec-val">4096</div><div class="spec-sub">GPU-vectorised, single process</div></div>
+                <div class="spec"><div class="spec-lbl">Throughput</div><div class="spec-val">50k+</div><div class="spec-sub">steps/s on RTX 4070 Ti SUPER</div></div>
+                <div class="spec"><div class="spec-lbl">Centroid Accuracy</div><div class="spec-val">1.6</div><div class="spec-sub">cm error vs ground truth</div></div>
+                <div class="spec"><div class="spec-lbl">Cube Recall</div><div class="spec-val">100%</div><div class="spec-sub">across 60 validated scenes</div></div>
+                <div class="spec"><div class="spec-lbl">GPU</div><div class="spec-val" style="font-size:1.15rem">RTX 4070 Ti</div><div class="spec-sub">SUPER &middot; 16 GB &middot; Ada Lovelace</div></div>
+                <div class="spec"><div class="spec-lbl">RL Framework</div><div class="spec-val" style="font-size:1.15rem">RSL-RL</div><div class="spec-sub">Isaac Lab default &middot; GPU PPO</div></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── GALLERY ── -->
+<section class="page page-gallery" id="gallery">
+    <div class="pi">
+        <div class="ph"><div class="ph-line"></div><h2>Gallery</h2><p>Drop images into <code style="background:rgba(51,187,255,.14);color:var(--blue-light);padding:2px 7px;border-radius:4px">screenshots/</code> and uncomment the img tags.</p></div>
+        <div class="gal-grid">
+            <div class="gal-item"><div class="gal-ph"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><span>isaacsim_scene.png</span></div><div class="gal-lbl">Isaac Sim &mdash; UR3e + RG2 reach task</div></div>
+            <div class="gal-item"><div class="gal-ph"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><span>pointcloud_raw.png</span></div><div class="gal-lbl">Raw point cloud from D435i</div></div>
+            <div class="gal-item"><div class="gal-ph"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><span>polyscope_clusters.png</span></div><div class="gal-lbl">Polyscope &mdash; DBSCAN clusters</div></div>
+            <div class="gal-item"><div class="gal-ph"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><span>centroids_vs_gt.png</span></div><div class="gal-lbl">Centroid accuracy vs ground truth</div></div>
+            <div class="gal-item"><div class="gal-ph"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><span>training_reward.png</span></div><div class="gal-lbl">PPO training reward curve</div></div>
+            <div class="gal-item"><div class="gal-ph"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"/></svg><span>grasp_episode.gif</span></div><div class="gal-lbl">UR3e pick-and-place episode</div></div>
+        </div>
+    </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer class="main-footer">
+    <div class="footer-in">
+        <div class="ft-brand">
+            <h3>HoloAssist-AI</h3>
+            <p>AI extension to HoloAssist: end-to-end perception + reinforcement learning pipeline for autonomous robotic grasping. RGB-D point cloud clustering feeds a PPO policy trained in NVIDIA Isaac Sim controlling a UR3e arm.</p>
+            <p style="margin-top:.65rem;color:#2a2a2a">University of Technology Sydney &mdash; 41118 AI in Robotics, 2026</p>
+        </div>
+        <div class="ft-col"><h4>Docs</h4><ul>
+            <li><a href="docs/index.html">Overview</a></li>
+            <li><a href="docs/perception.html">Perception</a></li>
+            <li><a href="docs/clustering.html">Clustering</a></li>
+            <li><a href="docs/training.html">RL Training</a></li>
+            <li><a href="docs/simulation.html">Simulation</a></li>
+        </ul></div>
+        <div class="ft-col"><h4>Pipeline</h4><ul>
+            <li><a href="#perception">RGB-D Perception</a></li>
+            <li><a href="#clustering">DBSCAN Clustering</a></li>
+            <li><a href="#rl">PPO Grasping</a></li>
+            <li><a href="#simulation">Gazebo Sim</a></li>
+            <li><a href="#architecture">Architecture</a></li>
+        </ul></div>
+        <div class="ft-col"><h4>Quick Start</h4><ul>
+            <li><a href="docs/index.html">Setup Guide</a></li>
+            <li><a href="#status">Pipeline Status</a></li>
+            <li><a href="https://github.com/Sebastian-Baudille/HoloAssist-AI" target="_blank">GitHub</a></li>
+        </ul></div>
+    </div>
+    <div class="ft-bot">
+        <span>&copy; 2026 HoloAssist-AI Team &mdash; University of Technology Sydney</span>
+        <a href="https://github.com/Sebastian-Baudille/HoloAssist-AI" target="_blank" style="color:var(--orange);text-decoration:none">GitHub &rarr;</a>
+    </div>
+</footer>
+
+<script src="shared.js"></script>
+<script>
+// ── DOCK ──
+buildDock([
+    { label:'Home',          href:'#home',          id:'home',
+      svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13V10.5"/></svg>' },
+    { label:'Team',          href:'#team',          id:'team',
+      svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' },
+    { label:'Video',         href:'#video',         id:'video',
+      svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>' },
+    { label:'Perception',    href:'#perception',    id:'perception',
+      svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="3"/><circle cx="12" cy="12" r="4"/></svg>' },
+    { label:'Clustering',    href:'#clustering',    id:'clustering',
+      svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="7" r="3"/><circle cx="7" cy="17" r="3"/><circle cx="17" cy="17" r="3"/></svg>' },
+    { label:'RL Training',   href:'#rl',            id:'rl',
+      svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>' },
+    { label:'Isaac Sim',     href:'#simulation',    id:'simulation',
+      svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>' },
+    { label:'Architecture',  href:'#architecture',  id:'architecture',
+      svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
+    { label:'Gallery',       href:'#gallery',       id:'gallery',
+      svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>' },
+], { base: 80, mag: 112, dist: 180 });
+
+// ── CLICK SPARK ──
+(function () {
+    var cv = document.createElement('canvas');
+    cv.className = 'spark-canvas'; cv.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(cv);
+    var ctx = cv.getContext('2d');
+    var sparks = [];
+    var ease = function(t) { return t * (2 - t); };
+    function resize() {
+        var r = devicePixelRatio || 1;
+        cv.width  = Math.floor(innerWidth  * r); cv.height = Math.floor(innerHeight * r);
+        cv.style.width = innerWidth + 'px'; cv.style.height = innerHeight + 'px';
+        ctx.setTransform(r, 0, 0, r, 0, 0);
+    }
+    (function frame(now) {
+        ctx.clearRect(0, 0, innerWidth, innerHeight);
+        for (var i = sparks.length - 1; i >= 0; i--) {
+            var s = sparks[i], el = now - s.t;
+            if (el >= 380) { sparks.splice(i, 1); continue; }
+            var p = ease(el / 380), d = p * 15, ln = 9 * (1 - p);
+            ctx.strokeStyle = '#FF9944'; ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.moveTo(s.x + d * Math.cos(s.a), s.y + d * Math.sin(s.a));
+            ctx.lineTo(s.x + (d + ln) * Math.cos(s.a), s.y + (d + ln) * Math.sin(s.a));
+            ctx.stroke();
+        }
+        requestAnimationFrame(frame);
+    })(0);
+    resize(); addEventListener('resize', resize);
+    document.addEventListener('pointerdown', function(e) {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        var now = performance.now();
+        for (var i = 0; i < 8; i++) sparks.push({ x: e.clientX, y: e.clientY, a: Math.PI * 2 * i / 8, t: now });
+    }, { passive: true });
+})();
+
+// ── CURSOR PLUS ──
+(function () {
+    if (!matchMedia('(pointer: fine)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var c = document.createElement('div');
+    c.className = 'cursor-plus'; c.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(c); document.body.classList.add('has-cursor');
+    var SEL = 'a,button,input,textarea,select,[role="button"],.di';
+    var px = -100, py = -100, raf = 0;
+    addEventListener('pointermove', function(e) {
+        px = e.clientX; py = e.clientY;
+        c.classList.add('on');
+        c.classList.toggle('act', !!(e.target.closest && e.target.closest(SEL)));
+        if (!raf) raf = requestAnimationFrame(function() { raf = 0; c.style.transform = 'translate3d(' + px + 'px,' + py + 'px,0) translate(-50%,-50%)'; });
+    }, { passive: true });
+    addEventListener('pointerdown', function() { c.classList.add('dn'); });
+    addEventListener('pointerup',   function() { c.classList.remove('dn'); });
+    document.addEventListener('pointerleave', function() { c.classList.remove('on'); });
+})();
+</script>
+</body>
+</html>

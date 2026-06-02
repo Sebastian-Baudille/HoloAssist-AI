@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RL Training — HoloAssist-AI</title>
+    <link rel="stylesheet" href="../shared.css">
+</head>
+<body>
+
+<nav class="nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-back">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            Back
+        </a>
+        <span class="nav-brand">Holo<span>Assist-AI</span> &mdash; Docs</span>
+    </div>
+</nav>
+
+<section class="hero" id="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+        <p class="hero-eyebrow">HoloAssist-AI &mdash; RL Training</p>
+        <div class="hero-line"></div>
+        <h1 class="hero-title">PPO<br><span class="thin">Grasping</span></h1>
+        <p class="hero-desc">Isaac Lab RSL-RL PPO policy for autonomous reach and pick-and-place, GPU-vectorised across 4096 environments.</p>
+        <div class="hero-meta">
+            <div><span class="hero-meta-val">4096</span>Parallel Envs</div>
+            <div><span class="hero-meta-val">PPO</span>RSL-RL</div>
+            <div><span class="hero-meta-val">50k+</span>Steps/s</div>
+        </div>
+    </div>
+</section>
+
+<section class="section" id="policy">
+    <div class="section-in">
+        <p class="section-lbl">Policy</p>
+        <div class="ph-line"></div>
+        <h2>PPO Policy Design</h2>
+        <p>The reinforcement learning agent uses <strong>RSL-RL PPO</strong> via Isaac Lab's <code>DirectRLEnv</code> API to learn reach and pick-and-place behaviours for the UR3e arm with an OnRobot RG2 gripper. Training runs on NVIDIA Isaac Sim 5.1 with <strong>4096 GPU-parallel environments</strong> on an RTX 4070 Ti SUPER.</p>
+
+        <h3>Environment Design</h3>
+        <p>The reach task uses Isaac Lab's modular strategy pattern with separate modules for observations, actions, and rewards:</p>
+        <ul>
+            <li><strong>Observations:</strong> ground-truth 12-D (joint positions + end-effector + target)</li>
+            <li><strong>Actions:</strong> joint-delta control scaled to joint limits</li>
+            <li><strong>Rewards:</strong> dense distance-based with convergence bonus and action penalty</li>
+        </ul>
+
+        <h3>Action Space</h3>
+        <p>Joint-delta actions across 6 joints, scaled per-joint to respect limits. DirectRLEnv handles clipping and physics stepping.</p>
+
+        <h3>Reward Shaping</h3>
+        <p>Multi-phase reward guides the policy through the full pick-and-place sequence:</p>
+        <table class="data-table">
+            <thead><tr><th>Phase</th><th>Signal</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td>Reach</td><td>Dense</td><td>Distance to target cube</td></tr>
+                <tr><td>Grasp</td><td>Sparse</td><td>Bonus on successful grasp</td></tr>
+                <tr><td>Transport</td><td>Dense</td><td>Distance to bin while holding</td></tr>
+                <tr><td>Place</td><td>Sparse</td><td>Bonus on successful place</td></tr>
+                <tr><td>Penalties</td><td>Dense</td><td>Collision, time, joint limits</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="section alt" id="training">
+    <div class="section-in">
+        <p class="section-lbl">Training</p>
+        <div class="ph-line"></div>
+        <h2>Training Setup</h2>
+
+        <h3>GPU-Parallel Training</h3>
+        <p><strong>4096 environments</strong> run in parallel on a single GPU. A 500-iteration run takes ~20 minutes wall-clock on an RTX 4070 Ti SUPER &mdash; roughly 100&times; faster than CPU-based Gazebo training.</p>
+
+        <h3>Training Results (500 iters)</h3>
+        <ul>
+            <li><strong>Reward:</strong> -100 &rarr; -20 (monotonic improvement)</li>
+            <li><strong>Episode length:</strong> stabilises at ~110/200 steps</li>
+            <li><strong>Reach success:</strong> ~60-70% of the time</li>
+            <li><strong>Status:</strong> partially converged, needs ~1000-1500 more iterations + entropy tuning</li>
+        </ul>
+
+        <h3>Commands</h3>
+        <div class="code-block"><span class="cm"># Train (from IsaacLab directory on Windows)</span>
+isaaclab.bat -p scripts\reinforcement_learning\rsl_rl\train.py ^
+    --task HoloAssist-Reach-Direct-v0 --num_envs 4096 --max_iterations 1500
+
+<span class="cm"># Evaluate trained policy</span>
+isaaclab.bat -p scripts\reinforcement_learning\rsl_rl\play.py ^
+    --task HoloAssist-Reach-Direct-v0 --num_envs 32
+
+<span class="cm"># Monitor with TensorBoard</span>
+tensorboard --logdir IsaacLab/logs/rsl_rl/holoassist_reach_direct/</div>
+    </div>
+</section>
+
+<footer class="doc-footer">
+    <div class="doc-footer-in">
+        <div><h3>HoloAssist-AI</h3><p>UTS 41118 AI in Robotics, 2026</p></div>
+        <a href="../index.html" class="doc-footer-back">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            Back to Main Site
+        </a>
+    </div>
+</footer>
+
+<script src="../shared.js"></script>
+<script>
+buildDock([
+    { label:'Home', href:'../index.html', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13V10.5"/></svg>' },
+    { label:'Policy', href:'#policy', id:'policy', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>' },
+    { label:'Training', href:'#training', id:'training', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' }
+]);
+</script>
+</body>
+</html>
