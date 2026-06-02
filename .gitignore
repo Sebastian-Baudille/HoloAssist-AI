@@ -1,6 +1,13 @@
 ros2_ws/build/
 ros2_ws/install/
 ros2_ws/log/
+ur3e_rl_ws/build/
+ur3e_rl_ws/install/
+ur3e_rl_ws/log/
+ur3e_rl_ws/tb_logs/
+ur3e_rl_ws/mujoco_tb_logs/
+ur3e_rl_ws/rl_models/
+ur3e_rl_ws/MUJOCO_LOG.TXT
 __pycache__/
 *.pyc
 *.pyo
