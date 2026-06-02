@@ -38,7 +38,7 @@
         <p class="section-lbl">Overview</p>
         <div class="ph-line"></div>
         <h2>System Overview</h2>
-        <p>HoloAssist-AI is the AI extension to the RS2 HoloAssist project, built for the <strong>41118 Artificial Intelligence in Robotics</strong> course. It adds an end-to-end perception and control pipeline: an Intel RealSense D435i captures RGB-D point clouds, DBSCAN clustering extracts 3D cube centroids with ~1.6&nbsp;cm accuracy, and a PPO policy trained in <strong>NVIDIA Isaac Sim 5.1 + Isaac Lab</strong> (4096 GPU-parallel envs) controls a UR3e arm to pick and place objects.</p>
+        <p>HoloAssist-AI is the AI extension to the RS2 HoloAssist project, built for the <strong>41118 Artificial Intelligence in Robotics</strong> course. An Intel RealSense D435i (simulated in Gazebo Ignition Fortress) captures RGB-D point clouds. Guy Smith&rsquo;s DBSCAN pipeline extracts 3D cube centroids with ~1.6&nbsp;cm accuracy. John Chen&rsquo;s staged MuJoCo sub-policies and Sebastian Baudille&rsquo;s Isaac Lab grab policy (4096 GPU-parallel envs) train a PPO agent to control a UR3e + RG2 arm. Nic Sabatini built the original hand-eye calibration and perception system (Park solver, &lt;2 mm accuracy) that anchors the coordinate frames.</p>
 
         <table class="data-table">
             <thead>
@@ -51,32 +51,38 @@
             </thead>
             <tbody>
                 <tr>
-                    <td>RGB-D Perception (D435i sim)</td>
-                    <td>Nic</td>
+                    <td>RGB-D Perception &amp; Calibration</td>
+                    <td>Nic Sabatini</td>
                     <td><span class="badge b-ok">Working</span></td>
                     <td><a href="perception.html" style="color:var(--blue);text-decoration:underline;text-underline-offset:3px">perception.html</a></td>
                 </tr>
                 <tr>
                     <td>DBSCAN Clustering Pipeline</td>
-                    <td>Nic</td>
+                    <td>Guy Smith</td>
                     <td><span class="badge b-ok">Working</span></td>
                     <td><a href="clustering.html" style="color:var(--blue);text-decoration:underline;text-underline-offset:3px">clustering.html</a></td>
                 </tr>
                 <tr>
-                    <td>PPO RL Training (Isaac Lab)</td>
-                    <td>Sebastian</td>
+                    <td>Gazebo Ignition Fortress Sim</td>
+                    <td>Ollie Lau &amp; John Chen</td>
+                    <td><span class="badge b-ok">Working</span></td>
+                    <td><a href="gazebo.html" style="color:var(--blue);text-decoration:underline;text-underline-offset:3px">gazebo.html</a></td>
+                </tr>
+                <tr>
+                    <td>PPO RL Training (MuJoCo + Gazebo Phase A)</td>
+                    <td>John Chen &amp; Guy Smith</td>
                     <td><span class="badge b-ok">Working</span></td>
                     <td><a href="training.html" style="color:var(--blue);text-decoration:underline;text-underline-offset:3px">training.html</a></td>
                 </tr>
                 <tr>
-                    <td>Isaac Sim 5.1 Simulation</td>
-                    <td>Sebastian</td>
+                    <td>Isaac Sim 5.1 GPU RL (Reach + Grab)</td>
+                    <td>Sebastian Baudille</td>
                     <td><span class="badge b-ok">Working</span></td>
                     <td><a href="simulation.html" style="color:var(--blue);text-decoration:underline;text-underline-offset:3px">simulation.html</a></td>
                 </tr>
                 <tr>
                     <td>ONNX Export + Sim-to-Real</td>
-                    <td>Team</td>
+                    <td>John Chen &amp; Sebastian Baudille</td>
                     <td><span class="badge b-test">Pending</span></td>
                     <td>&mdash;</td>
                 </tr>
@@ -110,6 +116,68 @@ ros2 run holoassist_sim save_pointcloud.py \
 source clustering/.venv/bin/activate
 python clustering/detect_cubes.py</div>
         <p>See <a href="https://github.com/Sebastian-Baudille/HoloAssist-AI/blob/main/LAUNCH.md" style="color:var(--blue);text-decoration:underline;text-underline-offset:3px">LAUNCH.md</a> for the full command reference including RL training and parallel workers.</p>
+    </div>
+</section>
+
+<!-- SECTION: OPEN TASKS -->
+<section class="section alt" id="todo">
+    <div class="section-in">
+        <p class="section-lbl">Open Tasks</p>
+        <div class="ph-line"></div>
+        <h2>Remaining work &amp; known gaps</h2>
+        <p>Items that are not yet done at project end. Ordered roughly by dependency (earlier items unblock later ones).</p>
+
+        <h3>Perception &amp; clustering</h3>
+        <ul class="issues">
+            <li>
+                <div class="issue-ttl">Regenerate DBSCAN dataset at 2.0&times; cube spacing</div>
+                <div class="issue-body">The 82% exact-count rate is limited by close-cube merging at 1.5&times; spacing. The fix is committed to <code>scene_controller.py</code>; just needs a fresh 60-scene capture run (~1 min). Expected to push exact-count above 90%. See <a href="clustering.html#dataset" style="color:var(--blue-light)">clustering.html &rarr; Dataset</a>.</div>
+            </li>
+            <li>
+                <div class="issue-ttl">Validate DBSCAN on real D435i hardware</div>
+                <div class="issue-body">The entire clustering pipeline was validated on synthetic Gazebo data only. Real sensor data has different noise characteristics (quantisation, structured IR interference, specular reflections on cube faces). Needs a capture session with known cube positions. The coordinate transform and calibration parameters are designed for real deployment — just not yet confirmed.</div>
+            </li>
+            <li>
+                <div class="issue-ttl">Live centroid feed into RL policy</div>
+                <div class="issue-body">Currently the pipeline is offline: PLY file → cluster → centroids. A live ROS 2 node that subscribes to <code>/camera/points</code>, runs DBSCAN, and publishes centroids as a ROS topic would enable closed-loop deployment. The Python 3.10/3.11 boundary is the main obstacle — needs a subprocess bridge or a ROS-compatible Open3D build.</div>
+            </li>
+        </ul>
+
+        <h3>RL training</h3>
+        <ul class="issues">
+            <li>
+                <div class="issue-ttl">Train Isaac Lab grab v5</div>
+                <div class="issue-body">Reward version 5 is designed and committed but not yet trained. It returns to v0's proven scales and adds exactly one change: PhysX self-collision enabled. v0 achieved 97% success; v5 should match that without the arm-through-arm behaviour. Run: <code>.\isaaclab.bat -p ...train.py --task Template-Holoassist-Grab-Direct-v5 --num_envs 4096 --max_iterations 2500 --headless</code></div>
+            </li>
+            <li>
+                <div class="issue-ttl">Isaac Lab reach — run to 1500+ iterations</div>
+                <div class="issue-body">Reach task is at 60–70% success after 500 iterations with monotonically improving reward. Needs ~1000–1500 more iterations + entropy coefficient tuning to converge. Wall-clock: ~40–60 min additional on RTX 4070 Ti SUPER. See <a href="simulation.html#runs" style="color:var(--blue-light)">simulation.html &rarr; Training Runs</a>.</div>
+            </li>
+            <li>
+                <div class="issue-ttl">MuJoCo grasp + transport sub-policies</div>
+                <div class="issue-body">Pan and Extend sub-policies are trained. Grasp and Transport sub-policies are designed but not converged. The coordinator state machine is implemented; it needs working weights for all stages to demonstrate full PAN → EXTEND → GRASP → TRANSPORT → RELEASE. See <a href="training.html#mujoco" style="color:var(--blue-light)">training.html &rarr; MuJoCo</a>.</div>
+            </li>
+            <li>
+                <div class="issue-ttl">Domain randomisation for sim-to-real</div>
+                <div class="issue-body">Isaac Lab has built-in domain randomisation (mass, friction, lighting) but it has not been tuned. A DR sweep is needed before deploying a trained policy on the real UR3e — without it, the policy may be brittle to sensor noise and physical variation.</div>
+            </li>
+        </ul>
+
+        <h3>Integration &amp; deployment</h3>
+        <ul class="issues">
+            <li>
+                <div class="issue-ttl">ONNX export validation (MuJoCo → Isaac Sim)</div>
+                <div class="issue-body">The MuJoCo sub-policies export to ONNX (opset 17, float32) via <code>export_onnx.py</code>. The Isaac Sim side needs a matching ONNX inference node that loads these weights and drives joint targets. RSL-RL also supports ONNX export for the Isaac Lab policies — this should be set up before training converges, not after. See <a href="training.html#ik" style="color:var(--blue-light)">training.html &rarr; ONNX Export</a>.</div>
+            </li>
+            <li>
+                <div class="issue-ttl">End-to-end demo: perception → RL → real robot</div>
+                <div class="issue-body">No end-to-end run has been done. The full pipeline is: real D435i → ROS 2 point cloud → DBSCAN centroids → Isaac Lab policy (or ONNX sub-policies) → UR3e joint commands. Each subsystem works in isolation; the integration seams have not been exercised.</div>
+            </li>
+            <li>
+                <div class="issue-ttl">Teleop demonstration data (Nic)</div>
+                <div class="issue-body">Nic collected teleoperation demonstrations via Quest 3. These can be used as behaviour-cloning seed data or for demonstration-augmented PPO to warm-start the grasp policy. The data exists; integration into the training pipeline has not been attempted.</div>
+            </li>
+        </ul>
     </div>
 </section>
 
@@ -166,6 +234,12 @@ buildDock([
         href: '#quickstart',
         id: 'quickstart',
         svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>'
+    },
+    {
+        label: 'Open Tasks',
+        href: '#todo',
+        id: 'todo',
+        svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>'
     },
     {
         label: 'Architecture',

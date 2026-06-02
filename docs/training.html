@@ -22,11 +22,12 @@
     <div class="hero-bg"></div>
     <div class="hero-grid"></div>
     <div class="hero-overlay"></div>
+    <img class="hero-photo" src="../screenshots/mujoco.gif" alt="">
     <div class="hero-content">
-        <p class="hero-eyebrow">HoloAssist-AI &mdash; RL Training</p>
+        <p class="hero-eyebrow">HoloAssist-AI &mdash; RL Training &mdash; John Chen &amp; Guy Smith</p>
         <div class="hero-line"></div>
         <h1 class="hero-title">PPO<br><span class="thin">Training</span></h1>
-        <p class="hero-desc">Two parallel training backends: MuJoCo + SB3 for fast staged policy design (John Chen), Isaac Lab RSL-RL for GPU-scale training (Sebastian Baudille). Sub-policies exported to ONNX for deployment.</p>
+        <p class="hero-desc">Three parallel training backends: MuJoCo + SB3 for fast staged policy design (John Chen), Gazebo + SB3 for Phase A reach validation (Guy Smith), and Isaac Lab RSL-RL for GPU-scale grasping (Sebastian Baudille). Sub-policies exported to ONNX for cross-framework deployment.</p>
         <div class="hero-meta">
             <div><span class="hero-meta-val">4096</span>Isaac Lab envs</div>
             <div><span class="hero-meta-val">99%</span>Phase A reach</div>
@@ -36,13 +37,12 @@
     </div>
 </section>
 
-<!-- WHY TWO BACKENDS -->
 <section class="section" id="approach">
     <div class="section-in">
         <p class="section-lbl">Architecture Decision</p>
         <div class="ph-line"></div>
-        <h2>Why two training backends</h2>
-        <p>A single Isaac Sim environment takes minutes to spin up and requires a GPU. Iterating on reward shaping, action spaces, and staged task decomposition in that environment is slow. Instead we used two backends with a shared obs/action contract:</p>
+        <h2>Why two training backends (three if you count Gazebo)</h2>
+        <p>A single Isaac Sim environment takes minutes to spin up and requires a GPU. Iterating on reward shaping, action spaces, and staged task decomposition in that environment is slow. Instead we used backends with a shared obs/action contract:</p>
         <table class="data-table">
             <thead><tr><th>Backend</th><th>Speed</th><th>Purpose</th><th>Owner</th></tr></thead>
             <tbody>
@@ -55,34 +55,89 @@
     </div>
 </section>
 
-<!-- MUJOCO: JOHN -->
 <section class="section alt" id="mujoco">
     <div class="section-in">
         <p class="section-lbl">MuJoCo Backend &mdash; John Chen</p>
         <div class="ph-line"></div>
         <h2>Staged sub-policies (MuJoCo + SB3)</h2>
-        <p>Rather than training a single policy to learn the entire pick-and-place sequence, John designed a <strong>staged architecture</strong> with three specialised sub-policies. Each learns a narrow, well-defined task that it can actually converge on, rather than a complex sequence it might never learn from scratch.</p>
+        <p>Rather than training a single policy to learn the entire pick-and-place sequence, John designed a <strong>staged architecture</strong> with three specialised sub-policies. Each learns a narrow, well-defined task it can converge on, rather than a complex sequence it might never learn from scratch.</p>
 
         <h3>Why staged policies</h3>
         <p>A monolithic reach&rarr;grasp&rarr;transport policy has an enormous state space and very sparse rewards (only the final place is rewarded). Early experiments in Gazebo showed 0% success at 300k steps with a joint-state-blind observation. Staged policies solve this by giving each sub-policy a dense reward for its specific sub-task, letting each converge quickly before being chained.</p>
 
         <h3>Sub-policy design</h3>
         <table class="data-table">
-            <thead><tr><th>Stage</th><th>Observation</th><th>Action</th><th>Done condition</th></tr></thead>
+            <thead><tr><th>Stage</th><th>Env</th><th>Obs</th><th>Action</th><th>Done condition</th></tr></thead>
             <tbody>
-                <tr><td>Pan</td><td>[cos(pan_err), sin(pan_err)] 2D</td><td>&Delta;pan &times; 0.04 rad/step</td><td>|pan_err| &lt; 10&deg;</td></tr>
-                <tr><td>Extend</td><td>[xy_dist/0.6, z_err/0.5, lift/&pi;, elbow/&pi;, wrist1/&pi;] 5D</td><td>[&Delta;lift, &Delta;elbow, &Delta;wrist1] &times; 0.05 rad/step</td><td>XY dist &le; 8 cm</td></tr>
-                <tr><td>Grasp</td><td>Similar 5D</td><td>Similar 3D</td><td>EE within 2 cm of cube</td></tr>
+                <tr><td>Pan</td><td><code>UR3ePanEnv</code></td><td><code>[cos(pan_err), sin(pan_err)]</code> (2D)</td><td>&Delta;pan &times; 0.04 rad (1D)</td><td><code>|pan_err| &lt; 10&deg;</code></td></tr>
+                <tr><td>Extend</td><td><code>UR3eExtendEnv</code></td><td><code>[xy_dist/0.6, z_err/0.5, lift/&pi;, elbow/&pi;, wrist1/&pi;]</code> (5D)</td><td><code>[&Delta;lift, &Delta;elbow, &Delta;wrist1]</code> &times; 0.05 rad (3D)</td><td>EE XY-dist &le; 8 cm</td></tr>
+                <tr><td>Grasp</td><td><code>UR3eGraspEnv</code></td><td>Similar 5D</td><td>Similar 3D</td><td>EE within 2 cm of cube</td></tr>
             </tbody>
         </table>
-        <p>A <code>MuJoCoCoordinator</code> state machine chains the stages: <strong>PAN &rarr; EXTEND &rarr; GRASP &rarr; TRANSPORT &rarr; RELEASE</strong>. Each stage runs until its done condition is met, then hands off to the next.</p>
 
-        <h3>Jacobian IK seeding</h3>
-        <p>A damped-least-squares Jacobian IK module converts 3D Cartesian target positions to joint angle targets. This is used to <strong>seed the policy with valid starting configurations</strong> near the goal cube, so the agent begins training with the arm in a reachable pose rather than a random one.</p>
-        <p>Without IK seeding, early training episodes spent most of their time thrashing the arm in configurations that could never reach the cube. With seeding, the policy sees rewarding configurations from episode 1 and converges significantly faster. The IK also includes an orientation correction term to keep the gripper pointing straight down for top-down grasps.</p>
+        <h3>Coordinator state machine</h3>
+        <p>A <code>MuJoCoCoordinator</code> chains the stages: <strong>PAN &rarr; EXTEND &rarr; GRASP &rarr; TRANSPORT &rarr; RELEASE</strong>. Each stage runs until its done condition is met, then hands off to the next. The coordinator is responsible for loading each sub-policy&rsquo;s ONNX weights and managing the joint action/obs routing for whichever stage is active.</p>
+
+        <h3>Key design decisions</h3>
+        <ul>
+            <li><strong>Home pose at all-zeros:</strong> TCP starts near cube height instead of 70 cm above table, giving the pan policy a meaningful starting configuration</li>
+            <li><strong>Orientation constraint removed from IK:</strong> arm uses full joint range for reaching; constraint removed to allow more reachable configurations</li>
+            <li><strong>ctrl set during reset:</strong> position actuators hold home pose during physics settle phase so the arm starts stable</li>
+            <li><strong>Renderer reuse:</strong> single <code>mujoco.Renderer</code> instance (not reallocated per <code>render()</code> call) &mdash; avoids GPU memory leaks in long training runs</li>
+            <li><strong>Multiprocessing via <code>spawn</code>:</strong> not <code>fork</code>, to avoid MuJoCo CUDA memory sharing issues across workers</li>
+        </ul>
+
+        <h3>MJCF scene design</h3>
+        <ul>
+            <li>Floor, table at <code>(-0.031, 0, 0.29)</code> &mdash; matches Gazebo launch parameters</li>
+            <li>4 free-body cubes with realistic physics (mass, friction)</li>
+            <li>2 bin sites for pick-and-place target</li>
+            <li>6 position actuators (shoulder_pan, shoulder_lift, elbow, wrist_1, wrist_2, wrist_3)</li>
+            <li>UR3e URDF expanded with <code>base_z=1.10</code>, <code>base_yaw=&pi;</code> (matches Gazebo launch)</li>
+            <li>RG2 gripper: all fixed joints, virtual <code>gripper_closed</code> boolean &mdash; no physics actuation needed for staged RL</li>
+            <li>Table top at z=1.07 m = <code>TABLE_TOP_Z</code> constant shared with Gazebo env</li>
+        </ul>
+
+        <div class="callout callout-note">
+            <strong>Weight transfer guarantee:</strong> The MuJoCo env observation and action spaces are defined identically to the Gazebo env. A policy trained in MuJoCo can be loaded directly into Gazebo or exported via ONNX to Isaac Sim with no architecture changes.
+        </div>
+
+        <h3>Key files</h3>
+        <div class="code-block">ur3e_rl_ws/src/ur3e_rl_env/
+  assets/mujoco/scene.xml          <span class="cm">MJCF world</span>
+  assets/mujoco/robot.xml          <span class="cm">UR3e + RG2 robot</span>
+  ur3e_rl_env/
+    kinematics.py                  <span class="cm">Jacobian IK module</span>
+    envs/
+      pan_env.py                   <span class="cm">Pan sub-policy</span>
+      reach_env.py                 <span class="cm">Stage 1 (extend)</span>
+      extend_env.py                <span class="cm">Stage 2</span>
+      grasp_env.py                 <span class="cm">Stage 3</span>
+  train_pan_locked_reach.py        <span class="cm">Combined train script</span>
+  export_onnx.py                   <span class="cm">Export SB3 models to ONNX for Isaac Sim</span></div>
+    </div>
+</section>
+
+<section class="section" id="ik">
+    <div class="section-in">
+        <p class="section-lbl">Jacobian IK &mdash; John Chen</p>
+        <div class="ph-line"></div>
+        <h2>Damped-least-squares Jacobian IK</h2>
+        <p>A damped-least-squares Jacobian IK module converts 3D Cartesian target positions (dx, dy, dz) to absolute joint angle targets. This is used to <strong>seed the policy with valid configurations near the goal cube</strong>, so the agent begins training with the arm in a reachable pose rather than a random one.</p>
+
+        <h3>Why IK seeding matters</h3>
+        <p>Without IK seeding, early training episodes spent most of their time thrashing the arm in configurations that could never reach the cube. The agent saw zero reward for hundreds of thousands of steps. With seeding, the policy sees rewarding configurations from episode 1 and converges significantly faster.</p>
+
+        <h3>IK details</h3>
+        <ul>
+            <li>Damping term prevents singularity blow-up near degenerate configurations</li>
+            <li>Orientation correction term keeps the gripper pointing straight down for top-down grasps</li>
+            <li>Joint limits clamped after each IK step to prevent out-of-range solutions</li>
+            <li>5 unit tests: cache building, output shape/dtype, joint limit clamping, directional movement, zero-action stability</li>
+        </ul>
 
         <h3>ONNX export for Isaac Sim</h3>
-        <p>All three sub-policies are exported to ONNX (opset 17, float32, deterministic inference) so Sebastian can load them into Isaac Sim without needing a Python SB3 environment.</p>
+        <p>All three sub-policies are exported to ONNX (opset 17, float32, deterministic inference) so Sebastian can load them into Isaac Sim without needing a Python SB3 environment. Inputs/outputs all in [&minus;1, 1]. Actions are delta joint angles, not absolute positions.</p>
         <div class="code-block"><span class="cm"># Export all sub-policies to ONNX</span>
 python3 export_onnx.py \
     --pan    rl_models/pan/best/best_model.zip \
@@ -94,8 +149,7 @@ python3 export_onnx.py \
     </div>
 </section>
 
-<!-- GAZEBO PHASE A: GUY -->
-<section class="section" id="phasea">
+<section class="section alt" id="phasea">
     <div class="section-in">
         <p class="section-lbl">Gazebo Phase A &mdash; Guy Smith</p>
         <div class="ph-line"></div>
@@ -111,45 +165,40 @@ python3 export_onnx.py \
             <tbody>
                 <tr><td>Observation (14D)</td><td>EE XYZ + cube XYZ + 6 joints + height + timestep</td><td>Adding joint positions was the fix that unlocked learning</td></tr>
                 <tr><td>Action (6D)</td><td>Joint deltas, no gripper</td><td>Gripper not needed for reach; removing it reduces policy noise</td></tr>
-                <tr><td>Reward</td><td>-0.3&times;dist + time penalty + smoothness + &plus;5.0 terminal reach bonus</td><td>Dense guidance + terminal sparse bonus</td></tr>
-                <tr><td>Success</td><td>TCP within 4 cm of cube</td><td>Previous condition (cube_in_bin) never triggered in 300k steps</td></tr>
+                <tr><td>Reward</td><td>&minus;0.3&times;dist + time penalty + smoothness + &plus;5.0 terminal reach bonus</td><td>Dense guidance + terminal sparse bonus</td></tr>
+                <tr><td>Success</td><td>TCP within 4 cm of cube</td><td>Previous condition (<code>cube_in_bin</code>) never triggered in 300k steps</td></tr>
             </tbody>
         </table>
 
         <h3>Joint limit tightening (self-collision fix)</h3>
         <p>Phase A hit 99% success but the arm exhibited self-collision: upper arm sweeping through workspace, arm folding into itself. Guy tightened joint limits and added a soft config penalty:</p>
         <ul>
-            <li><code>shoulder_lift</code>: upper bound &rarr; -0.2 rad (keeps upper arm elevated, prevents horizontal sweep)</li>
-            <li><code>elbow</code>: lower bound &rarr; -2.5 rad (prevents extreme reverse fold)</li>
+            <li><code>shoulder_lift</code>: upper bound &rarr; &minus;0.2 rad (keeps upper arm elevated, prevents horizontal sweep)</li>
+            <li><code>elbow</code>: lower bound &rarr; &minus;2.5 rad (prevents extreme reverse fold)</li>
             <li><code>wrist_1</code>: upper bound &rarr; 0 rad (prevents flip past neutral)</li>
-            <li>Config penalty: soft ramp 0 &rarr; -2.0 as shoulder_lift approaches upper limit &mdash; gives gradient signal away from the hard limit</li>
+            <li>Config penalty: soft ramp 0 &rarr; &minus;2.0 as <code>shoulder_lift</code> approaches upper limit &mdash; gives gradient signal away from the hard limit</li>
         </ul>
         <div class="callout callout-warn">
             <strong>Note:</strong> Changing joint limits invalidates the observation normalisation from Phase A. Any checkpoint trained with old limits is incompatible and must be retrained.
         </div>
+
+        <h3>Teleop training data (Nic Sabatini)</h3>
+        <p>Nic collected teleoperation demonstrations using the Quest 3 controller to drive the UR3e. These sessions produced labelled pick-and-place trajectories that can serve as behaviour-cloning seed data or demonstration-augmented PPO initialisation. The data is stored alongside the RL checkpoints in the repo.</p>
     </div>
 </section>
 
-<!-- ISAAC SIM: SEBASTIAN -->
-<section class="section alt" id="isaacsim">
+<section class="section" id="isaacsim">
     <div class="section-in">
         <p class="section-lbl">Isaac Lab &mdash; Sebastian Baudille</p>
         <div class="ph-line"></div>
         <h2>GPU training (Isaac Lab RSL-RL)</h2>
-        <p>Sebastian built the Isaac Lab training environment using the <code>DirectRLEnv</code> API with modular strategy pattern. 4096 environments run in parallel on a single RTX 4070 Ti SUPER.</p>
+        <p>Sebastian built the Isaac Lab training environment using the <code>DirectRLEnv</code> API with modular strategy pattern. 4096 environments run in parallel on a single RTX 4070 Ti SUPER. See the <a href="simulation.html" style="color:var(--blue-light)">Isaac Sim docs page</a> for full architecture detail &mdash; this section covers training outcomes only.</p>
 
-        <h3>Environment</h3>
-        <ul>
-            <li><strong>Observations (12D):</strong> 6 joint positions + 3D EE position + 3D target cube position</li>
-            <li><strong>Actions:</strong> 6 joint deltas, scaled per-joint to respect limits</li>
-            <li><strong>Reward:</strong> dense distance-to-cube (reach) + sparse grasp bonus + dense distance-to-bin (transport) + sparse place bonus + collision/time/joint-limit penalties</li>
-        </ul>
-
-        <h3>Training results (500 iterations)</h3>
+        <h3>Reach task results (500 iterations)</h3>
         <table class="data-table">
             <thead><tr><th>Metric</th><th>Value</th></tr></thead>
             <tbody>
-                <tr><td>Reward progression</td><td>-100 &rarr; -20 (monotonic)</td></tr>
+                <tr><td>Reward progression</td><td>&minus;100 &rarr; &minus;20 (monotonic)</td></tr>
                 <tr><td>Episode length</td><td>Stabilises at ~110/200 steps</td></tr>
                 <tr><td>Reach success rate</td><td>~60&ndash;70%</td></tr>
                 <tr><td>Status</td><td>Partially converged &mdash; needs ~1000&ndash;1500 more iterations + entropy tuning</td></tr>
@@ -157,8 +206,11 @@ python3 export_onnx.py \
             </tbody>
         </table>
 
-        <h3>Commands</h3>
-        <div class="code-block"><span class="cm"># Train (Windows, from IsaacLab directory)</span>
+        <h3>Grab task results</h3>
+        <p>Grab v0 achieved <strong>97% success rate</strong> (196/200 mean reward) on a 5 cm lift threshold, with self-collision physics disabled. Reward versions v1&ndash;v4 each uncovered a new exploitation pattern. v5 (conservative return to v0&rsquo;s scales + self-collision) is ready to train.</p>
+
+        <h3>Commands (Windows, from IsaacLab directory)</h3>
+        <div class="code-block"><span class="cm"># Train reach</span>
 isaaclab.bat -p scripts\reinforcement_learning\rsl_rl\train.py ^
     --task HoloAssist-Reach-Direct-v0 --num_envs 4096 --max_iterations 1500
 
@@ -171,8 +223,7 @@ tensorboard --logdir IsaacLab/logs/rsl_rl/holoassist_reach_direct/</div>
     </div>
 </section>
 
-<!-- EVALUATION -->
-<section class="section" id="evaluation">
+<section class="section alt" id="evaluation">
     <div class="section-in">
         <p class="section-lbl">Evaluation</p>
         <div class="ph-line"></div>
@@ -184,12 +235,14 @@ tensorboard --logdir IsaacLab/logs/rsl_rl/holoassist_reach_direct/</div>
             <li><strong>Staged architecture:</strong> each sub-policy converges independently; the coordinator chains them without additional training</li>
             <li><strong>IK seeding:</strong> meaningfully accelerated convergence by eliminating degenerate early episodes</li>
             <li><strong>ONNX pipeline:</strong> clean handoff from MuJoCo (CPU training) to Isaac Sim (GPU deployment) with no Python environment dependency</li>
+            <li><strong>Grab v0:</strong> 97% success rate &mdash; proves the grab task is solvable with the Isaac Lab architecture</li>
         </ul>
 
         <h3>Challenges</h3>
         <ul class="issues">
             <li><div class="issue-ttl">Self-collision in Gazebo</div><div class="issue-body">The collision checker never triggered reliably during training. Fixed by tightening joint limits and adding gradient-signal config penalty instead of relying on binary collision flags.</div></li>
-            <li><div class="issue-ttl">Isaac Lab partially converged</div><div class="issue-body">60&ndash;70% reach success after 500 iterations. Needs ~1500 total iterations and entropy coefficient tuning. The reward curve is improving monotonically, so this is a compute/time issue, not a design problem.</div></li>
+            <li><div class="issue-ttl">Isaac Lab partially converged on reach</div><div class="issue-body">60&ndash;70% reach success after 500 iterations. Needs ~1500 total iterations and entropy coefficient tuning. The reward curve is improving monotonically, so this is a compute/time issue, not a design problem.</div></li>
+            <li><div class="issue-ttl">Grab reward exploitation (5 iterations)</div><div class="issue-body">Each of v1&ndash;v4 uncovered a new policy exploit: hover trap, hold-below-threshold, finger drag, and safe hover. v5 returns to the only proven configuration (v0) and changes exactly one thing at a time.</div></li>
             <li><div class="issue-ttl">Obs/action space compatibility</div><div class="issue-body">MuJoCo and Isaac Lab envs must have identical spaces for weight transfer. Maintaining this contract across three independently developed backends required careful coordination.</div></li>
         </ul>
 
@@ -197,7 +250,7 @@ tensorboard --logdir IsaacLab/logs/rsl_rl/holoassist_reach_direct/</div>
         <ul>
             <li>Full pick-and-place (reach &rarr; grasp &rarr; transport &rarr; place) not yet demonstrated end-to-end &mdash; reach phase converged; grasp and transport in progress</li>
             <li>Domain randomisation available in Isaac Lab (built-in) but not yet tuned for sim-to-real transfer</li>
-            <li>ONNX sub-policies need integration into a live Isaac Sim deployment node that feeds real camera centroids</li>
+            <li>ONNX sub-policies need integration into a live Isaac Sim deployment node that feeds real camera centroids from the DBSCAN pipeline</li>
         </ul>
     </div>
 </section>
@@ -206,7 +259,7 @@ tensorboard --logdir IsaacLab/logs/rsl_rl/holoassist_reach_direct/</div>
     <div class="doc-footer-in">
         <div>
             <h3>RL Training</h3>
-            <p>John Chen (MuJoCo) &middot; Guy Smith (Gazebo Phase A) &middot; Sebastian Baudille (Isaac Lab) &middot; UTS 41118, 2026</p>
+            <p>John Chen (MuJoCo) &middot; Guy Smith (Gazebo Phase A) &middot; Sebastian Baudille (Isaac Lab) &middot; Nic Sabatini (Teleop data) &middot; UTS 41118, 2026</p>
         </div>
         <a href="../index.html" class="doc-footer-back">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
@@ -218,13 +271,14 @@ tensorboard --logdir IsaacLab/logs/rsl_rl/holoassist_reach_direct/</div>
 <script src="../shared.js"></script>
 <script>
 buildDock([
-    { label:'Home',      href:'../index.html', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13V10.5"/></svg>' },
-    { label:'Approach',  href:'#approach',  id:'approach',  svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
-    { label:'MuJoCo',    href:'#mujoco',    id:'mujoco',    svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>' },
-    { label:'Phase A',   href:'#phasea',    id:'phasea',    svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
-    { label:'Isaac Lab', href:'#isaacsim',  id:'isaacsim',  svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>' },
-    { label:'Results',   href:'#evaluation',id:'evaluation', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>' }
-]);
+    { label:'Home',       href:'../index.html', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13V10.5"/></svg>' },
+    { label:'Approach',   href:'#approach',   id:'approach',   svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
+    { label:'MuJoCo',     href:'#mujoco',     id:'mujoco',     svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>' },
+    { label:'IK',         href:'#ik',         id:'ik',         svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>' },
+    { label:'Phase A',    href:'#phasea',     id:'phasea',     svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
+    { label:'Isaac Lab',  href:'#isaacsim',   id:'isaacsim',   svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>' },
+    { label:'Results',    href:'#evaluation', id:'evaluation', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>' }
+], { base: 72, mag: 120, dist: 96 });
 </script>
 </body>
 </html>

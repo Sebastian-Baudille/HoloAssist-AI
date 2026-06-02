@@ -57,7 +57,7 @@ function buildDock(items, opts) {
     function reset() { [].slice.call(nav.querySelectorAll('.di')).forEach(function(l) { l.style.transform = ''; }); }
 
     nav.addEventListener('pointermove', function(e) {
-        if (window.innerWidth <= 768) return;
+        if (window.innerWidth <= 1024) return;
         [].slice.call(nav.querySelectorAll('.di')).forEach(function(l) {
             var r = l.getBoundingClientRect(), cy = r.top + r.height / 2;
             var inf = Math.max(0, 1 - Math.abs(e.clientY - cy) / DIST);

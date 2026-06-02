@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gazebo Sim — HoloAssist-AI</title>
+    <link rel="stylesheet" href="../shared.css">
+</head>
+<body>
+
+<nav class="nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-back">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            Back
+        </a>
+        <span class="nav-brand">Holo<span>Assist-AI</span> &mdash; Gazebo Sim</span>
+    </div>
+</nav>
+
+<section class="hero" id="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+    <div class="hero-overlay"></div>
+    <img class="hero-photo" src="../screenshots/visualisation.gif" alt="">
+    <div class="hero-content">
+        <p class="hero-eyebrow">HoloAssist-AI &mdash; Simulation &mdash; Ollie Lau</p>
+        <div class="hero-line"></div>
+        <h1 class="hero-title">Gazebo<br><span class="thin">Ignition</span></h1>
+        <p class="hero-desc">Physics-accurate simulation of the UR3e + RG2 arm using ROS 2 Humble and Ignition Fortress. Template-driven world generation, synthetic D435i point clouds, and an automated dataset capture pipeline that generated 60 labelled scenes for the clustering pipeline.</p>
+        <div class="hero-meta">
+            <div><span class="hero-meta-val">60</span>PLY scenes</div>
+            <div><span class="hero-meta-val">30 Hz</span>Camera</div>
+            <div><span class="hero-meta-val">848&times;480</span>Resolution</div>
+            <div><span class="hero-meta-val">2&times;</span>Cube separation</div>
+        </div>
+    </div>
+</section>
+
+<section class="section" id="overview">
+    <div class="section-in">
+        <p class="section-lbl">Overview</p>
+        <div class="ph-line"></div>
+        <h2>What the Gazebo stack does</h2>
+        <p>The Gazebo simulation is the <strong>data source</strong> for the project &mdash; not the RL training environment. Its four responsibilities:</p>
+        <ol>
+            <li>Render a physics-accurate scene with a UR3e + RG2 arm, a table, and colour-coded 4 cm cubes</li>
+            <li>Publish a synthetic RGBD point cloud over ROS 2, mimicking an Intel D435i camera</li>
+            <li>Provide a scene controller that randomises cube positions on demand</li>
+            <li>Capture labelled PLY files as training data for the DBSCAN clustering pipeline</li>
+        </ol>
+        <p>The PLY files written to <code>~/holoassist_pointclouds/</code> are the bridge to the Python 3.11 clustering environment. RL training itself runs in MuJoCo (John) and Isaac Sim (Seb).</p>
+
+        <h3>Who built it</h3>
+        <table class="data-table">
+            <thead><tr><th>Contributor</th><th>What they built</th></tr></thead>
+            <tbody>
+                <tr><td>Ollie Lau</td><td>Gazebo Classic environment (UR3e + table), first PPO training scripts, ur3e_safety_layer (collision detection, joint limits), ongoing Gazebo + MoveIt2 ownership</td></tr>
+                <tr><td>John Chen</td><td>Port to Ignition Fortress, MoveIt2 collision avoidance, cube randomisation, parallel IGN_PARTITION isolation, RG2 gripper integration</td></tr>
+                <tr><td>Sebastian Baudille</td><td>Updated RViz + Gazebo sim files for dataset collection</td></tr>
+                <tr><td>Guy Smith</td><td>Tightened joint limits and added config penalty during Phase A training</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Key packages</h3>
+        <table class="data-table">
+            <thead><tr><th>Package</th><th>Purpose</th></tr></thead>
+            <tbody>
+                <tr><td><code>ur3e_rl_ws/src/ur3e_gazebo_sim/</code></td><td>World, launch files, URDF</td></tr>
+                <tr><td><code>ros2_ws/src/holoassist_sim/</code></td><td>Camera, point cloud capture, Jinja2 templates</td></tr>
+                <tr><td><code>ros2_ws/src/onrobot_driver/</code></td><td>OnRobot RG2 Modbus hardware interface</td></tr>
+                <tr><td><code>ros2_ws/src/onrobot_description/</code></td><td>RG2 URDF and meshes</td></tr>
+                <tr><td><code>ros2_ws/src/ur_onrobot/</code></td><td>Combined UR+OnRobot description + MoveIt config</td></tr>
+            </tbody>
+        </table>
+
+        <div class="photo-row">
+            <div class="photo-slot"><img src="../screenshots/visualisation.png" alt="RViz + Gazebo dual view"></div>
+            <div class="photo-slot"><img src="../screenshots/ollieteleop.png" alt="Gazebo teleoperation demo"></div>
+        </div>
+    </div>
+</section>
+
+<section class="section alt" id="architecture">
+    <div class="section-in">
+        <p class="section-lbl">Architecture</p>
+        <div class="ph-line"></div>
+        <h2>Template-driven world generation</h2>
+        <p>Rather than hardcoding a fixed SDF world file, the sim uses a <strong>Jinja2 template pipeline</strong>:</p>
+        <div class="code-block">sim_params.yaml  <span class="cm">(single source of truth)</span>
+    &darr;
+render_world.py  <span class="cm">(Jinja2 renderer)</span>
+    &darr;
+table_cubes.sdf  <span class="cm">(rendered into /tmp at launch time)</span>
+    &darr;
+gz sim -r table_cubes.sdf</div>
+
+        <p>Changing the camera position, number of cubes, table size, or any physical property is a YAML edit &mdash; no SDF editing required. The same pattern applies to the ROS&ndash;Gazebo bridge config (<code>ros_gz_bridge.yaml.jinja2</code>).</p>
+
+        <h3>sim_params.yaml &mdash; single source of truth</h3>
+        <p>All scene and camera parameters live in <code>ros2_ws/src/holoassist_sim/config/sim_params.yaml</code>:</p>
+        <table class="data-table">
+            <thead><tr><th>Key</th><th>Purpose</th></tr></thead>
+            <tbody>
+                <tr><td><code>table.{size,pose,color}</code></td><td>Table solid block geometry</td></tr>
+                <tr><td><code>cubes[].{name,size,pose,color,mass}</code></td><td>Free list &mdash; add/remove cubes without touching SDF</td></tr>
+                <tr><td><code>camera.{name,pose,topic,...}</code></td><td>D435i parameters (pose, FOV, resolution)</td></tr>
+                <tr><td><code>camera.imu.{enabled,update_rate,topic}</code></td><td>IMU sensor toggle</td></tr>
+                <tr><td><code>capture.{output_dir,description,one_shot,voxel_size}</code></td><td>PLY capture settings</td></tr>
+            </tbody>
+        </table>
+
+        <p>The default camera pose is:</p>
+        <div class="code-block">pose: [-0.6, 0.0, 0.85, 0.0, 0.5281, 0.0]  <span class="cm"># x y z roll pitch yaw</span></div>
+        <p>This places the camera 0.6 m in front of the robot, 0.85 m up, tilted 30&deg; downward (0.528 rad pitch) &mdash; a wide-angle view of the table surface.</p>
+
+        <h3>Launch pipeline</h3>
+        <p><code>sim.launch.py</code> orchestrates everything in order:</p>
+        <ol>
+            <li>Read <code>sim_params.yaml</code></li>
+            <li>Render the SDF and bridge config into a temp directory</li>
+            <li>Spawn <code>gz sim -r &lt;rendered.sdf&gt;</code> (Ignition Fortress)</li>
+            <li>Spawn <code>ros_gz_bridge</code> with the rendered config</li>
+            <li>Publish <strong>two static TFs</strong>: <code>map &rarr; d435i_link &rarr; d435i/d435i_link/rgbd</code></li>
+            <li>Spawn RViz2 with the bundled rviz config</li>
+            <li>Spawn <code>scene_controller.py</code> for cube randomisation</li>
+        </ol>
+
+        <h3>TF chain</h3>
+        <div class="code-block">map &rarr; d435i_link &rarr; d435i/d435i_link/rgbd</div>
+        <p>Two transforms are required because Ignition Fortress scopes the sensor frame as <code>&lt;model&gt;/&lt;link&gt;/&lt;sensor_name&gt;</code>. The published <code>frame_id</code> is <code>d435i/d435i_link/rgbd</code>, not a simple <code>camera_link</code>. An early version only published one TF; the point cloud had no chain to <code>map</code> and the entire clustering pipeline produced wrong results.</p>
+
+        <div class="callout callout-note">
+            <strong>Frame convention:</strong> Camera body frame is <strong>+X = look direction</strong>, +Z = up. This is the opposite of the standard ROS camera optical frame (+Z forward, -Y up). Any height-based Z-crop must happen <em>after</em> transforming to world frame &mdash; otherwise the crop plane tilts with the camera.
+        </div>
+    </div>
+</section>
+
+<section class="section" id="camera">
+    <div class="section-in">
+        <p class="section-lbl">Camera Model</p>
+        <div class="ph-line"></div>
+        <h2>Simulated Intel RealSense D435i</h2>
+        <table class="data-table">
+            <thead><tr><th>Parameter</th><th>Value</th><th>Notes</th></tr></thead>
+            <tbody>
+                <tr><td>Resolution</td><td>848 &times; 480</td><td>Colour and depth share one FOV</td></tr>
+                <tr><td>Horizontal FOV</td><td>87&deg;</td><td>Matches real D435i wide-FOV mode</td></tr>
+                <tr><td>Near clip</td><td>0.105 m</td><td>~10.5 cm min depth (matches real D435i)</td></tr>
+                <tr><td>Far clip</td><td>10.0 m</td><td></td></tr>
+                <tr><td>Update rate</td><td>30 Hz</td><td></td></tr>
+                <tr><td>Depth noise</td><td>&sigma; = 0.005 m</td><td>Gaussian, baked into plugin</td></tr>
+                <tr><td>Intrinsics</td><td>Single shared block</td><td>Ignition Fortress rgbd_camera has no separate RGB/depth intrinsics</td></tr>
+            </tbody>
+        </table>
+
+        <p>Published topics: <code>/camera/image</code>, <code>/camera/depth_image</code>, <code>/camera/points</code>, <code>/camera/camera_info</code>, <code>/imu</code></p>
+
+        <h3>Scene controller</h3>
+        <p><code>scene_controller.py</code> is a ROS 2 node that manages cube spawning at runtime:</p>
+        <ul>
+            <li>Exposes <code>/scene/randomize_cubes</code> (Trigger service) &mdash; spawns N cubes at random positions</li>
+            <li>Exposes <code>/scene/reset</code> &mdash; removes all random cubes</li>
+            <li>Parameters (<code>cube_count</code>, <code>cube_size_min</code>, <code>cube_size_max</code>) editable live via <code>rqt_reconfigure</code></li>
+            <li>Overlap prevention: rejection-sampled with minimum separation = 2.0&times; cube size (was 1.5&times;, see Problems)</li>
+        </ul>
+
+        <h3>Build &amp; run</h3>
+        <div class="code-block"><span class="cm"># Build</span>
+cd ros2_ws && source /opt/ros/humble/setup.bash
+colcon build --packages-select holoassist_sim --symlink-install
+source install/setup.bash
+
+<span class="cm"># Start the full sim</span>
+ros2 launch holoassist_sim sim.launch.py
+
+<span class="cm"># Capture a single PLY frame</span>
+ros2 run holoassist_sim save_pointcloud.py \
+    --params ros2_ws/src/holoassist_sim/config/sim_params.yaml</div>
+    </div>
+</section>
+
+<section class="section alt" id="capture">
+    <div class="section-in">
+        <p class="section-lbl">PLY Capture</p>
+        <div class="ph-line"></div>
+        <h2>save_pointcloud.py</h2>
+        <p>A ROS 2 node that subscribes to <code>/camera/points</code> (PointCloud2) and writes one PLY file per capture.</p>
+
+        <h3>Key implementation details</h3>
+        <ul>
+            <li><strong>BEST_EFFORT QoS</strong>: Ignition Fortress publishes sensor data with best-effort reliability. A reliable subscriber advertises a different QoS profile and the bridge silently drops all messages. Using <code>BEST_EFFORT</code> fixed this.</li>
+            <li><strong>RGB unpacking</strong>: RGB is packed as a float32 bit-cast from <code>uint32 0x00RRGGBB</code>. The node unpacks it to <code>uint8 R, G, B</code>.</li>
+            <li><strong>Binary PLY</strong>: Written as binary little-endian. Open3D and MuJoCo both expect binary PLY; ASCII causes decoder failures downstream.</li>
+            <li><strong>Optional voxel downsampling</strong>: Hash-based uniqueness filter when <code>voxel_size &gt; 0</code>.</li>
+        </ul>
+
+        <h3>Naming convention</h3>
+        <div class="code-block">&lt;description&gt;_&lt;N&gt;cubes_&lt;size&gt;mm_v&lt;NNN&gt;.ply   <span class="cm"># auto-versioned</span>
+<span class="cm"># Example: default_4cubes_40mm_v001.ply</span></div>
+        <p>Output goes to <code>~/holoassist_pointclouds/</code>. Version auto-increments so successive captures don&rsquo;t overwrite.</p>
+    </div>
+</section>
+
+<section class="section" id="dataset">
+    <div class="section-in">
+        <p class="section-lbl">Dataset Capture</p>
+        <div class="ph-line"></div>
+        <h2>dataset_capture.py &mdash; automated dataset generation</h2>
+        <p>A more advanced ROS 2 node that orchestrates 60 scenes (50 train + 10 val) automatically:</p>
+
+        <div class="pipe-grid">
+            <div class="pipe-step">
+                <div class="pipe-num">01</div>
+                <h4>Set Cube Count</h4>
+                <p>Sets <code>cube_count</code> parameter on <code>scene_controller</code> via direct service call.</p>
+                <div class="pipe-arrow">&rsaquo;</div>
+            </div>
+            <div class="pipe-step">
+                <div class="pipe-num">02</div>
+                <h4>Randomise + Settle</h4>
+                <p>Calls <code>/scene/randomize_cubes</code>, then waits 1 s for physics to settle.</p>
+                <div class="pipe-arrow">&rsaquo;</div>
+            </div>
+            <div class="pipe-step">
+                <div class="pipe-num">03</div>
+                <h4>Read Settled Poses</h4>
+                <p>Reads actual settled positions from Gazebo via <code>ign topic</code> protobuf output. Not commanded poses &mdash; actual physics state.</p>
+                <div class="pipe-arrow">&rsaquo;</div>
+            </div>
+            <div class="pipe-step">
+                <div class="pipe-num">04</div>
+                <h4>Save PLY + Labels</h4>
+                <p>Captures one PointCloud2 frame, writes <code>scene_NNNN.ply</code> + <code>scene_NNNN.labels.json</code> with ground truth.</p>
+            </div>
+        </div>
+
+        <h3>Labels JSON format</h3>
+        <div class="code-block">{
+  "scene_id": "scene_0001",
+  "split": "train",
+  "cube_count": 3,
+  "table_top_z": 0.5,
+  "cubes": [
+    {"name": "cube_rand_00",
+     "position": {"x": 0.12, "y": -0.08, "z": 0.52},
+     "orientation": {"x": 0, "y": 0, "z": 0, "w": 1},
+     "size_m": 0.04}
+  ]
+}</div>
+
+        <p>Cube size is back-calculated from settled Z position: <code>size = (cube_z &minus; table_top_z) &times; 2</code>. Reading settled poses rather than commanded poses correctly captures cubes that have drifted or stacked due to physics, giving the clustering pipeline honest ground truth.</p>
+
+        <div class="code-block"><span class="cm"># Capture a full labelled dataset (60 scenes)</span>
+ros2 run holoassist_sim dataset_capture \
+    --params ros2_ws/src/holoassist_sim/config/sim_params.yaml</div>
+
+        <h3>Dataset structure</h3>
+        <div class="code-block">~/holoassist_dataset/
+  scene_0001.ply
+  scene_0001.labels.json
+  ...
+  scene_0060.ply    <span class="cm">(50 train + 10 val)</span>
+  accuracy_report.json</div>
+    </div>
+</section>
+
+<section class="section alt" id="problems">
+    <div class="section-in">
+        <p class="section-lbl">Problems Encountered</p>
+        <div class="ph-line"></div>
+        <h2>Issues &amp; fixes during development</h2>
+
+        <h3>1 &mdash; Depth noise and Z-crop margin</h3>
+        <p>The camera has Gaussian depth noise &sigma;=0.005 m. The initial clustering Z-crop cut exactly at <code>table_top_z</code>, causing table surface noise to bleed into the cube layer. The fix was a 3&times; noise margin:</p>
+        <div class="code-block">z_min = table_top_z + 0.015  <span class="cm"># 3 × σ</span></div>
+
+        <h3>2 &mdash; BEST_EFFORT QoS requirement</h3>
+        <p>When <code>save_pointcloud.py</code> used a reliable QoS subscriber for <code>/camera/points</code>, no messages were received. Ignition Fortress publishes sensor data with <code>BEST_EFFORT</code> reliability &mdash; a reliable subscriber advertises a different QoS profile and the bridge silently drops all matching attempts. Changing the subscriber to <code>BEST_EFFORT</code> fixed this immediately.</p>
+
+        <h3>3 &mdash; Cube separation: 1.5&times; &rarr; 2.0&times;</h3>
+        <p>The initial scene controller used 1.5&times; cube size as the minimum separation between cube centres (~2 cm surface gap for 4 cm cubes). DBSCAN with <code>eps=0.015</code> bridges this gap when depth noise fills it, merging two adjacent cubes into one cluster. The separation was increased to 2.0&times; (~4 cm surface gap) to ensure adjacent cubes stayed outside each other&rsquo;s neighbourhood radius.</p>
+
+        <h3>4 &mdash; Frame convention confusion</h3>
+        <p>The point cloud is published in <strong>camera body frame</strong> (+X forward, +Z up), not the standard ROS camera optical frame (+Z forward, -Y up). Early versions of the clustering pipeline tried to crop by world Z without first transforming from camera frame to world frame, producing completely wrong results.</p>
+        <div class="code-block"><span class="cm"># Correct pipeline order:</span>
+world_points = camera_to_world(camera_frame_points, camera_pose)
+<span class="cm"># THEN do Z-crop</span>
+cropped = world_points[world_points[:, 2] > table_top_z + 0.015]</div>
+
+        <h3>5 &mdash; Two static TFs required</h3>
+        <p>An early version only published one static TF (<code>map &rarr; camera_link</code>). The point cloud&rsquo;s <code>frame_id</code> was <code>d435i/d435i_link/rgbd</code> (the Ignition-scoped name), which had no TF chain to <code>map</code>. RViz showed no point cloud, and transformation in Python had to be done manually. Adding a second TF (<code>camera_link &rarr; d435i/d435i_link/rgbd</code>, identity) fixed both RViz and the clustering pipeline.</p>
+    </div>
+</section>
+
+<section class="section" id="discussion">
+    <div class="section-in">
+        <p class="section-lbl">Discussion</p>
+        <div class="ph-line"></div>
+        <h2>Design decisions &amp; reflections</h2>
+
+        <h3>Why Ignition Fortress?</h3>
+        <p>ROS 2 Humble&rsquo;s officially supported simulator is Ignition Fortress (ign-gazebo6), which replaced Gazebo Classic. The bridge (<code>ros_gz_bridge</code>) translates between Ignition&rsquo;s internal transport and ROS 2 topics. This added complexity (the two TF setup, BEST_EFFORT QoS quirks, scoped frame_id) compared to Gazebo Classic, but Fortress is the supported long-term choice for Humble.</p>
+
+        <h3>Why PLY as the bridge format?</h3>
+        <p>The clustering pipeline runs in Python 3.11 (for Open3D and Polyscope compatibility) while ROS 2 Humble requires Python 3.10. Rather than mixing environments or calling across processes, PLY files on disk serve as a clean, version-agnostic bridge. PLY is a binary format natively supported by Open3D, Polyscope, and NumPy, and carries both XYZ and RGB without additional libraries. It also creates a natural checkpoint &mdash; captures can be reviewed and re-analysed without re-running the simulation.</p>
+
+        <h3>Why not use Gazebo for RL training?</h3>
+        <p>Earlier in the project there was an attempt to use Gazebo Classic with a PPO training loop, with keyboard teleoperation and MoveIt safety layer. This was abandoned because Gazebo Classic is too slow for RL training (cannot run &gt;1 environment in parallel without significant infrastructure) and MoveIt overhead adds latency that makes tight control loops impractical. The RL training was moved to MuJoCo (John) and Isaac Sim (Seb), while Gazebo became the perception data source.</p>
+
+        <h3>What we would change</h3>
+        <ul>
+            <li><strong>Decouple sensor frame from Ignition naming:</strong> The <code>frame_id</code> embedded in published PointCloud2 messages is tied to Ignition&rsquo;s internal naming scheme. A wrapper node republishing with a fixed <code>frame_id</code> like <code>camera_optical</code> would be more robust.</li>
+            <li><strong>Larger dataset:</strong> 60 scenes is small. With <code>dataset_capture.py</code> the bottleneck is the 1 s settle time per scene, so scaling to 500+ scenes would take ~8 minutes &mdash; completely feasible.</li>
+            <li><strong>Cube variation:</strong> All cubes have fixed 4 cm size. Adding size variation (<code>cube_size_min</code>/<code>cube_size_max</code> already supported) and random yaw would make the pipeline more robust.</li>
+        </ul>
+    </div>
+</section>
+
+<footer class="doc-footer">
+    <div class="doc-footer-in">
+        <div>
+            <h3>Gazebo Sim &mdash; Ollie Lau &amp; John Chen</h3>
+            <p>UTS 41118 AI in Robotics, 2026</p>
+        </div>
+        <a href="../index.html" class="doc-footer-back">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            Back to Main Site
+        </a>
+    </div>
+</footer>
+
+<script src="../shared.js"></script>
+<script>
+buildDock([
+    { label:'Home',        href:'../index.html', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13V10.5"/></svg>' },
+    { label:'Overview',    href:'#overview',    id:'overview',    svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' },
+    { label:'Architecture',href:'#architecture',id:'architecture', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
+    { label:'Camera',      href:'#camera',      id:'camera',      svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>' },
+    { label:'Capture',     href:'#capture',     id:'capture',     svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' },
+    { label:'Dataset',     href:'#dataset',     id:'dataset',     svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>' },
+    { label:'Problems',    href:'#problems',    id:'problems',    svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
+    { label:'Discussion',  href:'#discussion',  id:'discussion',  svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' }
+], { base: 72, mag: 120, dist: 96 });
+</script>
+</body>
+</html>

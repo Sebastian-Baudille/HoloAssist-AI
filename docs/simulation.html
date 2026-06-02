@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulation — HoloAssist-AI</title>
+    <title>Isaac Sim RL — HoloAssist-AI</title>
     <link rel="stylesheet" href="../shared.css">
 </head>
 <body>
@@ -14,7 +14,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
             Back
         </a>
-        <span class="nav-brand">Holo<span>Assist-AI</span> &mdash; Simulation</span>
+        <span class="nav-brand">Holo<span>Assist-AI</span> &mdash; Isaac Sim RL</span>
     </div>
 </nav>
 
@@ -22,79 +22,34 @@
     <div class="hero-bg"></div>
     <div class="hero-grid"></div>
     <div class="hero-overlay"></div>
+    <img class="hero-photo" src="../screenshots/isaacsim.gif" alt="">
     <div class="hero-content">
-        <p class="hero-eyebrow">HoloAssist-AI &mdash; Simulation</p>
+        <p class="hero-eyebrow">HoloAssist-AI &mdash; Isaac Sim &mdash; Sebastian Baudille</p>
         <div class="hero-line"></div>
-        <h1 class="hero-title">Isaac<br><span class="thin">Sim</span></h1>
-        <p class="hero-desc">Three simulation environments: Gazebo Ignition Fortress (Ollie Lau + John Chen), MuJoCo (John Chen), and NVIDIA Isaac Sim 5.1 (Sebastian Baudille). Each serves a different role in the training pipeline.</p>
+        <h1 class="hero-title">Isaac<br><span class="thin">Lab RL</span></h1>
+        <p class="hero-desc">GPU-vectorised RL training using NVIDIA Isaac Lab and RSL-RL PPO. 4096 parallel environments on a single RTX 4070 Ti SUPER. Two tasks: a reach task (arm to target) and a grab task (reach + close gripper + lift). Five reward design iterations uncovered and closed every exploitation loophole.</p>
         <div class="hero-meta">
-            <div><span class="hero-meta-val">3</span>Sim backends</div>
-            <div><span class="hero-meta-val">4096</span>Isaac envs</div>
+            <div><span class="hero-meta-val">4096</span>Parallel envs</div>
+            <div><span class="hero-meta-val">97%</span>Grab v0</div>
             <div><span class="hero-meta-val">50k+</span>Steps/s</div>
+            <div><span class="hero-meta-val">5</span>Reward versions</div>
         </div>
     </div>
 </section>
 
-<section class="section" id="gazebo">
+<section class="section" id="overview">
     <div class="section-in">
-        <p class="section-lbl">Gazebo &mdash; Ollie Lau &amp; John Chen</p>
+        <p class="section-lbl">Overview</p>
         <div class="ph-line"></div>
-        <h2>Gazebo Ignition Fortress</h2>
-        <p>The Gazebo simulation was bootstrapped by <strong>Ollie Lau</strong> (Gazebo Classic, UR3e + table, initial PPO scripts, safety layer) and extended by <strong>John Chen</strong> (ported to Ignition Fortress, Moveit2 collision avoidance, cube randomization, parallel IGN_PARTITION isolation, OnRobot RG2 integration). After handoff, Ollie owns the Gazebo sim and MoveIt2 subsystem.</p>
+        <h2>Why Isaac Sim for final training</h2>
+        <p>Isaac Sim (Omniverse-based) enables GPU-parallelised physics at 4096+ simultaneous environments &mdash; the scale needed for PPO to converge in reasonable wall-clock time on hard manipulation tasks. MuJoCo (John&rsquo;s component) runs efficiently on CPU with 16 envs; Isaac Sim at 4096 envs achieves similar sample throughput <em>per hour</em> at 256&times; the episode count per batch.</p>
 
-        <h3>What Gazebo provides</h3>
-        <ul>
-            <li>Simulated Intel RealSense D435i camera &rarr; <code>/camera/points</code> for the perception pipeline</li>
-            <li>UR3e + OnRobot RG2 gripper in physics simulation</li>
-            <li>Per-episode cube randomization (continuous uniform X/Y range)</li>
-            <li>Safety layer: joint limit checking, MoveIt2 collision detection</li>
-            <li>Parallel worker support via <code>IGN_PARTITION</code> environment variable</li>
-        </ul>
-
-        <h3>Safety layer (Ollie)</h3>
-        <p>The <code>ur3e_safety_layer</code> package enforces <code>max_delta_rad = 0.24 rad/step</code> (75% of UR3e max speed at <code>control_dt=0.1s</code>) and publishes a collision flag from MoveIt2. The safety node monitors TCP pose and joint states, stopping the arm if a violation is detected.</p>
-
-        <div class="photo-row">
-            <div class="photo-slot"><img src="../screenshots/ollieteleop.png" alt="Gazebo teleoperation demo"></div>
-            <div class="photo-slot"><img src="../screenshots/visualisation.png" alt="RViz + Gazebo dual view"></div>
-        </div>
-    </div>
-</section>
-
-<section class="section alt" id="mujoco">
-    <div class="section-in">
-        <p class="section-lbl">MuJoCo &mdash; John Chen</p>
-        <div class="ph-line"></div>
-        <h2>MuJoCo fast training environment</h2>
-        <p>John built a MuJoCo MJCF environment that exactly mirrors the Gazebo scene but runs on CPU at ~1500 steps/s with no ROS dependency. This is used for fast reward shaping and staged policy design before committing expensive GPU training runs in Isaac Sim.</p>
-
-        <h3>Scene design</h3>
-        <ul>
-            <li>Floor, table at (-0.031, 0, 0.29) &mdash; matches Gazebo launch parameters</li>
-            <li>4 free-body cubes with realistic physics</li>
-            <li>2 bin sites for pick-and-place target</li>
-            <li>6 position actuators (shoulder_pan, shoulder_lift, elbow, wrist_1, wrist_2, wrist_3)</li>
-            <li>RG2 gripper: all fixed joints, virtual <code>gripper_closed</code> boolean &mdash; no physics actuation needed for RL</li>
-            <li>Table top at z=1.07 m = <code>TABLE_TOP_Z</code> constant shared with Gazebo env</li>
-        </ul>
-
-        <div class="callout callout-note">
-            <strong>Weight transfer guarantee:</strong> The MuJoCo env observation and action spaces are defined identically to the Gazebo env. A policy trained in MuJoCo can be loaded directly into Gazebo or exported via ONNX to Isaac Sim with no architecture changes.
-        </div>
-    </div>
-</section>
-
-<section class="section" id="setup">
-    <div class="section-in">
-        <p class="section-lbl">Isaac Sim &mdash; Sebastian Baudille</p>
-        <div class="ph-line"></div>
-        <h2>Hardware + Software Stack</h2>
-        <p>The validated combination that works:</p>
+        <h3>Validated hardware stack</h3>
         <table class="data-table">
             <thead><tr><th>Component</th><th>Value</th></tr></thead>
             <tbody>
                 <tr><td>GPU</td><td>NVIDIA RTX 4070 Ti SUPER (16 GB, Ada Lovelace)</td></tr>
-                <tr><td>NVIDIA Driver</td><td>580.88 (do NOT use 595.xx)</td></tr>
+                <tr><td>NVIDIA Driver</td><td>580.88 &mdash; do NOT use 595.xx</td></tr>
                 <tr><td>Isaac Sim</td><td>5.1.0 Workstation Installer at C:\isaacsim</td></tr>
                 <tr><td>Isaac Lab</td><td>main branch (targets Isaac Sim 5.1)</td></tr>
                 <tr><td>Python</td><td>3.11 (Isaac Sim bundled)</td></tr>
@@ -104,63 +59,234 @@
         </table>
 
         <div class="callout callout-warn">
-            <strong>Critical version pins:</strong> <code>tensordict==0.7.2</code> and <code>h5py==3.11.0</code> must be force-installed after any <code>isaaclab.bat --install</code> run. Newer versions crash on Windows with Isaac Sim 5.1's PyTorch 2.7.0 ABI.
+            <strong>Critical version pins:</strong> <code>tensordict==0.7.2</code> and <code>h5py==3.11.0</code> must be force-installed after any <code>isaaclab.bat --install</code> run. Newer versions crash on Windows with Isaac Sim 5.1&rsquo;s PyTorch 2.7.0 ABI.
         </div>
-    </div>
-</section>
 
-<section class="section alt" id="assets">
-    <div class="section-in">
-        <p class="section-lbl">Assets</p>
-        <div class="ph-line"></div>
-        <h2>Robot Asset Pipeline</h2>
-        <p>The UR3e + RG2 robot is modelled as a layered USD asset:</p>
-        <div class="code-block">isaac_rl/assets/
-&#x251C;&#x2500;&#x2500; meshes/           22 mesh files (14 UR3e .dae/.stl + 8 RG2 .stl)
-&#x251C;&#x2500;&#x2500; urdf/
-&#x2502;   &#x251C;&#x2500;&#x2500; ur_onrobot.urdf               raw xacro flatten
-&#x2502;   &#x2514;&#x2500;&#x2500; ur_onrobot_prepared.urdf      mimic-stripped, URIs rewritten
-&#x2514;&#x2500;&#x2500; usd/
-    &#x2514;&#x2500;&#x2500; ur_onrobot_prepared/          layered USD
-        &#x251C;&#x2500;&#x2500; ur_onrobot_prepared_base.usd
-        &#x251C;&#x2500;&#x2500; ur_onrobot_prepared_physics.usd
-        &#x251C;&#x2500;&#x2500; ur_onrobot_prepared_robot.usd
-        &#x2514;&#x2500;&#x2500; ur_onrobot_prepared_sensor.usd</div>
-
-        <h3>URDF Preparation</h3>
-        <p><code>prepare_urdf.py</code> strips mimic joints and rewrites mesh URIs for Isaac Sim import. The resulting URDF is imported into USD via the Isaac Sim asset converter.</p>
-    </div>
-</section>
-
-<section class="section" id="env">
-    <div class="section-in">
-        <p class="section-lbl">Environment</p>
-        <div class="ph-line"></div>
-        <h2>Isaac Lab Environment</h2>
-        <p>The reach task uses Isaac Lab's <code>DirectRLEnv</code> API with modular strategy pattern:</p>
-        <div class="code-block">holoassist_tasks/tasks/direct/reach/
-&#x251C;&#x2500;&#x2500; __init__.py              task registration + env config
-&#x251C;&#x2500;&#x2500; reach_env.py             DirectRLEnv subclass
-&#x251C;&#x2500;&#x2500; reach_env_cfg.py         scene, robot, action, obs configs
-&#x251C;&#x2500;&#x2500; actions/
-&#x2502;   &#x2514;&#x2500;&#x2500; joint_delta.py       per-joint scaled delta actions
-&#x251C;&#x2500;&#x2500; observations/
-&#x2502;   &#x2514;&#x2500;&#x2500; ground_truth_12d.py  joint pos + EE pos + target pos
-&#x2514;&#x2500;&#x2500; rewards/
-    &#x251C;&#x2500;&#x2500; dense_reach.py       distance-based dense reward
-    &#x251C;&#x2500;&#x2500; dense_reach_v1.py    + convergence bonus
-    &#x2514;&#x2500;&#x2500; dense_reach_v2.py    + action penalty</div>
-
-        <h3>Why Isaac Lab over Gazebo</h3>
+        <h3>Task progression</h3>
         <table class="data-table">
-            <thead><tr><th>Metric</th><th>Gazebo (old)</th><th>Isaac Lab (current)</th></tr></thead>
+            <thead><tr><th>Task</th><th>Goal</th><th>Status</th></tr></thead>
             <tbody>
-                <tr><td>Parallel envs</td><td>4 (CPU-bound)</td><td>4096 (GPU-vectorised)</td></tr>
-                <tr><td>Throughput</td><td>~hundreds steps/s</td><td>50k+ steps/s</td></tr>
-                <tr><td>200k-step run</td><td>~30 min</td><td>&lt; 1 min</td></tr>
-                <tr><td>ROS in loop</td><td>Yes</td><td>No &mdash; pure GPU tensors</td></tr>
-                <tr><td>Domain randomisation</td><td>Manual</td><td>Built-in</td></tr>
-                <tr><td>Gripper modelling</td><td>Fixed-open hack</td><td>Articulated 7-DOF</td></tr>
+                <tr><td>Reach</td><td>Drive EE to a randomised XYZ target above table</td><td>Operational baseline (dense_reach_v1)</td></tr>
+                <tr><td>Grab</td><td>Reach cube + close gripper + lift &gt;5 cm off table</td><td>v0 working (97%), v5 pending</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="section alt" id="architecture">
+    <div class="section-in">
+        <p class="section-lbl">Architecture</p>
+        <div class="ph-line"></div>
+        <h2>Strategy pattern &amp; repository structure</h2>
+        <div class="code-block">isaac_rl/
+  assets/
+    urdf/
+      ur_onrobot.urdf           <span class="cm">UR3e + RG2 URDF (base)</span>
+      ur_onrobot_prepared.urdf  <span class="cm">Processed version (fixed joints, etc.)</span>
+    meshes/
+      onrobot_description/rg2/{collision,visual}/*.stl
+      ur_description/ur3e/{collision,visual}/*.{stl,dae}
+  holoassist_tasks/
+    source/holoassist_tasks/holoassist_tasks/
+      common/
+        gripper_coupling.py     <span class="cm">Gripper linkage kinematics + mimic control</span>
+        kinematics.py           <span class="cm">UR3e FK/IK (scipy-based)</span>
+      tasks/direct/
+        reach/                  <span class="cm">Reach task (env, cfg, obs, rewards, actions)</span>
+        grab/                   <span class="cm">Grab task (env, cfg, obs, rewards, actions)</span>
+    scripts/rsl_rl/
+      train.py                  <span class="cm">RSL-RL training entrypoint</span>
+      play.py                   <span class="cm">Policy playback</span>
+  TRAINING_RUNS.md              <span class="cm">Catalogue of all training runs</span></div>
+
+        <h3>Strategy-module design</h3>
+        <p>Both the reach and grab tasks follow a <strong>strategy-module architecture</strong>: the env class is a thin shell that handles lifecycle (init, scene setup, reset, dones), and all observation, reward, and action logic lives in sibling subpackages:</p>
+        <div class="code-block">tasks/direct/reach/
+  observations/ground_truth_12d.py   <span class="cm">&larr; observation strategy</span>
+  rewards/dense_reach_v1.py          <span class="cm">&larr; reward strategy (active)</span>
+  actions/joint_delta.py             <span class="cm">&larr; action strategy</span>
+  reach_env.py                       <span class="cm">&larr; env shell (imports strategies at top)</span></div>
+        <p>To A/B test a different reward design: change one import line, no env subclassing needed. Multiple reward versions are kept simultaneously (<code>dense_reach_v0</code> through <code>dense_reach_v3_ik</code>). The grab task uses a dispatch dict so reward versions can be selected by config string rather than requiring separate env registrations.</p>
+
+        <h3>Training commands</h3>
+        <div class="code-block"><span class="cm"># Full training (from IsaacLab directory)</span>
+.\isaaclab.bat -p ...train.py --task HoloAssist-Reach-Direct-v0 `
+    --num_envs 4096 --max_iterations 1500 --headless
+
+<span class="cm"># Playback</span>
+.\isaaclab.bat -p ...play.py --task Template-Holoassist-Grab-Direct-v0 `
+    --checkpoint "C:\...\model_3000.pt"
+
+<span class="cm"># TensorBoard</span>
+.\isaaclab.bat -p -m tensorboard.main `
+    --logdir "C:\...\logs\rsl_rl" --port 6006</div>
+    </div>
+</section>
+
+<section class="section" id="urdf">
+    <div class="section-in">
+        <p class="section-lbl">Robot Asset</p>
+        <div class="ph-line"></div>
+        <h2>URDF pipeline &amp; gripper mimic problem</h2>
+        <p>The UR3e + RG2 URDF required preprocessing before Isaac Sim could load it:</p>
+        <ol>
+            <li><code>inspect_urdf.py</code> &mdash; validates joint types, link masses, mesh paths</li>
+            <li><code>prepare_urdf.py</code> &mdash; converts fixed joints to fused links where needed; sets up RG2 gripper&rsquo;s mimic joints in a form Isaac Sim can handle</li>
+            <li>Isaac Sim URDF importer &rarr; layered USD asset</li>
+        </ol>
+
+        <div class="code-block">ur_onrobot.urdf
+    &rarr; Isaac Sim URDF importer
+    &rarr; ur_onrobot_prepared.urdf (physics preparation)
+    &rarr; ur_onrobot_prepared_base.usd + physics.usd + robot.usd + sensor.usd
+    &rarr; ur_onrobot_prepared.usd (composed asset)</div>
+
+        <h3>PhysxMimicJointAPI problem</h3>
+        <p>The RG2 gripper is a 4-bar parallel linkage. In URDF the follower joints are defined as <code>&lt;mimic&gt;</code> joints. Isaac Sim 5.1&rsquo;s <strong>PhysxMimicJointAPI is metadata-only</strong> &mdash; it does not enforce mimic behaviour in the physics solver. This was proven empirically during development.</p>
+        <p><strong>Solution:</strong> Enforce gripper kinematics via <strong>stiff position drives</strong>. All 6 linkage joints (master + 5 followers) are given commanded positions computed with the correct gear signs (<code>common/gripper_coupling.py</code>), and drive stiffness is set high enough (<code>linkage_drive_stiffness</code>, typically 1000&ndash;5000) that they track the command rigidly under contact.</p>
+        <div class="code-block"><span class="cm"># In grab_env.__init__:</span>
+stiff = torch.full((num_envs, 6), cfg.linkage_drive_stiffness, device=device)
+robot.write_joint_stiffness_to_sim(stiff, joint_ids=linkage_ids_tensor)</div>
+
+        <h3>EE proxy</h3>
+        <p>Isaac Sim&rsquo;s &ldquo;merge fixed joints&rdquo; pass fuses frame-only links with no inertia into their parent. <code>gripper_tcp</code> (the true TCP frame) gets merged into <code>onrobot_base_link</code> and is not queryable. The closest available body approximating the grasp point is <code>left_inner_finger</code>. For the grab task, gripper centre is the <strong>midpoint of both inner fingers</strong>:</p>
+        <div class="code-block">gripper_center = (left_finger_pos + right_finger_pos) * 0.5</div>
+    </div>
+</section>
+
+<section class="section alt" id="reach">
+    <div class="section-in">
+        <p class="section-lbl">Task 1</p>
+        <div class="ph-line"></div>
+        <h2>Reach task</h2>
+        <p>Drive the end-effector (<code>left_inner_finger</code> body) to a randomised XYZ target position above the table. No gripper control &mdash; arm only. Success when EE is within <code>success_tolerance_m</code> of the target.</p>
+
+        <h3>Observation space (12D &mdash; <code>ground_truth_12d.py</code>)</h3>
+        <div class="code-block">[ee_x,     ee_y,     ee_z,          <span class="cm">end-effector world position (3)</span>
+ target_x, target_y, target_z,     <span class="cm">target world position (3)</span>
+ j0, j1, j2, j3, j4, j5]          <span class="cm">arm joint positions (6)</span></div>
+
+        <h3>Action space (6D &mdash; <code>joint_delta.py</code>)</h3>
+        <div class="code-block">action[i] &isin; [-1, 1] &rarr; joint_i_delta = action[i] &times; cfg.action_scale_rad
+<span class="cm"># Applied as position targets: joint_pos_target += delta</span></div>
+
+        <h3>Reward versions</h3>
+        <table class="data-table">
+            <thead><tr><th>Version</th><th>Key change</th><th>Result</th></tr></thead>
+            <tbody>
+                <tr><td><code>dense_reach_v0</code></td><td>Raw distance reward</td><td>Converged slowly, jerky motion</td></tr>
+                <tr><td><code>dense_reach_v1</code></td><td>+ action-rate penalty (smooth motion)</td><td><strong>Operational baseline</strong> &mdash; working policy</td></tr>
+                <tr><td><code>dense_reach_v2</code></td><td>+ jerk penalty (second-difference actions)</td><td>Robot folded into itself &mdash; over-penalised</td></tr>
+                <tr><td><code>dense_reach_v3_ik</code></td><td>+ IK-guided reward (tracking IK reference joints)</td><td>Also folded &mdash; IK pull too strong</td></tr>
+            </tbody>
+        </table>
+
+        <h3>IK grid (v3 only)</h3>
+        <p>The reach env precomputes a 20&times;20 IK grid over the target spawn zone at init time (~2 s startup cost, amortised over the full run). At each reset, the nearest-neighbour IK solution is looked up and stored as <code>_ik_reference</code> for the tracking reward term.</p>
+    </div>
+</section>
+
+<section class="section" id="grab">
+    <div class="section-in">
+        <p class="section-lbl">Task 2</p>
+        <div class="ph-line"></div>
+        <h2>Grab task &mdash; reward design iterations</h2>
+        <p>Reach a cube, close the gripper around it, and lift it at least 5 cm above the table surface. This is the most technically involved part of the Isaac Sim stack.</p>
+
+        <h3>Observation space (16D)</h3>
+        <div class="code-block">[ee_x, ee_y, ee_z,             <span class="cm">gripper centre world position (3)</span>
+ cube_x, cube_y, cube_z,       <span class="cm">cube world position (3)</span>
+ j0&ndash;j5,                        <span class="cm">arm joint positions (6)</span>
+ gripper_close_signal,         <span class="cm">action[6] from previous step (1)</span>
+ finger_width]                 <span class="cm">actual jaw width from physics (1)</span>
+                                <span class="cm">+ 2 additional terms per version</span></div>
+
+        <h3>Action space (7D)</h3>
+        <div class="code-block">action[0:6] &isin; [-1, 1]  &rarr; arm joint deltas &times; cfg.action_scale_rad
+action[6]   &isin; [-1, 1]  &rarr; gripper signal (+1 = open, -1 = close)</div>
+
+        <h3>Version 0 &mdash; working baseline</h3>
+        <p>6 reward terms (proximity-gated alignment, grasp activation, lift bonus, success bonus). <strong>Result: 97% success, 196/200 mean reward.</strong> Behaviour: &ldquo;side-sprawl&rdquo; &mdash; arm approaches from the side rather than above, with visible self-collision. Self-collision physics was disabled in v0.</p>
+
+        <h3>Version 1 &mdash; hover trap</h3>
+        <p>Added <code>approach_height</code> bonus and made orientation reward ungated. <strong>Result: arm learned perfect overhead posture, then hovered indefinitely without closing the gripper.</strong> Mean episode length 200 (always timeout). The policy earned ~1.5/step for maintaining orientation without ever attempting to grasp.</p>
+        <div class="callout callout-warn">
+            <strong>Design lesson:</strong> When orientation or alignment rewards are not gated on proximity, the policy will find a pose that maximises them continuously rather than moving toward grasping.
+        </div>
+
+        <h3>Version 2 &mdash; lateral misalignment</h3>
+        <p>Added <code>time_penalty</code> (-1/step) to break the hover. Rebalanced scales. <strong>Result: two new exploits &mdash; (1) hold-below-threshold: gripper beside the cube, cube raised just below success threshold, milking continuous lift bonus without triggering termination; (2) sloppy grasp: arm closed gripper anywhere near the cube for grasp-activation reward.</strong></p>
+        <div class="callout callout-warn">
+            <strong>Design rule established:</strong> <code>sum(per-step reward) &times; max_episode_length MUST be &lt; success_bonus</code>. When this invariant breaks, the policy prefers to milk per-step rewards over terminating with success. v1 and v2 both violated this.
+        </div>
+
+        <h3>Version 3 &mdash; finger drag</h3>
+        <p>Strategic retreat to v0&rsquo;s 6-term design + PhysX self-collision + raised success threshold (10 cm) + small <code>elbow_up</code> nudge. <strong>Result: approach posture was correct &mdash; arm overhead, wrist-down, centred. But fingers descended to the table surface with the cube between them and the gripper did not close.</strong> Once fingers touch the table, friction prevents inward closing motion. The policy earned ~190/episode from alignment rewards while stuck at the cube.</p>
+
+        <h3>Version 4 &mdash; safe hover</h3>
+        <p>Added <code>anti_drag</code> term: -1/step when <code>finger_z &le; table_top + 0.20</code>. <strong>Result: policy learned to hover at exactly 0.21 m (just above threshold) indefinitely. Mean reward: ~13 &mdash; the worst result of all versions.</strong> The anti-drag pushed the policy away from the table but provided no gradient toward grasping.</p>
+
+        <h3>Version 5 &mdash; conservative return (pending)</h3>
+        <p>Return to v0&rsquo;s exact reward scales (the only configuration empirically proven to work). Add only: PhysX self-collision (fixes v0&rsquo;s arm-through-arm flaw) + tiny <code>elbow_up</code> nudge. No scale rebalancing, no new exploration constraints. Drops the 10 cm aspiration &mdash; 5 cm is the threshold proven achievable with the v0 reward structure. Not yet trained at time of writing.</p>
+    </div>
+</section>
+
+<section class="section alt" id="runs">
+    <div class="section-in">
+        <p class="section-lbl">Training Runs</p>
+        <div class="ph-line"></div>
+        <h2>Training runs summary</h2>
+        <table class="data-table">
+            <thead><tr><th>Run</th><th>Reward</th><th>Self-collision</th><th>Threshold</th><th>Mean reward</th><th>Behaviour</th></tr></thead>
+            <tbody>
+                <tr><td><code>grab-r0-run1</code></td><td>dense_grab v0</td><td>OFF</td><td>5 cm</td><td>196/200 (97%)</td><td><strong>Working</strong> &mdash; side-sprawl, self-collision visible</td></tr>
+                <tr><td><code>grab-r1-run1</code></td><td>dense_grab_v1</td><td>ON</td><td>10 cm</td><td>316 (misleading)</td><td>Hover trap &mdash; never closes gripper</td></tr>
+                <tr><td><code>grab-r2-run1</code></td><td>dense_grab_v2</td><td>ON</td><td>10 cm</td><td>~750 (misleading)</td><td>Exploit &mdash; hold below threshold, sloppy grab</td></tr>
+                <tr><td><code>grab-r3-run1</code></td><td>dense_grab_v3</td><td>ON</td><td>10 cm</td><td>~190</td><td>Finger drag &mdash; correct approach, no close</td></tr>
+                <tr><td><code>grab-r4-run1</code></td><td>dense_grab_v4</td><td>ON</td><td>10 cm</td><td>~13</td><td>Safe hover &mdash; worst result</td></tr>
+                <tr><td><code>grab-r5-run1</code></td><td>dense_grab_v5</td><td>ON</td><td>5 cm</td><td>TBD</td><td>Ready to train</td></tr>
+            </tbody>
+        </table>
+        <p style="font-size:0.82rem;color:rgba(204,204,204,0.5);margin-top:0.5rem;">All runs: 4096 envs, 2500 max iterations, RSL-RL PPO. Run on Windows local GPU (RTX 4070 Ti SUPER).</p>
+
+        <h3>Run naming convention</h3>
+        <div class="code-block">&lt;task&gt;-r&lt;reward_version&gt;-run&lt;N&gt;   <span class="cm">full training runs</span>
+&lt;task&gt;-r&lt;reward_version&gt;-pretest  <span class="cm">wiring-check runs (4 envs &times; 5 iters)</span></div>
+    </div>
+</section>
+
+<section class="section" id="discussion">
+    <div class="section-in">
+        <p class="section-lbl">Discussion</p>
+        <div class="ph-line"></div>
+        <h2>Reflections on the reward shaping challenge</h2>
+        <p>The five reward iterations for the grab task illustrate the central challenge in dense reward manipulation RL: <strong>the policy will find and exploit any loophole in the reward function</strong>. Each version closed one loophole but opened another:</p>
+        <ul>
+            <li>v0: reward achievable via self-collision (close proximity + no physics constraint)</li>
+            <li>v1: reward achievable via hovering indefinitely (ungated orientation bonus)</li>
+            <li>v2: reward achievable via holding cube below threshold + random closing</li>
+            <li>v3: reward achievable via finger-drag (approach correctly, never close)</li>
+            <li>v4: reward achievable via safe hover (stay above threshold, never descend)</li>
+        </ul>
+        <p>v5&rsquo;s design principle: return to the only configuration empirically proven to work (v0) and change <em>exactly one thing</em> (enable self-collision). This conservative iteration discipline &mdash; make one change at a time and verify each change doesn&rsquo;t introduce a new exploit &mdash; is slow but reliable.</p>
+
+        <h3>What we would change</h3>
+        <ul>
+            <li><strong>Self-collision from the start:</strong> v0&rsquo;s working policy has visible arm self-collision. Enabling PhysX self-collision from the very first grab run and designing the reward to be compatible with it would have saved several failed reward iterations.</li>
+            <li><strong>Invariant check before training:</strong> The &ldquo;sum of per-step rewards &times; episode_length &lt; success_bonus&rdquo; invariant was discovered empirically. This should be verified analytically before any training run starts.</li>
+            <li><strong>Curriculum for closing:</strong> v3 and v4 both show the policy can reach the correct position but cannot learn to close the gripper. A curriculum rewarding the gripper-close action specifically when correctly positioned might provide the gradient needed to break out of these traps.</li>
+        </ul>
+
+        <h3>Comparison with MuJoCo training</h3>
+        <table class="data-table">
+            <thead><tr><th></th><th>MuJoCo (John)</th><th>Isaac Sim (Seb)</th></tr></thead>
+            <tbody>
+                <tr><td>Approach</td><td>Sub-policy chain (pan + reach)</td><td>Monolithic grab (reach + grasp)</td></tr>
+                <tr><td>Algorithm</td><td>SB3 PPO</td><td>RSL-RL PPO</td></tr>
+                <tr><td>Parallel envs</td><td>16 (CPU)</td><td>4096 (GPU)</td></tr>
+                <tr><td>Gripper control</td><td>Open-loop script (watch phase)</td><td>Learned (action[6])</td></tr>
+                <tr><td>Reward</td><td>Jaw-margin success condition</td><td>Gated multi-term grab reward</td></tr>
+                <tr><td>Status</td><td>Reach training (7.5M steps)</td><td>Working grab v0 (97%), v5 pending</td></tr>
             </tbody>
         </table>
     </div>
@@ -168,7 +294,10 @@
 
 <footer class="doc-footer">
     <div class="doc-footer-in">
-        <div><h3>Simulation</h3><p>Ollie Lau (Gazebo) &middot; John Chen (MuJoCo) &middot; Sebastian Baudille (Isaac Sim) &middot; UTS 41118, 2026</p></div>
+        <div>
+            <h3>Isaac Sim RL &mdash; Sebastian Baudille</h3>
+            <p>UTS 41118 AI in Robotics, 2026</p>
+        </div>
         <a href="../index.html" class="doc-footer-back">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
             Back to Main Site
@@ -179,13 +308,15 @@
 <script src="../shared.js"></script>
 <script>
 buildDock([
-    { label:'Home',      href:'../index.html', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13V10.5"/></svg>' },
-    { label:'Gazebo',    href:'#gazebo', id:'gazebo', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>' },
-    { label:'MuJoCo',    href:'#mujoco', id:'mujoco', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>' },
-    { label:'Isaac Sim', href:'#setup',  id:'setup',  svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>' },
-    { label:'Assets',    href:'#assets', id:'assets', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>' },
-    { label:'Env',       href:'#env',    id:'env',    svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>' }
-]);
+    { label:'Home',        href:'../index.html', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13V10.5"/></svg>' },
+    { label:'Overview',    href:'#overview',    id:'overview',    svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' },
+    { label:'Architecture',href:'#architecture',id:'architecture', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>' },
+    { label:'URDF',        href:'#urdf',        id:'urdf',        svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>' },
+    { label:'Reach',       href:'#reach',       id:'reach',       svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>' },
+    { label:'Grab',        href:'#grab',        id:'grab',        svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 00-2-2v0a2 2 0 00-2 2v0"/><path d="M14 10V4a2 2 0 00-2-2v0a2 2 0 00-2 2v2"/><path d="M10 10.5V6a2 2 0 00-2-2v0a2 2 0 00-2 2v8"/><path d="M18 11a2 2 0 114 0v3a8 8 0 01-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 012.83-2.82L7 15"/></svg>' },
+    { label:'Runs',        href:'#runs',        id:'runs',        svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
+    { label:'Discussion',  href:'#discussion',  id:'discussion',  svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' }
+], { base: 72, mag: 120, dist: 96 });
 </script>
 </body>
 </html>

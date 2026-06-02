@@ -15,8 +15,8 @@
         }
         body { height: 100%; }
 
-        /* Dock larger on main page */
-        .di { --sz: 72px; }
+        /* Main-page dock */
+        @media (min-width: 1025px) { .di { --sz: 60px; } }
         @media (max-width: 768px) { .di { --sz: 48px; } }
 
         /* ── SECTIONS ── */
@@ -89,7 +89,7 @@
         .s-rl   .sc-bg { background-color: #111118; background-image: url('screenshots/training.png'); }
         .s-gaz  .sc-bg { background-color: #0c1a0e; background-image: url('screenshots/visualisation.gif'); background-size: cover; }
         .s-muj  .sc-bg { background-color: #10100a; background-image: url('screenshots/teleoperation.gif'); background-size: cover; }
-        .s-sim  .sc-bg { background-color: #0e0e18; background-image: url('screenshots/isaacsim.png'); }
+        .s-sim  .sc-bg { background-color: #0e0e18; background-image: url('screenshots/autonomous.gif'); background-size: cover; background-position: center; }
         .sc-overlay { position: absolute; inset: 0; background: linear-gradient(to right, rgba(0,0,0,.88) 0%, rgba(0,0,0,.6) 55%, rgba(0,0,0,.22) 100%); }
         .sc-gif { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.45s ease; pointer-events: none; }
         .sub-slide:hover .sc-gif { opacity: 0.8; }
@@ -137,6 +137,25 @@
         .spec-val { font-size: 2rem; font-weight: 800; color: var(--light); line-height: 1; margin-bottom: 0.25rem; }
         .spec-sub { font-size: 0.84rem; color: var(--body); }
 
+        /* ── TEAM CARDS ── */
+        .team-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: rgba(255,102,0,0.1); border: 1px solid rgba(255,102,0,0.1); }
+        .tc { position: relative; overflow: hidden; background: #1a1a1a; padding: 2rem 1.75rem; display: flex; align-items: flex-start; gap: 1.25rem; transition: background 0.2s; }
+        .tc:hover { background: #1e1e1e; }
+        .tc-gif { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.55s ease; pointer-events: none; z-index: 0; filter: saturate(0.55) brightness(0.75); }
+        .tc:hover .tc-gif { opacity: 0.28; }
+        .tc-body { flex: 1; min-width: 0; position: relative; z-index: 1; }
+        .tc-docs { display: inline-flex; align-items: center; gap: 5px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.5px; color: var(--orange-light); border: 1px solid rgba(255,102,0,0.38); background: rgba(255,102,0,0.1); padding: 4px 11px; border-radius: 3px; text-decoration: none; transition: background 0.15s, color 0.15s, border-color 0.15s; white-space: nowrap; }
+        .tc-docs:hover { background: rgba(255,102,0,0.22); color: var(--orange); border-color: rgba(255,102,0,0.6); }
+
+        /* ── RESULTS / BIBTEX ── */
+        .page-results .pi { background: #0d0d0d; }
+        .results-body { max-width: 820px; }
+        .results-body p { font-size: 1rem; color: var(--body); line-height: 1.8; margin-bottom: 1.1rem; max-width: 780px; }
+        .results-body p strong { color: var(--light); font-weight: 600; }
+        .bibtex-block { background: rgba(0,0,0,0.55); border: 1px solid rgba(255,102,0,0.14); border-left: 3px solid rgba(255,102,0,0.5); border-radius: 4px; padding: 1.5rem 1.75rem; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 0.8rem; color: #888; line-height: 1.85; overflow-x: auto; white-space: pre; margin-top: 1.25rem; }
+        .bibtex-block .bk { color: var(--orange-light); }
+        .bibtex-block .bv { color: var(--blue-light); }
+
         /* ── GALLERY ── */
         .page-gallery .pi { background: var(--steel); justify-content: flex-start; }
         .gal-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); flex: 1; min-height: 0; gap: 1px; background: rgba(255,102,0,0.1); }
@@ -159,7 +178,11 @@
         .ft-bot { font-size:0.82rem; color:#2a2a2a; display:flex; justify-content:space-between; align-items:center; }
 
         /* ── RESPONSIVE ── */
-        @media (max-width: 1200px) { .feat-grid { grid-template-columns: repeat(2, 1fr); } .arch-layout { grid-template-columns: 1fr; gap: 2rem; } }
+        @media (max-width: 1200px) {
+            .feat-grid { grid-template-columns: repeat(2, 1fr); }
+            .arch-layout { grid-template-columns: 1fr; gap: 2rem; }
+            .tc { flex-direction: column; gap: 0.9rem; }
+        }
         @media (max-width: 1024px) {
             html { scroll-snap-type: none; font-size: 18px; }
             .page, .hero, .sub-slide { min-height: auto; }
@@ -188,6 +211,7 @@
             .feat-grid { grid-template-columns: 1fr; }
             .arch-specs { grid-template-columns: 1fr 1fr; }
             .pi { padding: 2.5rem 1.5rem 5.5rem; }
+            .team-grid { grid-template-columns: 1fr; }
         }
         @media (max-width: 480px) {
             .gal-grid { grid-template-columns: 1fr; }
@@ -219,14 +243,14 @@
         </div>
     </div>
     <div class="hero-strip">
-        <a href="#perception" class="hs-item">
-            <div><h3>RGB-D Perception</h3><p>Simulated D435i &mdash; point cloud capture via ROS 2</p></div>
+        <a href="#team" class="hs-item">
+            <div><h3>Team</h3><p>Five contributors &mdash; hover each card to see their subsystem</p></div>
         </a>
-        <a href="#clustering" class="hs-item">
-            <div><h3>DBSCAN Clustering</h3><p>1.6 cm centroid accuracy &middot; 100% cube recall</p></div>
+        <a href="#architecture" class="hs-item">
+            <div><h3>Architecture</h3><p>D435i &rarr; DBSCAN &rarr; RSL-RL PPO &rarr; UR3e + RG2</p></div>
         </a>
-        <a href="#rl" class="hs-item">
-            <div><h3>PPO Grasping</h3><p>Isaac Lab RSL-RL &middot; 4096 parallel envs &middot; GPU-vectorised</p></div>
+        <a href="#results" class="hs-item">
+            <div><h3>Results</h3><p>&lt;2 mm calibration &middot; 1.63 cm DBSCAN &middot; 99% reach</p></div>
         </a>
     </div>
 </section>
@@ -235,81 +259,94 @@
 <section class="page page-status" id="team">
     <div class="pi">
         <div class="ph"><div class="ph-line"></div><h2>Team</h2><p>41118 AI in Robotics &mdash; University of Technology Sydney, 2026</p></div>
-        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:1px; background:rgba(255,102,0,0.1); border:1px solid rgba(255,102,0,0.1);">
+        <div class="team-grid">
             <!-- John -->
-            <div style="background:#1a1a1a; padding:2rem 1.75rem; display:flex; align-items:flex-start; gap:1.25rem;">
-                <div class="sp-photo" style="width:72px;height:72px;flex-shrink:0;">
+            <div class="tc">
+                <img class="tc-gif" src="screenshots/mujoco.gif" alt="" aria-hidden="true">
+                <div class="sp-photo" style="width:72px;height:72px;flex-shrink:0;position:relative;z-index:1;">
                     <img src="screenshots/team/john.jpg" alt="John" onerror="this.style.display='none'">
                     <div class="sp-init">JC</div>
                 </div>
-                <div>
+                <div class="tc-body">
                     <h3 style="font-size:1.05rem;font-weight:700;color:var(--light);margin-bottom:3px;">John Chen</h3>
                     <p style="font-size:0.8rem;color:var(--orange);margin-bottom:6px;">RL Training &amp; Integration</p>
-                    <p style="font-size:0.78rem;color:var(--body);line-height:1.55;margin:0;">MuJoCo training backend, staged sub-policies (Pan→Extend→Grasp), Jacobian IK, Gazebo sim setup, MoveIt2 integration, OnRobot RG2 driver, ONNX export.</p>
-                    <div style="display:flex;gap:0.4rem;margin-top:0.6rem;">
+                    <p style="font-size:0.78rem;color:var(--body);line-height:1.55;margin:0 0 0.6rem;">MuJoCo training backend, staged sub-policies (Pan&rarr;Extend&rarr;Grasp), Jacobian IK, Gazebo sim setup, MoveIt2 integration, OnRobot RG2 driver, ONNX export.</p>
+                    <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+                        <a href="https://www.linkedin.com/in/john-a-chen/" target="_blank" rel="noreferrer" class="sp-link sp-link-li" style="font-size:0.68rem;padding:4px 10px;"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg> LinkedIn</a>
                         <a href="https://github.com/John-A-Chen" target="_blank" rel="noreferrer" class="sp-link sp-link-gh" style="font-size:0.68rem;padding:4px 10px;"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg> GitHub</a>
+                        <a href="docs/training.html" class="tc-docs"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg> Read Docs</a>
                     </div>
                 </div>
             </div>
             <!-- Guy -->
-            <div style="background:#1a1a1a; padding:2rem 1.75rem; display:flex; align-items:flex-start; gap:1.25rem;">
-                <div class="sp-photo" style="width:72px;height:72px;flex-shrink:0;">
+            <div class="tc">
+                <img class="tc-gif" src="screenshots/clustering.gif" alt="" aria-hidden="true">
+                <div class="sp-photo" style="width:72px;height:72px;flex-shrink:0;position:relative;z-index:1;">
                     <img src="screenshots/team/guy.jpg" alt="Guy" onerror="this.style.display='none'">
                     <div class="sp-init">GS</div>
                 </div>
-                <div>
+                <div class="tc-body">
                     <h3 style="font-size:1.05rem;font-weight:700;color:var(--light);margin-bottom:3px;">Guy Smith</h3>
                     <p style="font-size:0.8rem;color:var(--orange);margin-bottom:6px;">Perception &amp; Clustering</p>
-                    <p style="font-size:0.78rem;color:var(--body);line-height:1.55;margin:0;">DBSCAN point cloud pipeline, dataset capture (60 scenes), 1.63 cm centroid accuracy, Phase A training (99% reach success), joint limit tuning.</p>
-                    <div style="display:flex;gap:0.4rem;margin-top:0.6rem;">
+                    <p style="font-size:0.78rem;color:var(--body);line-height:1.55;margin:0 0 0.6rem;">DBSCAN point cloud pipeline, dataset capture (60 scenes), 1.63 cm centroid accuracy, Phase A training (99% reach success), joint limit tuning.</p>
+                    <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+                        <a href="https://www.linkedin.com/in/guy-smith-a1340b2a0/" target="_blank" rel="noreferrer" class="sp-link sp-link-li" style="font-size:0.68rem;padding:4px 10px;"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg> LinkedIn</a>
                         <a href="https://github.com/GuyESmith" target="_blank" rel="noreferrer" class="sp-link sp-link-gh" style="font-size:0.68rem;padding:4px 10px;"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg> GitHub</a>
+                        <a href="docs/clustering.html" class="tc-docs"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg> Read Docs</a>
                     </div>
                 </div>
             </div>
             <!-- Sebastian -->
-            <div style="background:#1a1a1a; padding:2rem 1.75rem; display:flex; align-items:flex-start; gap:1.25rem;">
-                <div class="sp-photo" style="width:72px;height:72px;flex-shrink:0;">
+            <div class="tc">
+                <img class="tc-gif" src="screenshots/isaacsim.gif" alt="" aria-hidden="true">
+                <div class="sp-photo" style="width:72px;height:72px;flex-shrink:0;position:relative;z-index:1;">
                     <img src="screenshots/team/sebastian.jpg" alt="Sebastian" onerror="this.style.display='none'">
                     <div class="sp-init">SB</div>
                 </div>
-                <div>
+                <div class="tc-body">
                     <h3 style="font-size:1.05rem;font-weight:700;color:var(--light);margin-bottom:3px;">Sebastian Baudille</h3>
                     <p style="font-size:0.8rem;color:var(--orange);margin-bottom:6px;">Isaac Sim &amp; RL Control</p>
-                    <p style="font-size:0.78rem;color:var(--body);line-height:1.55;margin:0;">Isaac Sim 5.1 setup, URDF→USD pipeline, Isaac Lab DirectRLEnv reach task, RSL-RL PPO training (4096 envs, GPU), project init.</p>
-                    <div style="display:flex;gap:0.4rem;margin-top:0.6rem;">
+                    <p style="font-size:0.78rem;color:var(--body);line-height:1.55;margin:0 0 0.6rem;">Isaac Sim 5.1 setup, URDF&rarr;USD pipeline, Isaac Lab DirectRLEnv reach task, RSL-RL PPO training (4096 envs, GPU), project init.</p>
+                    <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
                         <a href="https://www.linkedin.com/in/sebastian-baudille-56ab542a0/" target="_blank" rel="noreferrer" class="sp-link sp-link-li" style="font-size:0.68rem;padding:4px 10px;"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg> LinkedIn</a>
                         <a href="https://github.com/Sebastian-Baudille" target="_blank" rel="noreferrer" class="sp-link sp-link-gh" style="font-size:0.68rem;padding:4px 10px;"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg> GitHub</a>
+                        <a href="docs/simulation.html" class="tc-docs"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg> Read Docs</a>
                     </div>
                 </div>
             </div>
             <!-- Ollie -->
-            <div style="background:#1a1a1a; padding:2rem 1.75rem; display:flex; align-items:flex-start; gap:1.25rem;">
-                <div class="sp-photo" style="width:72px;height:72px;flex-shrink:0;">
+            <div class="tc">
+                <img class="tc-gif" src="screenshots/gazebo.gif" alt="" aria-hidden="true">
+                <div class="sp-photo" style="width:72px;height:72px;flex-shrink:0;position:relative;z-index:1;">
                     <img src="screenshots/team/oliver.jpg" alt="Ollie" onerror="this.style.display='none'">
                     <div class="sp-init">OL</div>
                 </div>
-                <div>
+                <div class="tc-body">
                     <h3 style="font-size:1.05rem;font-weight:700;color:var(--light);margin-bottom:3px;">Ollie Lau</h3>
                     <p style="font-size:0.8rem;color:var(--orange);margin-bottom:6px;">Gazebo Simulation &amp; Safety</p>
-                    <p style="font-size:0.78rem;color:var(--body);line-height:1.55;margin:0;">Bootstrapped Gazebo Classic UR3e environment, original PPO training scripts, safety layer (joint limits, collision detection), MoveIt2 pick-and-place.</p>
-                    <div style="display:flex;gap:0.4rem;margin-top:0.6rem;">
+                    <p style="font-size:0.78rem;color:var(--body);line-height:1.55;margin:0 0 0.6rem;">Bootstrapped Gazebo Classic UR3e environment, original PPO training scripts, safety layer (joint limits, collision detection), MoveIt2 pick-and-place.</p>
+                    <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+                        <a href="https://www.linkedin.com/in/lau-oliver/" target="_blank" rel="noreferrer" class="sp-link sp-link-li" style="font-size:0.68rem;padding:4px 10px;"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg> LinkedIn</a>
                         <a href="https://github.com/ollie-lau" target="_blank" rel="noreferrer" class="sp-link sp-link-gh" style="font-size:0.68rem;padding:4px 10px;"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg> GitHub</a>
+                        <a href="docs/gazebo.html" class="tc-docs"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg> Read Docs</a>
                     </div>
                 </div>
             </div>
             <!-- Nic -->
-            <div style="background:#1a1a1a; padding:2rem 1.75rem; display:flex; align-items:flex-start; gap:1.25rem;">
-                <div class="sp-photo" style="width:72px;height:72px;flex-shrink:0;">
+            <div class="tc">
+                <img class="tc-gif" src="screenshots/perception.gif" alt="" aria-hidden="true">
+                <div class="sp-photo" style="width:72px;height:72px;flex-shrink:0;position:relative;z-index:1;">
                     <img src="screenshots/team/nic.jpg" alt="Nic" onerror="this.style.display='none'">
                     <div class="sp-init">NS</div>
                 </div>
-                <div>
-                    <h3 style="font-size:1.05rem;font-weight:700;color:var(--light);margin-bottom:3px;">Nic Sabatini</h3>
+                <div class="tc-body">
+                    <h3 style="font-size:1.05rem;font-weight:700;color:var(--light);margin-bottom:3px;">Nic Sabatta</h3>
                     <p style="font-size:0.8rem;color:var(--orange);margin-bottom:6px;">Perception, Website, Teleop &amp; RL Support</p>
-                    <p style="font-size:0.78rem;color:var(--body);line-height:1.55;margin:0;">Original AprilTag perception system, eye-to-hand calibration (Park solver, &lt;2mm), sim-to-real pipeline, teleop training data collection, Unity XR dashboard, this website &amp; docs.</p>
-                    <div style="display:flex;gap:0.4rem;margin-top:0.6rem;">
+                    <p style="font-size:0.78rem;color:var(--body);line-height:1.55;margin:0 0 0.6rem;">Original AprilTag perception system, eye-to-hand calibration (Park solver, &lt;2mm), sim-to-real pipeline, teleop training data collection, Unity XR dashboard, this website &amp; docs.</p>
+                    <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
                         <a href="https://www.linkedin.com/in/nicholas-sabatta/" target="_blank" rel="noreferrer" class="sp-link sp-link-li" style="font-size:0.68rem;padding:4px 10px;"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg> LinkedIn</a>
                         <a href="https://github.com/Mafia-Pineapple" target="_blank" rel="noreferrer" class="sp-link sp-link-gh" style="font-size:0.68rem;padding:4px 10px;"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg> GitHub</a>
+                        <a href="docs/perception.html" class="tc-docs"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg> Read Docs</a>
                     </div>
                 </div>
             </div>
@@ -339,225 +376,6 @@
     </div>
 </section>
 
-<!-- ── PERCEPTION ── -->
-<section class="sub-slide s-perc" id="perception">
-    <div class="sc-bg"></div>
-    <div class="sc-overlay"></div>
-    <img class="sc-gif" src="screenshots/perception.gif" alt="">
-    <div class="slide-body">
-        <div class="slide-top"><span class="slide-num">01 / 06</span></div>
-        <div class="slide-mid">
-            <div class="slide-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M3 12h3M18 12h3M12 3v3M12 18v3"/><path d="M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg></div>
-            <h2 class="slide-title">Hand-Eye Calibration</h2>
-            <p class="slide-tag">Eye-to-hand &middot; Park solver &middot; SVD workspace &middot; &lt;2 mm error &middot; RealSense D435i</p>
-            <p class="slide-desc">The calibration system underpinning both HoloAssist platforms. Nic Sabatini built a full eye-to-hand pipeline using the Park &amp; Martin closed-form solver (AX=XB), SVD-based workspace calibration, and an automated checkerboard capture routine &mdash; achieving &lt;2 mm reprojection error validated on the real UR3e. The AprilTag tracking system built on top of this is documented in detail on the <a href="https://john-a-chen.github.io/HoloAssist" target="_blank" rel="noreferrer" style="color:var(--blue-light);text-decoration:none;border-bottom:1px solid rgba(51,187,255,0.4);">HoloAssist base site &rarr;</a></p>
-        </div>
-        <div class="slide-bottom">
-            <div class="slide-specs">
-                <div class="slide-spec"><span>&lt;2mm</span>reprojection</div>
-                <div class="slide-spec"><span>AX=XB</span>Park solver</div>
-                <div class="slide-spec"><span>SVD</span>workspace</div>
-            </div>
-            <div class="slide-right">
-                <a href="docs/perception.html" class="slide-docs">Read Docs <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
-                <div class="slide-person" style="min-width:360px;">
-                    <div style="display:flex;flex-direction:column;gap:0.6rem;width:100%;">
-                        <div style="display:flex;align-items:center;gap:1rem;">
-                            <div class="sp-photo" style="width:48px;height:48px;flex-shrink:0;"><img src="screenshots/team/nic.jpg" alt="Nic" onerror="this.style.display='none'"><div class="sp-init" style="font-size:0.7rem;">NS</div></div>
-                            <div><div style="font-size:0.9rem;font-weight:700;color:white;">Nic Sabatini</div><div style="font-size:0.75rem;color:var(--blue-light);">Eye-to-hand calibration &amp; pipeline</div></div>
-                            <a href="https://github.com/Mafia-Pineapple" target="_blank" rel="noreferrer" class="sp-link sp-link-gh" style="margin-left:auto;font-size:0.68rem;padding:4px 9px;"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg></a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- ── CLUSTERING ── -->
-<section class="sub-slide s-clus" id="clustering">
-    <div class="sc-bg"></div>
-    <div class="sc-overlay"></div>
-    <div class="slide-body">
-        <div class="slide-top"><span class="slide-num">02 / 06</span></div>
-        <div class="slide-mid">
-            <div class="slide-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="7" r="3"/><circle cx="7" cy="17" r="3"/><circle cx="17" cy="17" r="3"/></svg></div>
-            <h2 class="slide-title">DBSCAN Clustering</h2>
-            <p class="slide-tag">Density-based segmentation &middot; XYZ-only &middot; ~1.6 cm accuracy &middot; Polyscope</p>
-            <p class="slide-desc">Point clouds are transformed to world frame, height-cropped above the table surface, and segmented with DBSCAN. No prior knowledge of cube count is needed. Per-cluster mean yields 3D centroids in world coordinates with ~1.6 cm accuracy across 60 validated scenes. Polyscope renders the results interactively.</p>
-        </div>
-        <div class="slide-bottom">
-            <div class="slide-specs">
-                <div class="slide-spec"><span>1.6</span>cm accuracy</div>
-                <div class="slide-spec"><span>100%</span>cube recall</div>
-                <div class="slide-spec"><span>60</span>scenes validated</div>
-            </div>
-            <div class="slide-right">
-                <a href="docs/clustering.html" class="slide-docs">Read Docs <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
-                <div class="slide-person">
-                    <div class="sp-photo">
-                        <img src="screenshots/team/nic.jpg" alt="Nic" onerror="this.style.display='none'">
-                        <div class="sp-init">NS</div>
-                    </div>
-                    <div class="sp-info"><h3>Nic Sabatini</h3><p>Perception &amp; RL</p></div>
-                    <div class="sp-links">
-                        <a href="https://www.linkedin.com/in/nicholas-sabatta/" target="_blank" rel="noreferrer" class="sp-link sp-link-li"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg> LinkedIn</a>
-                        <a href="https://github.com/Mafia-Pineapple" target="_blank" rel="noreferrer" class="sp-link sp-link-gh"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg> GitHub</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- ── REINFORCEMENT LEARNING ── -->
-<section class="sub-slide s-rl" id="rl">
-    <div class="sc-bg"></div>
-    <div class="sc-overlay"></div>
-    <div class="slide-body">
-        <div class="slide-top"><span class="slide-num">03 / 06</span></div>
-        <div class="slide-mid">
-            <div class="slide-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
-            <h2 class="slide-title">PPO Grasping</h2>
-            <p class="slide-tag">MuJoCo SB3 (fast iteration) &middot; Isaac Lab RSL-RL &middot; 4096 GPU envs &middot; ONNX export</p>
-            <p class="slide-desc">Two parallel training backends. MuJoCo + SB3 runs at ~1500 steps/s on CPU for fast reward shaping and staged policy design (Pan&rarr;Extend&rarr;Grasp sub-policies with Jacobian IK seeding). Isaac Lab runs 4096 GPU-parallel environments at 50k+ steps/s for scale. MuJoCo sub-policies are exported to ONNX and loaded into Isaac Sim for deployment.</p>
-        </div>
-        <div class="slide-bottom">
-            <div class="slide-specs">
-                <div class="slide-spec"><span>4096</span>parallel envs</div>
-                <div class="slide-spec"><span>PPO</span>RSL-RL</div>
-                <div class="slide-spec"><span>~20</span>min / 500 iter</div>
-            </div>
-            <div class="slide-right">
-                <a href="docs/training.html" class="slide-docs">Read Docs <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
-                <div class="slide-person">
-                    <div class="sp-photo">
-                        <img src="screenshots/team/sebastian.jpg" alt="Sebastian" onerror="this.style.display='none'">
-                        <div class="sp-init">SB</div>
-                    </div>
-                    <div class="sp-info"><h3>Sebastian Baudille</h3><p>Simulation &amp; Control</p></div>
-                    <div class="sp-links">
-                        <a href="https://www.linkedin.com/in/sebastian-baudille-56ab542a0/" target="_blank" rel="noreferrer" class="sp-link sp-link-li"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg> LinkedIn</a>
-                        <a href="https://github.com/Sebastian-Baudille" target="_blank" rel="noreferrer" class="sp-link sp-link-gh"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg> GitHub</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- ── GAZEBO SIM ── -->
-<section class="sub-slide s-gaz" id="gazebo">
-    <div class="sc-bg"></div>
-    <div class="sc-overlay"></div>
-    <img class="sc-gif" src="screenshots/visualisation.gif" alt="">
-    <div class="slide-body">
-        <div class="slide-top"><span class="slide-num">04 / 06</span></div>
-        <div class="slide-mid">
-            <div class="slide-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 8h10M7 12h6"/></svg></div>
-            <h2 class="slide-title">Gazebo Sim</h2>
-            <p class="slide-tag">Ignition Fortress &middot; RealSense D435i &middot; UR3e + RG2 &middot; MoveIt2 safety layer</p>
-            <p class="slide-desc">Bootstrapped by <strong style="color:#fff">Ollie Lau</strong> (Gazebo Classic, initial PPO scripts, safety layer) and extended by <strong style="color:#fff">John Chen</strong> (Ignition Fortress port, MoveIt2 collision avoidance, cube randomisation, parallel IGN_PARTITION isolation, OnRobot RG2 integration). Provides the simulated D435i point cloud for the perception pipeline and a safety layer enforcing <code style="color:var(--orange-light);font-size:0.9em">max_delta_rad = 0.24 rad/step</code>.</p>
-        </div>
-        <div class="slide-bottom">
-            <div class="slide-specs">
-                <div class="slide-spec"><span>6</span>DOF joints</div>
-                <div class="slide-spec"><span>0.24</span>rad/step max</div>
-                <div class="slide-spec"><span>ROS 2</span>Ignition</div>
-            </div>
-            <div class="slide-right">
-                <a href="docs/simulation.html#gazebo" class="slide-docs">Read Docs <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
-                <div class="slide-person" style="min-width:360px;">
-                    <div style="display:flex;flex-direction:column;gap:0.6rem;width:100%;">
-                        <div style="display:flex;align-items:center;gap:1rem;">
-                            <div class="sp-photo" style="width:48px;height:48px;flex-shrink:0;"><img src="screenshots/team/oliver.jpg" alt="Ollie" onerror="this.style.display='none'"><div class="sp-init" style="font-size:0.7rem;">OL</div></div>
-                            <div><div style="font-size:0.9rem;font-weight:700;color:white;">Ollie Lau</div><div style="font-size:0.75rem;color:var(--blue-light);">Gazebo Classic &amp; safety layer</div></div>
-                            <a href="https://github.com/ollie-lau" target="_blank" rel="noreferrer" class="sp-link sp-link-gh" style="margin-left:auto;font-size:0.68rem;padding:4px 9px;"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg></a>
-                        </div>
-                        <div style="height:1px;background:rgba(255,102,0,0.18);"></div>
-                        <div style="display:flex;align-items:center;gap:1rem;">
-                            <div class="sp-photo" style="width:48px;height:48px;flex-shrink:0;"><img src="screenshots/team/john.jpg" alt="John" onerror="this.style.display='none'"><div class="sp-init" style="font-size:0.7rem;">JC</div></div>
-                            <div><div style="font-size:0.9rem;font-weight:700;color:white;">John Chen</div><div style="font-size:0.75rem;color:var(--blue-light);">Ignition port &amp; RG2 integration</div></div>
-                            <a href="https://github.com/John-A-Chen" target="_blank" rel="noreferrer" class="sp-link sp-link-gh" style="margin-left:auto;font-size:0.68rem;padding:4px 9px;"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg></a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- ── SIMULATION ── -->
-<section class="sub-slide s-sim" id="simulation">
-    <div class="sc-bg"></div>
-    <div class="sc-overlay"></div>
-    <div class="slide-body">
-        <div class="slide-top"><span class="slide-num">05 / 06</span></div>
-        <div class="slide-mid">
-            <div class="slide-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
-            <h2 class="slide-title">Isaac Sim</h2>
-            <p class="slide-tag">NVIDIA Isaac Sim 5.1 &middot; Isaac Lab &middot; USD scenes &middot; RTX 4070 SUPER</p>
-            <p class="slide-desc">Training runs on NVIDIA Isaac Sim 5.1 with Isaac Lab's DirectRLEnv API. The UR3e + RG2 is modelled as a layered USD asset (base, physics, robot, sensor). GPU-vectorised simulation runs 4096 environments in a single process &mdash; 50k+ steps/s vs hundreds on CPU. Built-in domain randomisation for sim-to-real transfer.</p>
-        </div>
-        <div class="slide-bottom">
-            <div class="slide-specs">
-                <div class="slide-spec"><span>4096</span>envs</div>
-                <div class="slide-spec"><span>50k+</span>steps/s</div>
-                <div class="slide-spec"><span>USD</span>assets</div>
-            </div>
-            <div class="slide-right">
-                <a href="docs/simulation.html" class="slide-docs">Read Docs <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
-                <div class="slide-person">
-                    <div class="sp-photo">
-                        <img src="screenshots/team/sebastian.jpg" alt="Sebastian" onerror="this.style.display='none'">
-                        <div class="sp-init">SB</div>
-                    </div>
-                    <div class="sp-info"><h3>Sebastian Baudille</h3><p>Simulation &amp; Control</p></div>
-                    <div class="sp-links">
-                        <a href="https://www.linkedin.com/in/sebastian-baudille-56ab542a0/" target="_blank" rel="noreferrer" class="sp-link sp-link-li"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg> LinkedIn</a>
-                        <a href="https://github.com/Sebastian-Baudille" target="_blank" rel="noreferrer" class="sp-link sp-link-gh"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg> GitHub</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- ── MUJOCO ── -->
-<section class="sub-slide s-muj" id="mujoco">
-    <div class="sc-bg"></div>
-    <div class="sc-overlay"></div>
-    <img class="sc-gif" src="screenshots/autonomous.gif" alt="">
-    <div class="slide-body">
-        <div class="slide-top"><span class="slide-num">06 / 06</span></div>
-        <div class="slide-mid">
-            <div class="slide-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg></div>
-            <h2 class="slide-title">MuJoCo</h2>
-            <p class="slide-tag">CPU training &middot; ~1500 steps/s &middot; No ROS &middot; Staged sub-policies &middot; ONNX export bridge</p>
-            <p class="slide-desc">John Chen's MuJoCo MJCF environment mirrors the Gazebo scene exactly but runs on CPU at ~1500&thinsp;steps/s with zero ROS overhead &mdash; ideal for fast reward shaping and staged sub-policy design (Pan &rarr; Extend &rarr; Grasp with Jacobian IK seeding) before committing expensive GPU runs to Isaac Sim. Observation and action spaces are defined identically to the Gazebo env: a policy trained here loads directly into Isaac Sim via ONNX export with no architecture changes.</p>
-        </div>
-        <div class="slide-bottom">
-            <div class="slide-specs">
-                <div class="slide-spec"><span>1500</span>steps/s CPU</div>
-                <div class="slide-spec"><span>3</span>staged policies</div>
-                <div class="slide-spec"><span>ONNX</span>export</div>
-            </div>
-            <div class="slide-right">
-                <a href="docs/simulation.html#mujoco" class="slide-docs">Read Docs <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
-                <div class="slide-person">
-                    <div class="sp-photo">
-                        <img src="screenshots/team/john.jpg" alt="John" onerror="this.style.display='none'">
-                        <div class="sp-init">JC</div>
-                    </div>
-                    <div class="sp-info"><h3>John Chen</h3><p>MuJoCo env &amp; staged RL</p></div>
-                    <div class="sp-links">
-                        <a href="https://github.com/John-A-Chen" target="_blank" rel="noreferrer" class="sp-link sp-link-gh"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg> GitHub</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
 
 <!-- ── ARCHITECTURE ── -->
 <section class="page page-arch" id="architecture">
@@ -592,7 +410,7 @@
                 <div class="spec"><div class="spec-lbl">Throughput</div><div class="spec-val">50k+</div><div class="spec-sub">steps/s on RTX 4070 SUPER</div></div>
                 <div class="spec"><div class="spec-lbl">Centroid Accuracy</div><div class="spec-val">1.6</div><div class="spec-sub">cm error vs ground truth</div></div>
                 <div class="spec"><div class="spec-lbl">Cube Recall</div><div class="spec-val">100%</div><div class="spec-sub">across 60 validated scenes</div></div>
-                <div class="spec"><div class="spec-lbl">GPU</div><div class="spec-val" style="font-size:1.15rem">RTX 4070 Ti</div><div class="spec-sub">SUPER &middot; 16 GB &middot; Ada Lovelace</div></div>
+                <div class="spec"><div class="spec-lbl">GPU</div><div class="spec-val" style="font-size:1.15rem">RTX 4070 SUPER</div><div class="spec-sub">SUPER &middot; 16 GB &middot; Ada Lovelace</div></div>
                 <div class="spec"><div class="spec-lbl">RL Framework</div><div class="spec-val" style="font-size:1.15rem">RSL-RL</div><div class="spec-sub">Isaac Lab default &middot; GPU PPO</div></div>
             </div>
         </div>
@@ -614,6 +432,39 @@
     </div>
 </section>
 
+<!-- ── RESULTS ── -->
+<section class="page page-results" id="results">
+    <div class="pi">
+        <div class="ph"><div class="ph-line"></div><h2>Results, Discussion &amp; Reflection</h2><p>What we achieved, what surprised us, and what we would do differently.</p></div>
+        <div class="results-body">
+            <p><strong>Perception &amp; Calibration:</strong> Nic's eye-to-hand calibration achieved &lt;2 mm reprojection error on the real UR3e using the Park–Martin AX=XB closed-form solver — well within the accuracy needed for reliable cube detection. The custom DBSCAN point-cloud pipeline (Guy) reached 1.63 cm centroid accuracy with 100% cube recall across 60 validated scenes, demonstrating that marker-free detection is viable without third-party packages when the depth sensor is well-calibrated.</p>
+            <p><strong>RL Training:</strong> Phase A reach training (Guy, Gazebo + SB3) converged at 99% success after 696k steps once joint positions were added to the observation — a clear lesson that the agent must know where its own arm is, not just where the target is. John's staged sub-policy architecture (Pan&rarr;Extend&rarr;Grasp in MuJoCo) addressed the reward sparsity of monolithic pick-and-place: each sub-policy converges independently in isolation. Sebastian's Isaac Lab environment ran 4096 GPU-parallel environments at 50k+ steps/s, reaching 60–70% reach success after 500 iterations — partially converged and on an improving trajectory, with ~1000–1500 more iterations expected to close the gap.</p>
+            <p><strong>Sim-to-real pipeline:</strong> The ONNX export bridge (John) provides a clean handoff from CPU training (MuJoCo + SB3) to GPU deployment (Isaac Sim) with no Python dependency or architecture changes. This was a deliberate design constraint that paid off — it decoupled the fast-iteration training loop from the high-throughput deployment environment.</p>
+            <p><strong>What we would do differently:</strong> The biggest bottleneck was obs/action space compatibility across three independently developed backends (Gazebo, MuJoCo, Isaac Lab). Defining and freezing the interface contract earlier would have saved significant coordination overhead. We would also invest earlier in joint limit and self-collision handling — the arm folding into itself during Phase A training was painful to debug and the fix (tighter limits + gradient-signal config penalty) was straightforward once identified.</p>
+            <p><strong>Limitations:</strong> Full end-to-end pick-and-place (reach&rarr;grasp&rarr;transport&rarr;place) was not demonstrated — the reach phase converged at high success rate, but grasp and transport remain in progress. Domain randomisation available in Isaac Lab was not tuned for sim-to-real transfer, which would be required for physical robot deployment.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ── BIBTEX ── -->
+<section class="page" id="bibtex" style="background:#080808;">
+    <div class="pi">
+        <div class="ph"><div class="ph-line"></div><h2>BibTeX</h2><p>If you build on this work, please cite it.</p></div>
+        <div style="max-width:820px;">
+            <div class="bibtex-block"><span class="bk">@misc</span>{holoassist_ai_2026,
+  <span class="bk">author</span>    = {<span class="bv">Chen, John</span> and <span class="bv">Smith, Guy</span> and <span class="bv">Baudille, Sebastian</span>
+               and <span class="bv">Lau, Oliver</span> and <span class="bv">Sabatta, Nicholas</span>},
+  <span class="bk">title</span>     = {<span class="bv">HoloAssist-AI: End-to-End Perception and Reinforcement Learning
+               for Autonomous Robotic Grasping</span>},
+  <span class="bk">year</span>      = {<span class="bv">2026</span>},
+  <span class="bk">note</span>      = {<span class="bv">41118 Artificial Intelligence in Robotics,
+               University of Technology Sydney</span>},
+  <span class="bk">url</span>       = {<span class="bv">https://sebastian-baudille.github.io/HoloAssist-AI</span>}
+}</div>
+        </div>
+    </div>
+</section>
+
 <!-- ── FOOTER ── -->
 <footer class="main-footer">
     <div class="footer-in">
@@ -627,16 +478,16 @@
             <li><a href="docs/perception.html">Perception</a></li>
             <li><a href="docs/clustering.html">Clustering</a></li>
             <li><a href="docs/training.html">RL Training</a></li>
-            <li><a href="docs/simulation.html">Simulation</a></li>
+            <li><a href="docs/gazebo.html">Gazebo Sim</a></li>
+            <li><a href="docs/simulation.html">Isaac Sim RL</a></li>
         </ul></div>
-        <div class="ft-col"><h4>Pipeline</h4><ul>
-            <li><a href="#perception">RGB-D Perception</a></li>
-            <li><a href="#clustering">DBSCAN Clustering</a></li>
-            <li><a href="#rl">PPO Grasping</a></li>
-            <li><a href="#gazebo">Gazebo Sim</a></li>
-            <li><a href="#simulation">Isaac Sim</a></li>
-            <li><a href="#mujoco">MuJoCo</a></li>
+        <div class="ft-col"><h4>On This Page</h4><ul>
+            <li><a href="#team">Team</a></li>
+            <li><a href="#video">Demo Video</a></li>
             <li><a href="#architecture">Architecture</a></li>
+            <li><a href="#gallery">Gallery</a></li>
+            <li><a href="#results">Results</a></li>
+            <li><a href="#bibtex">BibTeX</a></li>
         </ul></div>
         <div class="ft-col"><h4>Quick Start</h4><ul>
             <li><a href="docs/index.html">Setup Guide</a></li>
@@ -660,23 +511,11 @@ buildDock([
       svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' },
     { label:'Video',         href:'#video',         id:'video',
       svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>' },
-    { label:'Calibration',   href:'#perception',    id:'perception',
-      svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M3 12h3M18 12h3M12 3v3M12 18v3"/></svg>' },
-    { label:'Clustering',    href:'#clustering',    id:'clustering',
-      svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="7" r="3"/><circle cx="7" cy="17" r="3"/><circle cx="17" cy="17" r="3"/></svg>' },
-    { label:'RL Training',   href:'#rl',            id:'rl',
-      svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>' },
-    { label:'Gazebo',         href:'#gazebo',        id:'gazebo',
-      svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 8h10M7 12h6"/></svg>' },
-    { label:'Isaac Sim',      href:'#simulation',    id:'simulation',
-      svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>' },
-    { label:'MuJoCo',         href:'#mujoco',        id:'mujoco',
-      svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>' },
     { label:'Architecture',  href:'#architecture',  id:'architecture',
       svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
     { label:'Gallery',       href:'#gallery',       id:'gallery',
       svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>' },
-], { base: 72, mag: 120, dist: 96 });
+], { base: 60, mag: 76, dist: 88 });
 
 // ── CLICK SPARK ──
 (function () {

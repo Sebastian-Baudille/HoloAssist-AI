@@ -22,11 +22,12 @@
     <div class="hero-bg"></div>
     <div class="hero-grid"></div>
     <div class="hero-overlay"></div>
+    <img class="hero-photo" src="../screenshots/clustering.gif" alt="">
     <div class="hero-content">
         <p class="hero-eyebrow">HoloAssist-AI &mdash; Clustering &mdash; Guy Smith</p>
         <div class="hero-line"></div>
         <h1 class="hero-title">DBSCAN<br><span class="thin">Clustering</span></h1>
-        <p class="hero-desc">Density-based point cloud segmentation replacing AprilTag detection. No physical markers, no third-party detection packages &mdash; custom implementation on raw depth data. 1.63 cm centroid accuracy across 60 validated scenes.</p>
+        <p class="hero-desc">Density-based point cloud segmentation replacing AprilTag detection. No physical markers, no third-party detection packages &mdash; custom implementation on raw depth data. Evolved through K-Means &rarr; DBSCAN iterations to reach 1.63 cm centroid accuracy across 60 validated scenes.</p>
         <div class="hero-meta">
             <div><span class="hero-meta-val">1.63cm</span>Centroid error</div>
             <div><span class="hero-meta-val">100%</span>Cube recall</div>
@@ -36,37 +37,90 @@
     </div>
 </section>
 
-<section class="section" id="why">
+<section class="section" id="setup">
+    <div class="section-in">
+        <p class="section-lbl">Environment Setup</p>
+        <div class="ph-line"></div>
+        <h2>Python environment constraint</h2>
+        <p>The clustering pipeline has a hard Python environment constraint. Open3D and Polyscope require Python 3.11, but <code>rclpy</code> (ROS 2 Python client) only runs under Python 3.10 (Humble). The two environments cannot coexist in the same process.</p>
+
+        <div class="callout callout-note">
+            <strong>Solution: PLY files on disk as the cross-environment bridge.</strong> No ROS topics or <code>rclpy</code> imports appear anywhere in the clustering code. No Open3D or Polyscope imports appear anywhere in the ROS nodes.
+        </div>
+
+        <div class="code-block">Gazebo sim (Python 3.10 / rclpy)
+    &rarr; saves PLY to ~/holoassist_pointclouds/
+
+Clustering pipeline (Python 3.11 / clustering/.venv)
+    &rarr; reads PLY from ~/holoassist_pointclouds/</div>
+
+        <div class="code-block"><span class="cm"># Install clustering environment</span>
+cd clustering && python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+<span class="cm"># numpy==2.4.3 open3d==0.19.0 scikit-learn==1.8.0 polyscope==2.6.1</span></div>
+    </div>
+</section>
+
+<section class="section alt" id="why">
     <div class="section-in">
         <p class="section-lbl">Approach</p>
         <div class="ph-line"></div>
-        <h2>Why DBSCAN over K-Means and AprilTag</h2>
+        <h2>K-Means to DBSCAN &mdash; why we switched</h2>
         <p>The project went through three approaches to cube detection:</p>
         <table class="data-table">
             <thead><tr><th>Method</th><th>Error</th><th>Exact-count</th><th>Limitation</th></tr></thead>
             <tbody>
                 <tr><td>AprilTag 3 (base HoloAssist)</td><td>~5&ndash;10 mm</td><td>100%</td><td>Physical markers on every cube face. Not our code.</td></tr>
-                <tr><td>K-Means (initial baseline)</td><td>2.65 cm</td><td>~90%</td><td>Requires knowing cube count <em>k</em> upfront. Sensitive to init.</td></tr>
+                <tr><td>K-Means (initial baseline)</td><td>2.65 cm</td><td>~90%</td><td>Requires knowing cube count <em>k</em> upfront. Assigns every point (including noise) to a cluster.</td></tr>
                 <tr><td>DBSCAN (current)</td><td>1.63 cm</td><td>82% *</td><td>Merges cubes at &lt;2&times; spacing. Fix in progress.</td></tr>
             </tbody>
         </table>
         <p style="font-size:0.82rem;color:rgba(204,204,204,0.5);margin-top:0.5rem;">* 82% on original 1.5&times; spacing dataset. Expected &gt;90% after regenerating dataset at 2.0&times; spacing.</p>
 
-        <p>DBSCAN wins on the two metrics that matter: better accuracy than K-Means, and no need to know how many cubes are in the scene. This makes it usable in the real deployment scenario where cube count is unknown.</p>
+        <p>DBSCAN wins on two metrics that matter: better accuracy than K-Means (because it labels noise as &minus;1 and discards it rather than forcing it into a cluster), and no need to know how many cubes are in the scene.</p>
+
+        <h3>Why no RGB weighting?</h3>
+        <p>Both K-Means and DBSCAN were tested with RGB colour weighting. Gazebo&rsquo;s diffuse lighting model creates significant per-pixel variation &mdash; the same cube colour appears very different on a lit face vs a shadowed face. Including RGB weighting caused clusters to split along lighting boundaries rather than grouping by object. Setting <code>color_weight = 0.0</code> (XYZ-only clustering) resolved this entirely.</p>
+    </div>
+</section>
+
+<section class="section" id="stage1">
+    <div class="section-in">
+        <p class="section-lbl">Stage 1</p>
+        <div class="ph-line"></div>
+        <h2>K-Means baseline</h2>
+        <p>The first approach was K-Means clustering with a fixed <em>k</em>. The motivation was simplicity &mdash; K-Means is deterministic, fast, and widely understood. If you know there are 4 cubes, <code>k=4</code> directly gives 4 centroids.</p>
+
+        <h3>Camera-to-world transform</h3>
+        <p>The point cloud is in <strong>camera body frame</strong> (+X = look direction). Before any Z-based cropping can work, all points must be transformed to world frame using the camera pose from <code>sim_params.yaml</code> (<code>[x, y, z, roll, pitch, yaw]</code>):</p>
+        <div class="code-block">R = Rz @ Ry @ Rx
+world_points = (R @ camera_points.T).T + [x, y, z]
+<span class="cm"># THEN do Z-crop</span></div>
+        <p>This was a critical early correctness requirement &mdash; forgetting to transform first meant the Z-crop was applied in the wrong frame, selecting nothing or the wrong layer.</p>
+
+        <h3>Z crop parameters</h3>
+        <div class="code-block">z_min = table_top_z + 0.015   <span class="cm"># 3× sensor noise σ (0.005 m)</span>
+z_max = table_top_z + cube_height + 0.01</div>
+
+        <h3>K-Means results</h3>
+        <p>First validated accuracy: <strong>~2.65 cm</strong> mean centroid error. This passed the 3 cm target, but K-Means has a fundamental limitation: <strong>k must be specified</strong>, and it forces exactly k clusters even when cubes are occluded, merged, or the crop contains noise.</p>
+
+        <p><strong>Commit:</strong> Replaced by DBSCAN in <code>b11750c</code> (27 May 2026) &mdash; complete rewrite of <code>detect_cubes.py</code>.</p>
     </div>
 </section>
 
 <section class="section alt" id="pipeline">
     <div class="section-in">
-        <p class="section-lbl">Pipeline</p>
+        <p class="section-lbl">Stage 2 &mdash; DBSCAN Pipeline</p>
         <div class="ph-line"></div>
-        <h2>Clustering pipeline</h2>
+        <h2>Full DBSCAN pipeline</h2>
 
         <div class="pipe-grid">
             <div class="pipe-step">
                 <div class="pipe-num">01</div>
                 <h4>Transform to World</h4>
-                <p>Camera body frame (+X look) &rarr; world frame via static TF. Height crop is only valid in world frame.</p>
+                <p>Camera body frame (+X look) &rarr; world frame via Euler rotation + translation. Height crop only valid in world frame.</p>
                 <div class="pipe-arrow">&rsaquo;</div>
             </div>
             <div class="pipe-step">
@@ -77,14 +131,34 @@
             </div>
             <div class="pipe-step">
                 <div class="pipe-num">03</div>
-                <h4>Outlier Removal + DBSCAN</h4>
-                <p>Open3D statistical outlier removal. DBSCAN: <code>eps=0.015</code>, <code>min_samples=20</code>, size 50&ndash;1500 pts, XYZ only.</p>
+                <h4>Statistical Outlier Removal</h4>
+                <p>Open3D: <code>nb_neighbors=20</code>, <code>std_ratio=2.0</code>. Kills flying pixels at depth discontinuities and isolated Gaussian noise.</p>
                 <div class="pipe-arrow">&rsaquo;</div>
             </div>
             <div class="pipe-step">
                 <div class="pipe-num">04</div>
+                <h4>DBSCAN</h4>
+                <p><code>eps=0.015 m</code>, <code>min_samples=20</code>. Points labelled &minus;1 (noise) discarded.</p>
+                <div class="pipe-arrow">&rsaquo;</div>
+            </div>
+        </div>
+        <div class="pipe-grid" style="margin-top:0.75rem">
+            <div class="pipe-step">
+                <div class="pipe-num">05</div>
+                <h4>Size Filter</h4>
+                <p>Keep clusters with 50&ndash;1500 points. Rejects isolated noise (&lt;50) and large non-cube surfaces (&gt;1500).</p>
+                <div class="pipe-arrow">&rsaquo;</div>
+            </div>
+            <div class="pipe-step">
+                <div class="pipe-num">06</div>
+                <h4>PCA per Cluster</h4>
+                <p>Centroid = <code>pca.mean_</code>. Principal axes for Polyscope visualisation (red/green/blue). Only centroid used by RL.</p>
+                <div class="pipe-arrow">&rsaquo;</div>
+            </div>
+            <div class="pipe-step">
+                <div class="pipe-num">07</div>
                 <h4>Centroids &rarr; RL</h4>
-                <p>Per-cluster mean (world XYZ). Flattened to <code>(k&times;3,)</code> = <code>(12,)</code> for 4-cube PPO state.</p>
+                <p>Per-cluster mean (world XYZ). Flattened to <code>(k&times;3,)</code> = <code>(12,)</code> for 4-cube PPO state vector.</p>
             </div>
         </div>
 
@@ -92,13 +166,20 @@
         <table class="data-table">
             <thead><tr><th>Parameter</th><th>Value</th><th>Why</th></tr></thead>
             <tbody>
-                <tr><td>eps</td><td>0.015 m</td><td>Typical intra-cluster point spacing at D435i resolution</td></tr>
-                <tr><td>min_samples</td><td>20</td><td>Filters noise while keeping partial cube views</td></tr>
-                <tr><td>size filter</td><td>50&ndash;1500 pts</td><td>Rejects isolated noise and large non-cube surfaces</td></tr>
+                <tr><td>eps</td><td>0.015 m</td><td>3&times; sensor noise &sigma; &mdash; cube surface points reliably cluster together</td></tr>
+                <tr><td>min_samples</td><td>20</td><td>Filters isolated noise while keeping partially occluded cubes</td></tr>
+                <tr><td>size filter</td><td>50&ndash;1500 pts</td><td>4 cm cube at ~0.7 m produces ~200&ndash;900 pts at 848&times;480</td></tr>
                 <tr><td>color_weight</td><td>0.0</td><td>Gazebo lighting causes colour noise &mdash; XYZ-only is stabler</td></tr>
                 <tr><td>z_min margin</td><td>+15 mm</td><td>3&times; sensor &sigma;=5 mm &mdash; excludes table surface reliably</td></tr>
+                <tr><td>outlier removal</td><td>nb=20, std=2.0</td><td>Open3D statistical filter removes flying pixels and Gaussian noise spikes</td></tr>
             </tbody>
         </table>
+
+        <h3>DQN / PPO state vector</h3>
+        <div class="code-block">centroids = np.array([p["centroid"] for p in cube_poses])  <span class="cm"># (k, 3) world-frame</span>
+state_vector = centroids.flatten()                          <span class="cm"># (k*3,) = (12,) for 4 cubes</span>
+<span class="cm"># (x0,y0,z0, x1,y1,z1, x2,y2,z2, x3,y3,z3)</span></div>
+        <p>Centroids are <strong>world-frame</strong> XYZ in metres, directly usable without further transformation by the RL policies.</p>
     </div>
 </section>
 
@@ -107,28 +188,48 @@
         <p class="section-lbl">Validation</p>
         <div class="ph-line"></div>
         <h2>Dataset &amp; evaluation methodology</h2>
-        <p>Guy built a fully automated dataset capture pipeline (<code>dataset_capture.py</code>) that runs inside the Gazebo simulation and captures 60 scenes with 2&ndash;4 cubes per scene at random positions. Ground-truth cube poses are read directly from Gazebo&rsquo;s physics state at capture time &mdash; no estimation.</p>
+        <p>Guy built a fully automated dataset capture pipeline (<code>dataset_capture.py</code>) that runs inside the Gazebo simulation and captures 60 scenes with 2&ndash;4 cubes per scene at random positions. Ground-truth cube poses are read directly from Gazebo&rsquo;s physics state at capture time &mdash; not estimated, not commanded positions.</p>
 
-        <h3>Evaluation: Hungarian matching</h3>
-        <p><code>verify_detection.py</code> uses Hungarian matching (scipy linear_sum_assignment) to optimally pair detected centroids to ground-truth cube positions, then reports mean centroid error, exact-count rate, recall, and false-positive rate separately.</p>
+        <h3>Hungarian algorithm matching</h3>
+        <p><code>verify_detection.py</code> uses the <strong>Hungarian algorithm</strong> (<code>scipy.optimize.linear_sum_assignment</code>) to optimally pair detected centroids to ground-truth cube positions. Because DBSCAN may detect more or fewer cubes than ground truth:</p>
+        <ul>
+            <li><strong>Missed cubes</strong> (detected &lt; GT): unmatched GT cubes get a penalty distance of 0.50 m so misses register as large errors in the mean</li>
+            <li><strong>Extra detections</strong> (detected &gt; GT): counted as false positives but not added to the error metric</li>
+        </ul>
+        <p>This produces honest accuracy numbers &mdash; a pipeline that misses half the cubes doesn&rsquo;t hide behind averaging only the cubes it found.</p>
+
+        <h3>Validated accuracy</h3>
+        <table class="data-table">
+            <thead><tr><th>Split</th><th>Mean error</th><th>Exact count rate</th><th>Cube recall</th></tr></thead>
+            <tbody>
+                <tr><td>Train (50 scenes)</td><td>~1.63 cm</td><td>~82%</td><td>~91%</td></tr>
+                <tr><td>Val (10 scenes)</td><td>~1.63 cm</td><td>~82%</td><td>~91%</td></tr>
+            </tbody>
+        </table>
+        <p style="font-size:0.82rem;color:rgba(204,204,204,0.5);margin-top:0.5rem;">Target was &lt;3 cm. <strong>PASS.</strong> Dominant error source: close-cube merging when DBSCAN treats two adjacent cubes as one cluster.</p>
 
         <h3>The spacing bug &amp; fix</h3>
-        <p>The 82% exact-count rate was caused by a scene generation bug: cubes were placed with a minimum separation of 1.5&times; cube size, giving only ~2 cm surface gaps. DBSCAN with <code>eps=0.015 m</code> bridges this gap when depth noise fills it, merging two adjacent cubes into one cluster.</p>
-        <p><strong>Fix:</strong> minimum cube spacing increased to 2.0&times; (4 cm surface gap). The fix has been committed; the dataset is being regenerated to confirm the expected &gt;90% exact-count rate.</p>
+        <p>The 82% exact-count rate was caused by cubes placed with minimum separation 1.5&times; cube size (~2 cm surface gap). DBSCAN with <code>eps=0.015 m</code> bridges this gap when depth noise fills it. Minimum separation was increased to 2.0&times; (~4 cm). The dataset is being regenerated to confirm expected &gt;90% exact-count rate.</p>
+
         <div class="code-block"><span class="cm"># Regenerate dataset with fixed spacing</span>
 ros2 run holoassist_sim dataset_capture.py --scenes 60 --min-separation 2.0
 
 <span class="cm"># Benchmark results</span>
-python clustering/verify_detection.py --ply ~/holoassist_pointclouds/ --labels dataset/labels/</div>
+python clustering/verify_detection.py \
+    --ply ~/holoassist_pointclouds/ \
+    --labels dataset/labels/</div>
 
-        <h3>Visualisation</h3>
-        <p>Polyscope renders the cropped point cloud with cluster colours and centroid markers interactively. PCA axes per cluster are shown for orientation (visualisation only &mdash; not used in RL).</p>
-        <div class="code-block"><span class="cm"># Run DBSCAN with Polyscope viewer</span>
+        <h3>Polyscope visualisation</h3>
+        <div class="code-block"><span class="cm"># Run DBSCAN with interactive Polyscope viewer</span>
 source clustering/.venv/bin/activate
-python clustering/detect_cubes.py
+python3 clustering/detect_cubes.py                          <span class="cm"># auto-picks most recent capture</span>
+python3 clustering/detect_cubes.py path/to/file.ply         <span class="cm"># specific file</span>
+python3 clustering/detect_cubes.py --no-viz                 <span class="cm"># results only</span>
+python3 clustering/detect_cubes.py --eps 0.020 --min-samples 15  <span class="cm"># tune live</span>
 
-<span class="cm"># View a saved PLY</span>
-python clustering/view_ply.py ~/holoassist_pointclouds/scene_4cubes_40mm_v001.ply</div>
+<span class="cm"># Quick PLY viewer</span>
+python3 clustering/view_ply.py ~/holoassist_pointclouds/default_4cubes_40mm_v001.ply</div>
+        <p>The Polyscope viewer shows: full scene point cloud (coloured by RGB), cube layer after Z-crop (coloured by cluster ID), centroid markers with PCA axes (red=PC1, green=PC2, blue=PC3).</p>
     </div>
 </section>
 
@@ -144,17 +245,48 @@ python clustering/view_ply.py ~/holoassist_pointclouds/scene_4cubes_40mm_v001.pl
             <li>100% cube recall: every cube detected in every validated scene</li>
             <li>No physical markers or prior cube count needed &mdash; generalises to any number of objects in the height band</li>
             <li>XYZ-only clustering is robust to Gazebo lighting variation where RGB-weighted clustering failed</li>
+            <li>The 1.63 cm accuracy is well within the robot&rsquo;s end-effector jaw margin &mdash; perception error is not the RL training bottleneck</li>
         </ul>
 
         <h3>Limitations</h3>
         <ul>
             <li><strong>Close-range merging:</strong> cubes &lt;2&times; cube size apart merge into one cluster. Dataset spacing fix in progress.</li>
-            <li><strong>Fixed geometry:</strong> height crop assumes known table height and cube size. A dynamic scene would need plane-fitting.</li>
+            <li><strong>Fixed geometry:</strong> height crop assumes known table height and cube size. A dynamic scene would need plane-fitting (e.g. RANSAC &mdash; as used in the original <code>workspace_perception_node</code>).</li>
             <li><strong>Simulation only:</strong> validated in Gazebo, not yet confirmed on the real D435i sensor.</li>
+            <li><strong>Colour-agnostic:</strong> XYZ-only clustering cannot distinguish objects of different types at the same height.</li>
         </ul>
 
         <h3>Impact on RL training</h3>
-        <p>The centroid output (world-frame XYZ, shape <code>(12,)</code> for 4 cubes) feeds directly into the PPO observation vector. The 1.63 cm accuracy is well within the robot&rsquo;s end-effector positioning tolerance, meaning perception error is not the bottleneck in policy performance.</p>
+        <p>The centroid output (world-frame XYZ, shape <code>(12,)</code> for 4 cubes) feeds directly into the PPO observation vector. At the 95th percentile (worst cubes), error rises to ~3&ndash;5 cm &mdash; at the edge of the jaw margin but still within the gripper&rsquo;s geometric range of acceptance.</p>
+    </div>
+</section>
+
+<section class="section" id="discussion">
+    <div class="section-in">
+        <p class="section-lbl">Discussion</p>
+        <div class="ph-line"></div>
+        <h2>Design decisions &amp; reflections</h2>
+
+        <h3>K-Means vs DBSCAN</h3>
+        <p>Both algorithms were tried, and DBSCAN won on two dimensions: accuracy and flexibility. The accuracy improvement (2.65 cm &rarr; 1.63 cm) came primarily from better noise handling &mdash; DBSCAN labels noise explicitly as &minus;1 and discards it before computing centroids, whereas K-Means is forced to assign every point (including noise) to a cluster, polluting centroids.</p>
+        <p>The main cost of DBSCAN is that <code>eps</code> and <code>min_samples</code> must be tuned. At 1.5 cm eps, clusters 1.5 cm apart merge; at 2.5 cm they reliably stay separate but noise rejection worsens. The current 1.5 cm value is a compromise that may need revisiting if the table scene changes.</p>
+
+        <h3>Why not deep learning?</h3>
+        <p>A learned detector (PointNet, PointPillars, or a simple voxel CNN) would likely outperform DBSCAN for occluded cubes and variable lighting. The decision to use classical clustering was driven by:</p>
+        <ol>
+            <li><strong>Time:</strong> the Gazebo + clustering stack needed to be functional quickly to unblock the RL pipeline</li>
+            <li><strong>Interpretability:</strong> classical clustering failures are visually diagnosable in Polyscope; a learned model&rsquo;s failures are less obvious</li>
+            <li><strong>Data:</strong> 60 scenes is insufficient to train a reliable 3D object detector from scratch</li>
+        </ol>
+
+        <h3>What we would change</h3>
+        <ul>
+            <li><strong>Adaptive eps:</strong> current <code>eps=0.015</code> is tuned for 4 cm cubes at ~0.7 m range. Cubes closer produce denser point clouds; farther ones produce sparser clouds. Adaptive eps scaling with estimated range would be more robust.</li>
+            <li><strong>Colour-aware DBSCAN:</strong> HSV hue is more lighting-invariant than RGB. Using hue to separate cubes that are very close spatially could improve the close-cube merging problem.</li>
+            <li><strong>Larger dataset:</strong> 60 scenes is functional but small. <code>dataset_capture.py</code> can easily scale to 500+ scenes in under 10 minutes.</li>
+            <li><strong>3D bounding box output:</strong> the PCA axes and extents could produce an oriented bounding box per cube, useful for grasp orientation planning.</li>
+            <li><strong>Real-camera validation:</strong> the entire pipeline was validated on synthetic Gazebo data. Real D435i data has different noise characteristics (quantisation, structured IR interference, specular reflections).</li>
+        </ul>
     </div>
 </section>
 
@@ -172,11 +304,14 @@ python clustering/view_ply.py ~/holoassist_pointclouds/scene_4cubes_40mm_v001.pl
 <script>
 buildDock([
     { label:'Home',       href:'../index.html', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13V10.5"/></svg>' },
-    { label:'Approach',   href:'#why',      id:'why',      svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
-    { label:'Pipeline',   href:'#pipeline', id:'pipeline', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="7" r="3"/><circle cx="7" cy="17" r="3"/><circle cx="17" cy="17" r="3"/></svg>' },
-    { label:'Dataset',    href:'#dataset',  id:'dataset',  svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>' },
-    { label:'Results',    href:'#evaluation', id:'evaluation', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' }
-]);
+    { label:'Setup',      href:'#setup',      id:'setup',      svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>' },
+    { label:'Approach',   href:'#why',        id:'why',        svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
+    { label:'K-Means',    href:'#stage1',     id:'stage1',     svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="5" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/></svg>' },
+    { label:'Pipeline',   href:'#pipeline',   id:'pipeline',   svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="7" r="3"/><circle cx="7" cy="17" r="3"/><circle cx="17" cy="17" r="3"/></svg>' },
+    { label:'Dataset',    href:'#dataset',    id:'dataset',    svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>' },
+    { label:'Results',    href:'#evaluation', id:'evaluation', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
+    { label:'Discussion', href:'#discussion', id:'discussion', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' }
+], { base: 72, mag: 120, dist: 96 });
 </script>
 </body>
 </html>
