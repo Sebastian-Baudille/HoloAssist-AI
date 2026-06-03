@@ -464,3 +464,77 @@ class HoloassistGrabEnvCfgV5(HoloassistGrabEnvCfg):
     # _grasp_activation, _lift, _success, success_lift_height, etc.) inherits
     # from HoloassistGrabEnvCfg (the v0 baseline). NOT overridden here.
 
+
+# ============================================================================
+# V6 cfg — v5 + stiffer gripper linkage (4500) to hold cube during lift
+# ============================================================================
+
+@configclass
+class HoloassistGrabEnvCfgV6(HoloassistGrabEnvCfgV5):
+    """V6: v5 + stiffer linkage drive for better grip during lift.
+
+    v5 visual showed the policy learned the full grasp+lift sequence but the
+    cube slipped out of the gripper during lift acceleration (~1 in 50 clean
+    pickups). Root cause: linkage_drive_stiffness=2500 (v0 baseline) generates
+    enough closing force for static holding (validated in grasp_test_v0.py)
+    but not enough to retain the cube against the inertia of arm acceleration
+    in dynamic RL-driven lifts.
+
+    Only change vs v5: bump linkage stiffness 2500 -> 4500. Empirical bounds
+    from grasp_test_v0.py experimentation:
+      - 500   : linkage deforms, cube not gripped
+      - 2500  : grips static, slips dynamic
+      - 4500  : (this) — expected sweet spot for dynamic grip
+      - 10000 : too rigid, fingers slap past cube
+
+    Same reward function (dense_grab_v5), same success threshold (5 cm),
+    same v0 scales. ONE physics knob changed.
+
+    Logs land in grab-r6-run1.
+    """
+
+    # ---- The only change vs v5 ----
+    linkage_drive_stiffness: float = 4500.0
+    # damping stays at base default (100.0)
+
+
+# ============================================================================
+# V0.5 cfg — v0 reward UNCHANGED + PhysX self-collision ONLY (pure baseline)
+# ============================================================================
+
+@configclass
+class HoloassistGrabEnvCfgV0p5(HoloassistGrabEnvCfg):
+    """V0.5: v0's exact reward + PhysX self-collision. NOTHING else changed.
+
+    Purpose: isolate the effect of self-collision on v0's working policy.
+    v0 trained 97% success but folded the arm through itself. This config
+    tests "does v0's reward still produce a working policy when self-collision
+    is physically enforced?"
+
+    Compared to other cfgs:
+      - vs HoloassistGrabEnvCfg (v0): ONLY adds self-collision spawn override
+      - vs HoloassistGrabEnvCfgV5: v0.5 omits the elbow_up reward and v5's
+        elbow_up cfg fields
+      - vs HoloassistGrabEnvCfgV6: v0.5 also omits the stiffer linkage (stays
+        at v0's 2500 baseline)
+
+    Reward module stays at the base default "dense_grab" (v0's 6-term reward
+    file, unchanged). No new reward file required.
+
+    Logs land in grab-r0p5-run1.
+    """
+
+    # ---- The only change vs v0: enable PhysX self-collisions ----
+    robot_cfg: ArticulationCfg = UR_ONROBOT_CFG.replace(
+        prim_path="/World/envs/env_.*/Robot",
+        spawn=UR_ONROBOT_CFG.spawn.replace(
+            articulation_props=sim_utils.ArticulationRootPropertiesCfg(
+                enabled_self_collisions=True,
+            ),
+        ),
+    )
+
+    # Everything else (reward_module, all scales, success threshold, linkage
+    # stiffness, etc.) inherits from HoloassistGrabEnvCfg unchanged.
+    # reward_module stays as "dense_grab" (the v0 reward file).
+

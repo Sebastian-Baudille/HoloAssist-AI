@@ -37,11 +37,13 @@ from . import agents
 from .grab_env import HoloassistGrabEnv
 from .grab_env_cfg import (
     HoloassistGrabEnvCfg,
+    HoloassistGrabEnvCfgV0p5,
     HoloassistGrabEnvCfgV1,
     HoloassistGrabEnvCfgV2,
     HoloassistGrabEnvCfgV3,
     HoloassistGrabEnvCfgV4,
     HoloassistGrabEnvCfgV5,
+    HoloassistGrabEnvCfgV6,
 )
 
 
@@ -52,6 +54,18 @@ gym.register(
     kwargs={
         "env_cfg_entry_point": f"{__name__}.grab_env_cfg:HoloassistGrabEnvCfg",
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:PPORunnerCfg",
+    },
+)
+
+# V0.5: pure v0 reward + PhysX self-collision ONLY. Clean baseline.
+# Tests whether v0's working policy survives when self-collision is enforced.
+gym.register(
+    id="Template-Holoassist-Grab-Direct-v0p5",
+    entry_point=f"{__name__}.grab_env:HoloassistGrabEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.grab_env_cfg:HoloassistGrabEnvCfgV0p5",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:PPORunnerCfgV0p5",
     },
 )
 
@@ -119,5 +133,18 @@ gym.register(
     kwargs={
         "env_cfg_entry_point": f"{__name__}.grab_env_cfg:HoloassistGrabEnvCfgV5",
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:PPORunnerCfgV5",
+    },
+)
+
+# V6: v5 + stiffer linkage drive (2500 -> 4500) for grip-during-lift.
+# v5 visual showed grasp + lift attempt but cube slipped out of fingers
+# during dynamic lift; v6 fixes the physics, reward design unchanged.
+gym.register(
+    id="Template-Holoassist-Grab-Direct-v6",
+    entry_point=f"{__name__}.grab_env:HoloassistGrabEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.grab_env_cfg:HoloassistGrabEnvCfgV6",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:PPORunnerCfgV6",
     },
 )

@@ -115,3 +115,26 @@ class PPORunnerCfgV5(PPORunnerCfg):
     """
 
     experiment_name = "grab-r5-run1"
+
+
+@configclass
+class PPORunnerCfgV6(PPORunnerCfg):
+    """PPO runner for the v6 grab task.
+
+    Same hyperparams as previous versions — only experiment_name differs.
+    v6 logs land in grab-r6-run1 (or grab-r6-pretest for wiring checks).
+    """
+
+    experiment_name = "grab-r6-run1"
+
+
+@configclass
+class PPORunnerCfgV0p5(PPORunnerCfg):
+    """PPO runner for the v0.5 grab task.
+
+    v0.5 = v0 reward + self-collision only. Pure baseline.
+    Same hyperparams as previous versions — only experiment_name differs.
+    Logs land in grab-r0p5-run1 (or grab-r0p5-pretest for wiring checks).
+    """
+
+    experiment_name = "grab-r0p5-run1"
