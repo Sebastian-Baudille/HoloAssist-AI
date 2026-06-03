@@ -1,0 +1,84 @@
+<mujoco model="ur3e_reach">
+
+  <!-- Reach-only scene: single cube, no bins, no extra physics objects. -->
+  <include file="robot.xml"/>
+
+  <option
+    timestep="0.002"
+    gravity="0 0 -9.81"
+    integrator="implicitfast"
+    cone="elliptic"
+    impratio="10"/>
+
+  <default>
+    <default class="cube">
+      <geom type="box" size="0.02 0.02 0.02"
+            mass="0.05" friction="0.8 0.005 0.0001"
+            condim="4" solref="0.01 1"/>
+    </default>
+  </default>
+
+  <worldbody>
+
+    <!-- Ground plane -->
+    <geom name="floor" type="plane" size="3 3 0.1"
+          rgba="0.55 0.57 0.60 1" friction="1 0.005 0.0001"/>
+
+    <!-- Lighting -->
+    <light name="sun" directional="true" pos="0 0 5"
+           dir="0 0 -1" diffuse="0.8 0.8 0.8" specular="0.2 0.2 0.2"/>
+
+    <!-- Single target cube -->
+    <body name="cube_0" pos="0.0 -0.28 0.02">
+      <freejoint name="cube_0_joint"/>
+      <geom class="cube" rgba="0.86 0.10 0.12 1" name="cube_0_geom"/>
+    </body>
+
+  </worldbody>
+
+  <actuator>
+    <position name="shoulder_pan"  joint="shoulder_pan_joint"
+              kp="500" kv="50" ctrlrange="-6.2832 6.2832" ctrllimited="true"/>
+    <position name="shoulder_lift" joint="shoulder_lift_joint"
+              kp="500" kv="50" ctrlrange="-6.2832 6.2832" ctrllimited="true"/>
+    <position name="elbow"         joint="elbow_joint"
+              kp="500" kv="50" ctrlrange="-6.2832 6.2832" ctrllimited="true"/>
+    <position name="wrist_1"       joint="wrist_1_joint"
+              kp="200" kv="20" ctrlrange="-6.2832 6.2832" ctrllimited="true"/>
+    <position name="wrist_2"       joint="wrist_2_joint"
+              kp="200" kv="20" ctrlrange="-6.2832 6.2832" ctrllimited="true"/>
+    <position name="wrist_3"       joint="wrist_3_joint"
+              kp="200" kv="20" ctrlrange="-6.2832 6.2832" ctrllimited="true"/>
+    <!-- ctrl=0.0 open, ctrl=0.8 closed -->
+    <position  name="gripper"      joint="left_driver_joint"
+              kp="20" kv="2"      ctrlrange="0 1.3" ctrllimited="true"/>
+  </actuator>
+
+  <!-- Home pose keyframe — used by viewer reset button (Ctrl+R / backspace) -->
+  <keyframe>
+    <key name="home"
+         qpos="0 -1.5708 1.7 -1.5708 -1.5708 0 0 0  0 -0.28 0.02 1 0 0 0"
+         ctrl="0 -1.5708 1.7 -1.5708 -1.5708 0 0"/>
+  </keyframe>
+
+  <contact>
+    <exclude body1="base_link_inertia" body2="shoulder_link"/>
+    <exclude body1="shoulder_link"     body2="upper_arm_link"/>
+    <exclude body1="upper_arm_link"    body2="forearm_link"/>
+    <exclude body1="forearm_link"      body2="wrist_1_link"/>
+    <exclude body1="wrist_1_link"      body2="wrist_2_link"/>
+    <exclude body1="wrist_2_link"      body2="wrist_3_link"/>
+    <exclude body1="wrist_3_link"      body2="onrobot_rg2_base_link"/>
+    <exclude body1="onrobot_rg2_base_link" body2="left_outer_knuckle"/>
+    <exclude body1="onrobot_rg2_base_link" body2="right_outer_knuckle"/>
+    <exclude body1="onrobot_rg2_base_link" body2="left_inner_knuckle"/>
+    <exclude body1="onrobot_rg2_base_link" body2="right_inner_knuckle"/>
+    <exclude body1="left_outer_knuckle"    body2="left_inner_finger"/>
+    <exclude body1="right_outer_knuckle"   body2="right_inner_finger"/>
+    <exclude body1="left_outer_knuckle"    body2="left_inner_knuckle"/>
+    <exclude body1="right_outer_knuckle"   body2="right_inner_knuckle"/>
+    <exclude body1="left_inner_knuckle"    body2="left_inner_finger"/>
+    <exclude body1="right_inner_knuckle"   body2="right_inner_finger"/>
+  </contact>
+
+</mujoco>

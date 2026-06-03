@@ -9,14 +9,14 @@
     <mesh name="wrist1" content_type="model/stl" file="/opt/ros/humble/share/ur_description/meshes/ur3e/collision/wrist1.stl"/>
     <mesh name="wrist2" content_type="model/stl" file="/opt/ros/humble/share/ur_description/meshes/ur3e/collision/wrist2.stl"/>
     <mesh name="wrist3" content_type="model/stl" file="/opt/ros/humble/share/ur_description/meshes/ur3e/collision/wrist3.stl"/>
-    <mesh name="base_link" content_type="model/stl" file="/home/john/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2/collision/base_link.stl"/>
-    <mesh name="outer_knuckle" content_type="model/stl" file="/home/john/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2/collision/outer_knuckle.stl"/>
-    <mesh name="inner_knuckle" content_type="model/stl" file="/home/john/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2/collision/inner_knuckle.stl"/>
-    <mesh name="inner_finger" content_type="model/stl" file="/home/john/git/HoloAssist-AI/ur3e_rl_ws/install/ur3e_gazebo_sim/share/ur3e_gazebo_sim/meshes/rg2/collision/inner_finger.stl"/>
+    <mesh name="base_link" content_type="model/stl" file="meshes/rg2/collision/base_link.stl"/>
+    <mesh name="outer_knuckle" content_type="model/stl" file="meshes/rg2/collision/outer_knuckle.stl"/>
+    <mesh name="inner_knuckle" content_type="model/stl" file="meshes/rg2/collision/inner_knuckle.stl"/>
+    <mesh name="inner_finger" content_type="model/stl" file="meshes/rg2/collision/inner_finger.stl"/>
   </asset>
 
   <worldbody>
-    <body name="base_link" pos="0 0 1.1" quat="0 0 0 1">
+    <body name="base_link" pos="0 0 0" quat="0 0 0 1">
       <body name="base_link_inertia" quat="0 0 0 1">
         <inertial pos="0 0 0" quat="0.5 0.5 -0.5 0.5" mass="2" diaginertia="0.005625 0.00305317 0.00305317"/>
         <geom pos="0 0 0" quat="0 0 0 1" type="mesh" mesh="base"/>
@@ -50,30 +50,57 @@
                         <body name="onrobot_rg2_base_link">
                           <inertial pos="0 0 0" quat="0.820473 0.339851 -0.17592 0.424708" mass="0.78" diaginertia="0.001002 0.000999 0.000999"/>
                           <geom type="mesh" rgba="0.8 0.8 0.8 1" mesh="base_link"/>
+
+                          <!-- ── LEFT FINGER ───────────────────────────────────────── -->
+                          <!-- Outer knuckle: driven by actuator -->
                           <body name="left_outer_knuckle" pos="0 -0.017178 0.125797">
+                            <joint name="left_driver_joint" axis="-1 0 0" range="0 1.3"
+                                   armature="0.005" damping="0.1"
+                                   solimplimit="0.95 0.99 0.001" solreflimit="0.005 1"/>
                             <inertial pos="0 0 0" quat="0.820473 0.339851 -0.17592 0.424708" mass="0.05" diaginertia="0.001002 0.000999 0.000999"/>
                             <geom type="mesh" rgba="0.8 0.8 0.8 1" mesh="outer_knuckle"/>
+
+                            <!-- Finger pad: child of outer_knuckle TIP (same pos as original).
+                                 Counter-rotates via equality to stay flat = 4-bar parallel jaw. -->
                             <body name="left_inner_finger" pos="0 -0.039592 0.038177">
+                              <joint name="left_inner_finger_joint" axis="-1 0 0" range="-1.3 0"
+                                     armature="0.001" damping="0.05"/>
                               <inertial pos="0 0 0" quat="0.820473 0.339851 -0.17592 0.424708" mass="0.05" diaginertia="0.001002 0.000999 0.000999"/>
                               <geom type="mesh" rgba="0.08 0.08 0.08 1" mesh="inner_finger"/>
                             </body>
                           </body>
+
+                          <!-- Inner knuckle: passive 4-bar link, tracks driver via equality -->
                           <body name="left_inner_knuckle" pos="0 -0.007678 0.142297">
+                            <joint name="left_inner_knuckle_joint" axis="-1 0 0" range="0 1.3"
+                                   armature="0.001" damping="0.05"/>
                             <inertial pos="0 0 0" quat="0.820473 0.339851 -0.17592 0.424708" mass="0.05" diaginertia="0.001002 0.000999 0.000999"/>
                             <geom type="mesh" rgba="0.8 0.8 0.8 1" mesh="inner_knuckle"/>
                           </body>
+
+                          <!-- ── RIGHT FINGER (180° Z-rotation mirrors left) ────────── -->
                           <body name="right_outer_knuckle" pos="0 0.017178 0.125797" quat="0 0 0 1">
+                            <joint name="right_driver_joint" axis="-1 0 0" range="0 1.3"
+                                   armature="0.005" damping="0.1"
+                                   solimplimit="0.95 0.99 0.001" solreflimit="0.005 1"/>
                             <inertial pos="0 0 0" quat="0.820473 0.339851 -0.17592 0.424708" mass="0.05" diaginertia="0.001002 0.000999 0.000999"/>
                             <geom type="mesh" rgba="0.8 0.8 0.8 1" mesh="outer_knuckle"/>
+
                             <body name="right_inner_finger" pos="0 -0.039592 0.038177">
+                              <joint name="right_inner_finger_joint" axis="-1 0 0" range="-1.3 0"
+                                     armature="0.001" damping="0.05"/>
                               <inertial pos="0 0 0" quat="0.820473 0.339851 -0.17592 0.424708" mass="0.05" diaginertia="0.001002 0.000999 0.000999"/>
                               <geom type="mesh" rgba="0.08 0.08 0.08 1" mesh="inner_finger"/>
                             </body>
                           </body>
+
                           <body name="right_inner_knuckle" pos="0 0.007678 0.142297" quat="0 0 0 1">
+                            <joint name="right_inner_knuckle_joint" axis="-1 0 0" range="0 1.3"
+                                   armature="0.001" damping="0.05"/>
                             <inertial pos="0 0 0" quat="0.820473 0.339851 -0.17592 0.424708" mass="0.05" diaginertia="0.001002 0.000999 0.000999"/>
                             <geom type="mesh" rgba="0.8 0.8 0.8 1" mesh="inner_knuckle"/>
                           </body>
+
                           <body name="gripper_tcp" pos="0 0 0.218"/>
                         </body>
                       </body>
@@ -88,4 +115,17 @@
       <body name="base" quat="0 0 0 1"/>
     </body>
   </worldbody>
+
+  <equality>
+    <!-- Right driver mirrors left -->
+    <joint joint1="right_driver_joint" joint2="left_driver_joint"
+           polycoef="0 1 0 0 0" solimp="0.95 0.99 0.001" solref="0.005 1"/>
+    <!-- Inner knuckles track their driver (passive 4-bar link) -->
+    <joint joint1="left_inner_knuckle_joint"  joint2="left_driver_joint"  polycoef="0 1 0 0 0"/>
+    <joint joint1="right_inner_knuckle_joint" joint2="right_driver_joint" polycoef="0 1 0 0 0"/>
+    <!-- Finger pads counter-rotate at the outer_knuckle tip → pad stays flat (parallel jaw) -->
+    <joint joint1="left_inner_finger_joint"   joint2="left_driver_joint"  polycoef="0 -1 0 0 0"/>
+    <joint joint1="right_inner_finger_joint"  joint2="right_driver_joint" polycoef="0 -1 0 0 0"/>
+  </equality>
+
 </mujoco>
