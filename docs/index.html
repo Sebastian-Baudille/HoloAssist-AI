@@ -98,23 +98,24 @@
         <div class="ph-line"></div>
         <h2>Quick Start</h2>
         <p>Clone, run setup, and launch the simulation:</p>
-        <div class="code-block"><span class="cm"># One-command setup</span>
+        <div class="code-block"><span class="cm"># Build the ROS workspace (one-time)</span>
 git clone https://github.com/Sebastian-Baudille/HoloAssist-AI.git
 cd HoloAssist-AI
-chmod +x setup.sh && ./setup.sh
+source /opt/ros/humble/setup.bash
+cd ros2_ws && colcon build --packages-select holoassist_sim --symlink-install
+source install/setup.bash && cd ..
 
-<span class="cm"># Terminal 1 — Gazebo + RViz</span>
-source ros2_ws/install/setup.bash
+<span class="cm"># Terminal 1 — Gazebo + RViz (leave running)</span>
+source /opt/ros/humble/setup.bash && source ros2_ws/install/setup.bash
 ros2 launch holoassist_sim sim.launch.py
 
 <span class="cm"># Terminal 2 — Capture a point cloud</span>
-source ros2_ws/install/setup.bash
+source /opt/ros/humble/setup.bash && source ros2_ws/install/setup.bash
 ros2 run holoassist_sim save_pointcloud.py \
     --params ros2_ws/src/holoassist_sim/config/sim_params.yaml
 
-<span class="cm"># Terminal 3 — Run DBSCAN clustering</span>
-source clustering/.venv/bin/activate
-python clustering/detect_cubes.py</div>
+<span class="cm"># Terminal 3 — Run DBSCAN clustering (no venv needed if open3d/sklearn installed)</span>
+python3 clustering/detect_cubes.py --no-viz</div>
         <p>See <a href="https://github.com/Sebastian-Baudille/HoloAssist-AI/blob/main/LAUNCH.md" style="color:var(--blue);text-decoration:underline;text-underline-offset:3px">LAUNCH.md</a> for the full command reference including RL training and parallel workers.</p>
     </div>
 </section>
@@ -247,7 +248,7 @@ buildDock([
         id: 'architecture',
         svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>'
     }
-]);
+], { base: 72, mag: 120, dist: 96 });
 </script>
 
 </body>
