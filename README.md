@@ -53,6 +53,7 @@ clustering/
   view_ply.py                     load PLY, world-frame transform, Polyscope viewer
   detect_cubes.py                 load, crop, DBSCAN, centroids, PCA, Polyscope
   verify_detection.py             benchmark detected centroids vs labelled ground truth
+  analyse_scene.py                rich Polyscope analysis + confusion matrix
 
 ur3e_rl_ws/
   src/ur3e_rl_env                 Gymnasium env, PPO trainers, evaluator
@@ -177,6 +178,62 @@ accuracy: ~1.6 cm centroid error vs ground truth.
 
 The full command reference (sim, dataset capture, RL training in 1- or 4-worker modes,
 policy deployment, real-D435i perception) is in [LAUNCH.md](LAUNCH.md).
+
+---
+
+## Visual analysis — point cloud + confusion matrix
+
+`clustering/analyse_scene.py` gives a richer view of what the pipeline is doing, with
+togglable Polyscope layers and a matplotlib confusion matrix.
+
+```bash
+source clustering/.venv/bin/activate
+
+# Full analysis: confusion matrix first, then Polyscope
+python3 clustering/analyse_scene.py <path/to/capture.ply> --confusion
+
+# Confusion matrix only (no Polyscope window)
+python3 clustering/analyse_scene.py <path/to/capture.ply> --no-viz
+
+# Auto-picks the latest capture in ~/holoassist_pointclouds/
+python3 clustering/analyse_scene.py --confusion
+```
+
+### Polyscope layers
+
+| Layer | What it shows |
+|---|---|
+| `Non-cube points` | All points outside the detected clusters — table, floor, background (grey) |
+| `Cube points (detected)` | All valid DBSCAN cluster points as a single cyan cloud |
+| `Centroids` | Small white dot at each cluster mean with 3 PCA axis arrows |
+| `GT positions` | Ground-truth cube centres from `sim_params.yaml` (white spheres) |
+| `Error lines (det → GT)` | Line from each centroid to nearest GT — **green** < 2 cm, **yellow** < 5 cm, **red** ≥ 5 cm |
+| `[diag] Removed outliers` | Points killed by statistical outlier removal (red, hidden by default) |
+| `[diag] DBSCAN noise` | Points DBSCAN labelled −1 (grey, hidden by default) |
+| `[diag] Rejected clusters` | Clusters outside the size filter (orange, hidden by default) |
+
+### Confusion matrix
+
+The confusion matrix evaluates **within the Z-crop window only** (the detectable zone),
+so FN only counts cube-surface points the algorithm could have found but didn't — not
+cube-body points that are intentionally below the crop floor.
+
+| | Predicted: Cube | Predicted: Not-cube |
+|---|---|---|
+| **Actual: Cube** | TP | FN |
+| **Actual: Not-cube** | FP | TN |
+
+A ground-truth point is labelled "actual cube" if it lies within the cube's bounding
+sphere (cube_size × √3 / 2 + 5 mm) of any GT centroid.
+
+Expected results on a clean 4-cube capture:
+
+| Metric | Value |
+|---|---|
+| Precision | ~0.99 |
+| Recall | ~0.97 |
+| F1 | ~0.98 |
+| Accuracy | ~0.96 |
 
 ---
 
