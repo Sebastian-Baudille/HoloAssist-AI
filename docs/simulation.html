@@ -27,7 +27,7 @@
         <p class="hero-eyebrow">HoloAssist-AI &mdash; Isaac Sim &mdash; Sebastian Baudille</p>
         <div class="hero-line"></div>
         <h1 class="hero-title">Isaac<br><span class="thin">Lab RL</span></h1>
-        <p class="hero-desc">GPU-vectorised RL training using NVIDIA Isaac Lab and RSL-RL PPO. 4096 parallel environments on a single RTX 4070 Ti SUPER. Two tasks: a reach task (arm to target) and a grab task (reach + close gripper + lift). Five reward design iterations uncovered and closed every exploitation loophole.</p>
+        <p class="hero-desc">GPU-vectorised RL training using NVIDIA Isaac Lab and RSL-RL PPO. 4096 parallel environments on a single RTX 4070 SUPER. Two tasks: a reach task (arm to target) and a grab task (reach + close gripper + lift). Five reward design iterations uncovered and closed every exploitation loophole.</p>
         <div class="hero-meta">
             <div><span class="hero-meta-val">4096</span>Parallel envs</div>
             <div><span class="hero-meta-val">97%</span>Grab v0</div>
@@ -48,7 +48,7 @@
         <table class="data-table">
             <thead><tr><th>Component</th><th>Value</th></tr></thead>
             <tbody>
-                <tr><td>GPU</td><td>NVIDIA RTX 4070 Ti SUPER (16 GB, Ada Lovelace)</td></tr>
+                <tr><td>GPU</td><td>NVIDIA RTX 4070 SUPER (16 GB, Ada Lovelace)</td></tr>
                 <tr><td>NVIDIA Driver</td><td>580.88 &mdash; do NOT use 595.xx</td></tr>
                 <tr><td>Isaac Sim</td><td>5.1.0 Workstation Installer at C:\isaacsim</td></tr>
                 <tr><td>Isaac Lab</td><td>main branch (targets Isaac Sim 5.1)</td></tr>
@@ -260,7 +260,7 @@ action[6]   &isin; [-1, 1]  &rarr; gripper signal (+1 = open, -1 = close)</div>
                 <tr><td><code>grab-r5-run1</code></td><td>dense_grab_v5</td><td>ON</td><td>5 cm</td><td>TBD</td><td>Ready to train</td></tr>
             </tbody>
         </table>
-        <p style="font-size:0.82rem;color:rgba(204,204,204,0.5);margin-top:0.5rem;">All runs: 4096 envs, 2500 max iterations, RSL-RL PPO. Run on Windows local GPU (RTX 4070 Ti SUPER).</p>
+        <p style="font-size:0.82rem;color:rgba(204,204,204,0.5);margin-top:0.5rem;">All runs: 4096 envs, 2500 max iterations, RSL-RL PPO. Run on Windows local GPU (RTX 4070 SUPER).</p>
 
         <h3>Run naming convention</h3>
         <div class="code-block">&lt;task&gt;-r&lt;reward_version&gt;-run&lt;N&gt;   <span class="cm">full training runs</span>

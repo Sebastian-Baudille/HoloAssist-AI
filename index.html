@@ -149,10 +149,18 @@
         .team-link-card { min-height: 100%; background:#111; padding: clamp(2rem, 4vh, 3rem) clamp(1.75rem, 2.6vw, 2.8rem); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:0.75rem; text-align:center; border-left:1px solid rgba(255,102,0,0.1); }
 
         /* ── RESULTS / BIBTEX ── */
-        .page-results .pi { background: #0d0d0d; }
-        .results-body { max-width: 820px; }
-        .results-body p { font-size: 1rem; color: var(--body); line-height: 1.8; margin-bottom: 1.1rem; max-width: 780px; }
+        .page-results .pi { background: #0d0d0d; justify-content: flex-start; }
+        .results-body {
+            width: 100%;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(420px, 0.92fr);
+            gap: 2rem 3rem;
+            align-items: start;
+        }
+        .results-copy { max-width: 820px; }
+        .results-body p { font-size: 1rem; color: var(--body); line-height: 1.8; margin-bottom: 1.1rem; max-width: none; }
         .results-body p strong { color: var(--light); font-weight: 600; }
+        .results-body .result-shot-grid { margin-top: 0; max-width: none; grid-template-columns: repeat(2, minmax(180px, 1fr)); }
         .bibtex-block { background: rgba(0,0,0,0.55); border: 1px solid rgba(255,102,0,0.14); border-left: 3px solid rgba(255,102,0,0.5); border-radius: 4px; padding: 1.5rem 1.75rem; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 0.8rem; color: #888; line-height: 1.85; overflow-x: auto; white-space: pre; margin-top: 1.25rem; }
         .bibtex-block .bk { color: var(--orange-light); }
         .bibtex-block .bv { color: var(--blue-light); }
@@ -174,6 +182,9 @@
             .feat-grid { grid-template-columns: repeat(2, 1fr); }
             .arch-layout { grid-template-columns: 1fr; gap: 2rem; }
             .tc { flex-direction: column; gap: 0.9rem; }
+            .results-body { grid-template-columns: 1fr; }
+            .results-copy { max-width: none; }
+            .results-body .result-shot-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
         }
         @media (max-width: 1024px) {
             html { scroll-snap-type: none; font-size: 18px; }
@@ -413,19 +424,19 @@
     <div class="pi">
         <div class="ph"><div class="ph-line"></div><h2>Results, Discussion &amp; Reflection</h2><p>What we achieved, what surprised us, and what we would do differently.</p></div>
         <div class="results-body">
-            <p><strong>Perception &amp; calibration:</strong> The point-cloud work deliberately did not copy the RS2 HoloAssist pipeline 1:1. The base project originally explored dense point clouds, but the resource cost pushed it toward AprilTag tracking for reliable real-time use. For HoloAssist-AI we kept a marker-free point-cloud route because centroid extraction is directly relevant to the AI pipeline, while the final hand-eye calibration still depended on an external calibration package, <code>easy_handeye2</code>. The tradeoff is accuracy and compute: tag tracking can be very precise if tag size and a high-resolution feed are available, while high-definition point clouds need cropping, filtering, clustering, and more memory bandwidth.</p>
-            <p><strong>RL training evolution:</strong> The first PPO work ran in Gazebo Classic with a large 29D observation vector. The feedback we received was consistent: the observation space looked too large, some variables were probably redundant, and the robot motion was unstable. John then ported the environment to Ignition Fortress and reduced the observation space to roughly 15D. Ollie continued working on that reduced Gazebo setup, but it still was not producing the quality of behaviour we wanted, so John moved to MuJoCo and split the problem into staged sub-policies to reduce the learning load.</p>
-            <p><strong>MuJoCo and Isaac Sim:</strong> The MuJoCo branch became more hardcoded by design: pan, locked-reach, and grasp-style sub-policies, with network sizes tuned from 64x64 to 128x128 and finally 256x256 for the final <code>panlockedreach</code> file. The pan policy stayed at 64x64 because it was effectively 1D. Sebastian trained Isaac Sim in parallel from an early PPO weighting and parameter direction; it did not directly consume MuJoCo weights, but it converged toward similar behaviour because the design intent was similar. Isaac Sim is becoming the stronger long-term path because 4096 parallel environments train far more efficiently while preserving more robot DOF.</p>
+            <div class="results-copy">
+                <p><strong>Perception &amp; calibration:</strong> The point-cloud work deliberately did not copy the RS2 HoloAssist pipeline 1:1. The base project originally explored dense point clouds, but the resource cost pushed it toward AprilTag tracking for reliable real-time use. For HoloAssist-AI we kept a marker-free point-cloud route because centroid extraction is directly relevant to the AI pipeline, while the final hand-eye calibration still depended on an external calibration package, <code>easy_handeye2</code>. The tradeoff is accuracy and compute: tag tracking can be very precise if tag size and a high-resolution feed are available, while high-definition point clouds need cropping, filtering, clustering, and more memory bandwidth.</p>
+                <p><strong>RL training evolution:</strong> The first PPO work ran in Gazebo Classic with a large 29D observation vector. The feedback we received was consistent: the observation space looked too large, some variables were probably redundant, and the robot motion was unstable. John then ported the environment to Ignition Fortress and reduced the observation space to roughly 15D. Ollie continued working on that reduced Gazebo setup, but it still was not producing the quality of behaviour we wanted, so John moved to MuJoCo and split the problem into staged sub-policies to reduce the learning load.</p>
+                <p><strong>MuJoCo and Isaac Sim:</strong> The MuJoCo branch became more hardcoded by design: pan, locked-reach, and grasp-style sub-policies, with network sizes tuned from 64x64 to 128x128 and finally 256x256 for the final <code>panlockedreach</code> file. The pan policy stayed at 64x64 because it was effectively 1D. Sebastian trained Isaac Sim in parallel from an early PPO weighting and parameter direction; it did not directly consume MuJoCo weights, but it converged toward similar behaviour because the design intent was similar. Isaac Sim is becoming the stronger long-term path because 4096 parallel environments train far more efficiently while preserving more robot DOF.</p>
+                <p><strong>Feedback-driven changes:</strong> Raphael's feedback pushed us to question PCA-style feature extraction and the practicality of teleoperation data at small scale. Pengshuo and Louis both flagged the observation vector size and redundancy problem. Louis also suggested learned pose models and trajectory-level actions, which would reduce low-level smoothness issues. Augustine's notes aligned with the PPO plus imitation-learning direction, but the robot movement quality showed that the control interface needed more work before imitation data could solve the problem.</p>
+                <p><strong>What we would do differently:</strong> We would define the observation/action contract earlier and aggressively remove correlated state before training. We would also evaluate whether trajectory actions or MoveIt-style planning, like in the RS2 HoloAssist project, are better for parts of the task than raw PPO joint deltas. For perception, we would compare the lightweight DBSCAN approach against learned pose estimators such as MegaPose or FoundationPose, but only if the target hardware can afford the additional model cost.</p>
+                <p><strong>Limitations:</strong> Full end-to-end pick-and-place was not demonstrated as one deployed policy. MuJoCo reduced the training difficulty but became more scripted and lower-DOF than Isaac Sim. Dense point clouds remain expensive, and tag tracking requires known tag size plus a sufficiently high-resolution feed. We all developed on different generations of high-end Dell XPS laptops, which means both HoloAssist projects are still difficult to deploy on lower-power field hardware without acceleration.</p>
+            </div>
             <div class="photo-row result-shot-grid" aria-label="TensorBoard result placeholders">
                 <div class="photo-slot contain-slot result-shot">
                     <img src="screenshots/tensorboard-gazebo-phasea.png" alt="Gazebo Phase A TensorBoard results" onerror="this.style.display='none'">
                     <div class="result-shot-ph"><strong>TensorBoard Placeholder</strong><span>screenshots/tensorboard-gazebo-phasea.png</span></div>
                     <div class="result-shot-label">Gazebo Phase A PPO</div>
-                </div>
-                <div class="photo-slot contain-slot result-shot">
-                    <img src="screenshots/tensorboard-mujoco_panlockedreach.png" alt="MuJoCo panlockedreach TensorBoard results" onerror="this.style.display='none'">
-                    <div class="result-shot-ph"><strong>TensorBoard Placeholder</strong><span>screenshots/tensorboard-mujoco_panlockedreach.png</span></div>
-                    <div class="result-shot-label">MuJoCo PanLockedReach</div>
                 </div>
                 <div class="photo-slot contain-slot result-shot">
                     <img src="screenshots/mujoco-latereach.gif" alt="MuJoCo late reach policy animation" onerror="this.style.display='none'">
@@ -462,10 +473,42 @@
                     <div class="result-shot-ph"><strong>TensorBoard Placeholder</strong><span>screenshots/tensorboard-isaacsim-earlyPPO.png</span></div>
                     <div class="result-shot-label">Isaac Sim Early PPO</div>
                 </div>
+                <div class="photo-slot contain-slot result-shot">
+                    <img src="screenshots/clustering.gif" alt="DBSCAN clustering animation" onerror="this.style.display='none'">
+                    <div class="result-shot-ph"><strong>Clustering GIF</strong><span>screenshots/clustering.gif</span></div>
+                    <div class="result-shot-label">DBSCAN Segmentation</div>
+                </div>
+                <div class="photo-slot contain-slot result-shot">
+                    <img src="screenshots/clusteringtest.gif" alt="Clustering test animation" onerror="this.style.display='none'">
+                    <div class="result-shot-ph"><strong>Clustering GIF</strong><span>screenshots/clusteringtest.gif</span></div>
+                    <div class="result-shot-label">Clustering Test Run</div>
+                </div>
+                <div class="photo-slot contain-slot result-shot">
+                    <img src="screenshots/rawpointcloudimage.png" alt="Raw point cloud capture" onerror="this.style.display='none'">
+                    <div class="result-shot-ph"><strong>Point Cloud</strong><span>screenshots/rawpointcloudimage.png</span></div>
+                    <div class="result-shot-label">Raw Point Cloud</div>
+                </div>
+                <div class="photo-slot contain-slot result-shot">
+                    <img src="screenshots/perceptiongazebo.png" alt="Gazebo perception capture" onerror="this.style.display='none'">
+                    <div class="result-shot-ph"><strong>Perception</strong><span>screenshots/perceptiongazebo.png</span></div>
+                    <div class="result-shot-label">Gazebo Perception View</div>
+                </div>
+                <div class="photo-slot contain-slot result-shot">
+                    <img src="screenshots/perceptionrvizpointcloud.png" alt="RViz point cloud view" onerror="this.style.display='none'">
+                    <div class="result-shot-ph"><strong>Perception</strong><span>screenshots/perceptionrvizpointcloud.png</span></div>
+                    <div class="result-shot-label">RViz Point Cloud</div>
+                </div>
+                <div class="photo-slot contain-slot result-shot">
+                    <img src="screenshots/perceptionpolyscope.png" alt="Polyscope perception point cloud view" onerror="this.style.display='none'">
+                    <div class="result-shot-ph"><strong>Perception</strong><span>screenshots/perceptionpolyscope.png</span></div>
+                    <div class="result-shot-label">Perception Polyscope</div>
+                </div>
+                <div class="photo-slot contain-slot result-shot">
+                    <img src="screenshots/calibration.png" alt="Hand-eye calibration view" onerror="this.style.display='none'">
+                    <div class="result-shot-ph"><strong>Calibration</strong><span>screenshots/calibration.png</span></div>
+                    <div class="result-shot-label">easy_handeye2 Calibration</div>
+                </div>
             </div>
-            <p><strong>Feedback-driven changes:</strong> Raphael's feedback pushed us to question PCA-style feature extraction and the practicality of teleoperation data at small scale. Pengshuo and Louis both flagged the observation vector size and redundancy problem. Louis also suggested learned pose models and trajectory-level actions, which would reduce low-level smoothness issues. Augustine's notes aligned with the PPO plus imitation-learning direction, but the robot movement quality showed that the control interface needed more work before imitation data could solve the problem.</p>
-            <p><strong>What we would do differently:</strong> We would define the observation/action contract earlier and aggressively remove correlated state before training. We would also evaluate whether trajectory actions or MoveIt-style planning, like in the RS2 HoloAssist project, are better for parts of the task than raw PPO joint deltas. For perception, we would compare the lightweight DBSCAN approach against learned pose estimators such as MegaPose or FoundationPose, but only if the target hardware can afford the additional model cost.</p>
-            <p><strong>Limitations:</strong> Full end-to-end pick-and-place was not demonstrated as one deployed policy. MuJoCo reduced the training difficulty but became more scripted and lower-DOF than Isaac Sim. Dense point clouds remain expensive, and tag tracking requires known tag size plus a sufficiently high-resolution feed. We all developed on different generations of high-end Dell XPS laptops, which means both HoloAssist projects are still difficult to deploy on lower-power field hardware without acceleration.</p>
         </div>
     </div>
 </section>
