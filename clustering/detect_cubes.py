@@ -9,7 +9,7 @@ Pipeline:
   5. DBSCAN clustering — finds clusters automatically, no k needed
   6. Size filter — reject clusters too small or large to be a cube
   7. PCA per valid cluster → centroid + orientation axes
-  8. Print world-frame centroids for DQN use
+  8. Print world-frame centroids for the PPO observation/state contract
   9. Visualise in Polyscope
 
 Usage:
@@ -272,7 +272,7 @@ def main():
               f"{p['n_points']:>7}  {nearest_name:>18}  {error:>10.4f}")
 
     print(f"\nDetected {len(cube_poses)} cube(s)")
-    print(f"DQN state vector: {centroids.flatten().round(4)}")
+    print(f"Perception state vector: {centroids.flatten().round(4)}")
 
     if not args.no_viz:
         visualise(world_points, colors, cube_pts_clean, labels, valid_ids, cube_poses)
